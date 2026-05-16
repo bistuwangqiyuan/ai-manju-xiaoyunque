@@ -1,0 +1,444 @@
+# 《聊斋·聂小倩》漫剧 10 集小云雀友好版完整分镜模板
+# 每集严格 4 段式节拍：钩子（0-3s）+ 铺垫（3-25s）+ 高潮（25-55s）+ 反转（55-70s）+ 悬念（70-90s）
+# 镜头规则：1.5-3s/镜，约 25-35 镜/集
+#
+# 【官方契约 2026-05 锁定】
+# 小云雀 duration 枚举: ["～15s", "～30s", "40～60s"]
+# 单次提交最长 60s，>60s 集自动走 chunk_renderer（2 块 + crossfade）
+
+project: 聊斋·聂小倩
+style_profile: ancient_3d_guoman_xiaoqian
+total_episodes: 10
+ratio: "9:16"                  # 官方字段名（替代 aspect_ratio）
+language: "Chinese"
+enable_watermark: false        # 商用关闭官方双水印，靠本地 ASS 自渲染
+
+# 分块策略：episode 总时长 > 60s 必须 chunked
+chunk_strategy:
+  threshold_seconds: 60
+  crossfade_seconds: 0.25
+  affects_episodes_targeting_90s: [4, 8, 9]    # 高光集走 2-chunk
+  affects_episodes_targeting_75_80s: [1, 2, 3, 5, 6, 7, 10]   # 75-80s 也需 2-chunk
+
+# ============================================================
+# 第 1 集《荒寺月夜》80s · 标准
+# ============================================================
+episodes:
+  - episode_id: ep01
+    title: 荒寺月夜
+    duration_seconds: 80
+    skylark_duration: "40～60s"   # 单 chunk 上限
+    chunked: true                  # 80s = 50s + 30s
+    chunk_split:
+      chunk_a_duration: "40～60s"  # ≈ 50s（钩子 + 铺垫 + 部分高潮）
+      chunk_b_duration: "～30s"    # ≈ 30s（反转 + 悬念）
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, yan_chixia, nie_xiaoqian]
+    scenes_in_episode: [yeshi, lanruosi]
+    signatures_check:
+      zhusha_visible: true       # 小倩出场必有
+      black_vine_visibility: 0.0
+      white_hand_appears: false
+      ghost_aura: 0.30
+    hook_3s: "黑夜，兰若寺破匾摇晃，蝙蝠惊起，一道白影从大殿飞过"
+    synopsis: |
+      宁采臣穷困投宿兰若寺，雨夜从夜市归来。
+      巧遇南舍燕赤霞，相约定交。
+      夜半月下，宁独坐案前忽窥见女郎影于壁际。
+      推门望去，月色下绝美少女回头望他。
+    twist_1: "宁鼓起勇气走近，女子转身——铜镜里竟无人影"
+    twist_2: ""
+    cliffhanger: "白影瞬间消失，案上烛火忽地灭了"
+    music_emotion_arc: neutral->mystery->awe->tension->lingering
+
+    shots:
+      - shot_id: 1
+        type: wide
+        duration_seconds: 3.0
+        scene: lanruosi
+        camera_motion: "缓慢俯冲 → 推近兰若寺破匾"
+        action_desc: "黑夜，破匾「兰若寺」三字金漆剥落，匾额摇晃；瓦缝间蝙蝠惊起飞向月亮，一道白影从大殿掠过"
+        audio_cues: ["夜风", "蝙蝠扑翅", "破匾吱呀"]
+        key_visual: "破匾 + 蝙蝠剪影 + 白影一闪"
+
+      - shot_id: 2
+        type: medium
+        duration_seconds: 2.5
+        scene: yeshi
+        camera_motion: "推近"
+        action_desc: "宁采臣穿浅灰青长袍，背书箧，撑一柄破伞，从夜市走来；雨滴打在伞上，他低头数着钱袋里所剩的几个铜板，眉头紧锁"
+        voiceover: "金华城北郊，三百年前曾是剑客修行之地，如今只剩一座破寺"
+        audio_cues: ["雨滴", "脚步水声"]
+        key_visual: "湿石板路 + 红灯笼倒影"
+
+      - shot_id: 3
+        type: wide
+        duration_seconds: 3.0
+        scene: lanruosi
+        camera_motion: "广角追随宁采臣进入山门"
+        action_desc: "宁采臣推开兰若寺山门，吱呀长响；蓬蒿没膝，夜风穿藤蔓发出呜咽；他举伞看了一眼，转身向东侧回廊走去"
+        audio_cues: ["山门吱呀", "夜风穿藤蔓呜咽"]
+        key_visual: "破朱漆山门 + 月光照入"
+
+      - shot_id: 4
+        type: medium
+        duration_seconds: 2.5
+        scene: lanruosi
+        camera_motion: "平视"
+        action_desc: "宁采臣走过南院小室，意外见扉键如新，疑惑停步；屋内有人翻书声"
+        dialogue: "（宁）此处有人？"
+        audio_cues: ["翻书声"]
+        key_visual: "南院小室 + 阶下巨池野藕"
+
+      - shot_id: 5
+        type: medium
+        duration_seconds: 3.0
+        scene: lanruosi
+        camera_motion: "侧拍"
+        action_desc: "燕赤霞推门而出，38 岁剑客，深墨色道袍 + 暗红披风，腰间革囊 + 短剑，右眉骨斜疤可见；他打量宁，眼神锐利"
+        dialogue: "（燕）夜深寺荒，公子何往？"
+        audio_cues: ["门轴吱呀"]
+        key_visual: "燕赤霞首次出场，腰间革囊特写"
+
+      - shot_id: 6
+        type: close-up
+        duration_seconds: 1.8
+        scene: lanruosi
+        camera_motion: "特写宁面部"
+        action_desc: "宁拱手，眼神憨厚带敬意"
+        dialogue: "（宁）在下浙人宁采臣，雨夜路过借宿一晚"
+        audio_cues: ["蝉鸣远处"]
+        key_visual: "宁丹凤眼 + 拱手礼"
+
+      - shot_id: 7
+        type: wide
+        duration_seconds: 3.5
+        scene: lanruosi
+        camera_motion: "拉远显示位置"
+        action_desc: "二人共饮一壶清酒于燕赤霞房中；月光从破窗斜照入；远处北院有女子低吟声隐约传来"
+        voiceover: "（旁白）那一夜，北院传出一段他从未听过的歌谣"
+        audio_cues: ["酒注入碗", "远处女子低吟"]
+        key_visual: "二人对酌 + 月光斜射"
+
+      - shot_id: 8
+        type: close-up
+        duration_seconds: 2.2
+        scene: lanruosi
+        camera_motion: "特写"
+        action_desc: "燕赤霞神色一凛，警觉抬眼望向北院方向，握紧腰间革囊"
+        audio_cues: ["女子低吟更近"]
+        key_visual: "燕赤霞警觉表情 + 革囊握紧手"
+
+      - shot_id: 9
+        type: medium
+        duration_seconds: 2.5
+        scene: lanruosi
+        camera_motion: "微抖手持"
+        action_desc: "宁采臣回到东侧回廊借住处，案前点燃一支蜡烛，铺开纸张准备读书"
+        audio_cues: ["蜡烛点燃哔剥", "纸张窸窣"]
+        key_visual: "宁案前烛火 + 影子拉长"
+
+      - shot_id: 10
+        type: close-up
+        duration_seconds: 1.8
+        scene: lanruosi
+        camera_motion: "特写宁眼神"
+        action_desc: "宁忽抬头，眼神聚焦——他瞥见东墙上有一道白色女郎影掠过！"
+        audio_cues: ["呼吸停滞 0.3s"]
+        key_visual: "宁眼神放大 + 墙上白影"
+
+      - shot_id: 11
+        type: wide
+        duration_seconds: 3.0
+        scene: lanruosi
+        camera_motion: "俯拍 / 上帝视角"
+        action_desc: "宁急起，烛火一晃，他推开门，月光下北院方向竹影摇曳——什么也没有"
+        audio_cues: ["脚步急切", "竹叶沙沙"]
+        key_visual: "月下竹影 + 空院"
+
+      - shot_id: 12
+        type: close-up
+        duration_seconds: 2.5
+        scene: lanruosi
+        camera_motion: "缓推"
+        action_desc: "宁怅然回身走向东侧回廊，月光下一个白影正从北院方向飘出——纤瘦少女背影，及腰青丝披散"
+        audio_cues: ["夜风", "纱布飘动"]
+        key_visual: "白影背影 + 青丝披散"
+
+      - shot_id: 13
+        type: medium
+        duration_seconds: 3.0
+        scene: lanruosi
+        camera_motion: "推近"
+        action_desc: "白影缓缓转身——绝美少女正面：18 岁，眉间一点朱砂痣（特写），杏眼浅蓝灰带幽光，黛眉微颦，白色襦裙浅粉缎带；她望着宁，浅浅一笑"
+        audio_cues: ["心跳一拍"]
+        key_visual: "★ 聂小倩首次正面出场，眉间朱砂痣特写"
+
+      - shot_id: 14
+        type: medium
+        duration_seconds: 2.5
+        scene: lanruosi
+        camera_motion: "正反打"
+        action_desc: "宁愣住，下意识扶住廊柱；少女后退一步，似要离去"
+        dialogue: "（宁，颤抖）姑娘......"
+        audio_cues: ["扶柱声"]
+        key_visual: "宁惊愕表情 + 小倩半步退却"
+
+      - shot_id: 15
+        type: close-up
+        duration_seconds: 2.0
+        scene: lanruosi
+        camera_motion: "特写小倩"
+        action_desc: "小倩抬眸望宁，眼神带着一丝试探，左手微抬欲招手——左手腕白玉镯半透质感可见，左肩袖口下隐约一缕鬼气环绕"
+        audio_cues: ["夜风轻"]
+        key_visual: "白玉镯半透 + 鬼气环绕（visibility 0.3）"
+
+      - shot_id: 16
+        type: medium
+        duration_seconds: 2.5
+        scene: lanruosi
+        camera_motion: "侧拍小倩"
+        action_desc: "小倩走到墙角一张古铜镜前，伸手抚镜——镜中却空无人影，只有月色背景"
+        audio_cues: ["铜镜微响"]
+        key_visual: "★ 铜镜无人影（核心 cliffhanger 钩子）"
+
+      - shot_id: 17
+        type: close-up
+        duration_seconds: 1.8
+        scene: lanruosi
+        camera_motion: "特写宁"
+        action_desc: "宁瞳孔猛缩，扶柱的手收紧，喉结颤动"
+        audio_cues: ["呼吸紊乱"]
+        key_visual: "宁惊恐瞳孔 + 喉结特写"
+
+      - shot_id: 18
+        type: wide
+        duration_seconds: 3.0
+        scene: lanruosi
+        camera_motion: "俯冲"
+        action_desc: 小倩转身飘然没入月色，案前蜡烛"嗤"一声灭了；月光透过破窗在地上洒下一片苍白
+        voiceover: "（旁白）从这一夜起，宁采臣的命运彻底改变了"
+        audio_cues: ["蜡烛灭", "夜风骤起"]
+        key_visual: "蜡烛灭 + 月光铺地"
+
+      - shot_id: 19
+        type: close-up
+        duration_seconds: 2.0
+        scene: lanruosi
+        camera_motion: "特写小倩留下的位置"
+        action_desc: "镜面渐近，月光在镜面缓缓晕开"
+        audio_cues: ["心跳 + 远处更鼓三声"]
+        key_visual: "古铜镜中月光晕染 = 悬念结尾"
+
+    subtitle_lines:
+      - { start_s: 0.0,   end_s: 3.0,  text: "金华城北 一座荒寺" }
+      - { start_s: 6.5,   end_s: 9.0,  text: "他不知道 今夜见到的是什么" }
+      - { start_s: 14.0,  end_s: 17.0, text: "（燕）夜深寺荒 公子何往" }
+      - { start_s: 17.5,  end_s: 20.0, text: "（宁）在下浙人 宁采臣" }
+      - { start_s: 27.0,  end_s: 30.0, text: "（旁白）那一夜 北院传出一段他从未听过的歌谣" }
+      - { start_s: 50.0,  end_s: 53.0, text: "（宁）姑娘..." }
+      - { start_s: 70.0,  end_s: 75.0, text: "（旁白）从这一夜起 他的命运彻底改变" }
+
+  # ============================================================
+  # 第 2 集《白衣叩窗》75s · 标准
+  # ============================================================
+  - episode_id: ep02
+    title: 白衣叩窗
+    duration_seconds: 75
+    chunked: true        # 75s = 45s + 30s
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "～30s" }
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, nie_xiaoqian, yan_chixia]
+    scenes_in_episode: [lanruosi]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.0
+      white_hand_appears: false
+      ghost_aura: 0.30
+    hook_3s: "三更，烛火忽明忽暗，宁的房门被轻叩三下"
+    synopsis: |
+      三更夜深，烛火摇曳。
+      门外传来轻叩声——小倩白衣立于门外。
+      她笑曰"月夜不寐 愿修燕好"，宁峻拒
+      "卿防物议 我畏人言；略一失足 廉耻道丧"。
+      小倩留下一锭黄金作试探。
+    twist_1: "宁怒掷黄金于阶下，黄金触地化作森森白骨"
+    twist_2: "小倩冷笑离去 此汉当是铁石，回头眼中却闪过泪光"
+    cliffhanger: "白骨在月光下化作金粉飘散"
+    music_emotion_arc: tension->awe->shock->lingering
+
+    shots: []
+    # 注：ep02-ep10 完整分镜表与 ep01 同等密度，限于篇幅本文件给出 ep01 完整版作为
+    # 工程模板；ep02-ep10 在 Shell 1 编剧管线（Claude Opus 4.7 + Gemini 2.5 Pro schema）
+    # 跑通后由 LLM 自动产出，依本 schema 校验后回灌至此 YAML。
+
+  - episode_id: ep03
+    title: 足心锥孔
+    duration_seconds: 80
+    chunked: true        # 80s = 50s + 30s
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "～30s" }
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, yan_chixia, popo_yaowu, nie_xiaoqian]
+    scenes_in_episode: [lanruosi]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.1
+      white_hand_appears: false
+      ghost_aura: 0.40
+    hook_3s: "晨光中王生父子死榻，宁伸手探鼻气若游丝"
+    synopsis: "验尸足心针孔；血液被汲；燕赤霞夜战白练（剑光泛青蓝）"
+    twist_1: "燕赤霞革囊小剑出鞘，一击中的"
+    twist_2: "白练遁去方向竟是小倩的院"
+    cliffhanger: "镜头摇向北院，月下小倩抚胸沉默"
+    music_emotion_arc: tension->climax->shock->mystery
+    shots: []
+
+  - episode_id: ep04
+    title: 十八夭殂
+    duration_seconds: 90
+    chunked: true        # 90s = 50s + 40s（高光集）
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "40～60s" }
+    premium_tier: veo_3_1_standard       # ★ 高光集精修
+    characters_in_episode: [ningcaichen, nie_xiaoqian]
+    scenes_in_episode: [lanruosi]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.3        # 高光集，黑藤首次显形
+      white_hand_appears: false
+      ghost_aura: 0.50
+    hook_3s: "小倩跪在宁榻前 泪如雨下"
+    synopsis: |
+      小倩泣诉身世：十八夭殂被姥姥胁迫，以足心针刺迷人摄血供妖（柔化为"白练入足心"）；
+      又作鬼骨为金（柔化为光效转化）；求宁掘骨归葬。
+    twist_1: "宁震惊后毅然答应"
+    twist_2: "燕赤霞默许，赠革囊以护宁"
+    cliffhanger: "小倩离去时背后浮现一道黑色藤纹瞬间消失"
+    music_emotion_arc: anguish->reveal->resolve->ominous
+    shots: []
+
+  - episode_id: ep05
+    title: 白杨乌巢
+    duration_seconds: 80
+    chunked: true        # 80s = 50s + 30s
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "～30s" }
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, yan_chixia]
+    scenes_in_episode: [baiyangshu, lanruosi]
+    signatures_check:
+      zhusha_visible: false           # 小倩本集不出场
+      black_vine_visibility: 0.4
+      white_hand_appears: false
+      ghost_aura: 0.0
+    hook_3s: "半夜 宁独自携铁锹来到白杨树下 月光透过枯枝 乌鸦惊飞"
+    synopsis: "按小倩指引找乌巢；挖出青色棺木；姥姥怒吼远处；燕赤霞退隐前留革囊与剑客之言"
+    twist_1: "燕赤霞退隐留革囊一句剑客之责已尽"
+    twist_2: "宁载骨归乡 江船夜过水面忽现一双血红眼睛"
+    cliffhanger: "船家颤声 公子 您带回来的不只是骨..."
+    music_emotion_arc: solemn->awe->tension->ominous
+    shots: []
+
+  - episode_id: ep06
+    title: 归家入门
+    duration_seconds: 75
+    chunked: true        # 75s = 45s + 30s
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "～30s" }
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, nie_xiaoqian, ningmu_hengniang]
+    scenes_in_episode: [ningjia]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.6
+      white_hand_appears: false
+      ghost_aura: 0.35
+    hook_3s: "宁母窗前缝衣 门外急促敲门"
+    synopsis: "宁将骨葬斋外；小倩魂魄追至以远房表妹身份入门；宁母初疑后亲；恒娘病重榻上"
+    twist_1: "恒娘反握小倩手 妹妹好生待我家郎君"
+    twist_2: "夜半姥姥的黑藤已经从地底悄悄爬向宁家"
+    cliffhanger: "桂花树下一道黑藤悄然探出"
+    music_emotion_arc: warmth->acceptance->tension
+    shots: []
+
+  - episode_id: ep07
+    title: 人鬼朝夕
+    duration_seconds: 80
+    chunked: true        # 80s = 50s + 30s
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "～30s" }
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, nie_xiaoqian, ningmu_hengniang]
+    scenes_in_episode: [ningjia]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.3        # 阳光下淡化
+      white_hand_appears: false
+      ghost_aura: 0.15
+    hook_3s: "黎明 小倩为宁母煎药 手腕鬼气在阳光下淡得几乎不见"
+    synopsis: "小倩侍奉病重宁母 + 病妻；逐渐获家庭信任；为宁攒钱备考；恒娘病逝"
+    twist_1: "恒娘临终把宁托付给小倩 她比我懂你"
+    twist_2: "夜深 宁与小倩第一次相拥 小倩低头 我有三件事还未告诉你"
+    cliffhanger: "三件事是什么？镜头切换屋外黑藤悄然延伸"
+    music_emotion_arc: warmth->grief->love->mystery
+    shots: []
+
+  - episode_id: ep08
+    title: 人妖殊途
+    duration_seconds: 90
+    chunked: true        # 90s = 50s + 40s（高光集）
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "40～60s" }
+    premium_tier: veo_3_1_standard       # ★ 高光集精修
+    characters_in_episode: [ningcaichen, nie_xiaoqian, popo_yaowu, ningmu_hengniang]
+    scenes_in_episode: [xitang, ningjia]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.8         # 黑藤暴起
+      white_hand_appears: false
+      ghost_aura: 0.40
+    hook_3s: "婚礼当夜 红烛通明 远处一道黑藤暴起 眼看就要刺中喜堂"
+    synopsis: "小倩自荐为妻 妾愿夫君有三子之命；婚礼亲友惊为仙；红烛之夜小倩透露 姥姥已寻来"
+    twist_1: "宁取出燕赤霞所赠革囊悬于户上"
+    twist_2: "姥姥化作如夜叉的妖物撞门而入"
+    cliffhanger: "革囊布裂 半截黑影从中突出 正咬向姥姥喉咙"
+    music_emotion_arc: joy->dread->climax->cliffhanger
+    shots: []
+
+  - episode_id: ep09
+    title: 革囊吞妖
+    duration_seconds: 90
+    chunked: true        # 90s = 50s + 40s（封神集；革囊吞妖镜头单独走 Sora 2 Pro 嫁接）
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "40～60s" }
+    premium_tier: sora_2_pro             # ★★ 封神集 Sora 2 Pro 精修
+    characters_in_episode: [ningcaichen, nie_xiaoqian, popo_yaowu, yan_chixia]
+    scenes_in_episode: [xitang]
+    signatures_check:
+      zhusha_visible: true
+      black_vine_visibility: 0.0         # 黑藤被吞噬消散
+      white_hand_appears: true           # ★ 苍白手回收
+      ghost_aura: 0.0                    # 鬼气彻底消散
+    hook_3s: "革囊裂开 一只苍白的手从中伸出 五指箍住夜叉的脖颈"
+    synopsis: "革囊中前剑客之魂将姥姥吸入囊中；声寂然；囊恢复原状"
+    twist_1: "宁与小倩相拥而泣 屋外燕赤霞身影远去"
+    twist_2: "小倩抚掌看着自己 指尖鬼气彻底消散"
+    cliffhanger: "小倩眨眼 瞳色完全人化 她真的活过来了"
+    music_emotion_arc: terror->awe->resolve->miracle->hope
+    sora2_notes: "★ 苍白手伸出革囊吞噬姥姥的那 6 秒纯文/图生镜头，可走 Sora 2 Pro 1080P；其余镜头仍走小云雀+Veo"
+    shots: []
+
+  - episode_id: ep10
+    title: 一生有你
+    duration_seconds: 75
+    chunked: true        # 75s = 45s + 30s
+    chunk_split: { chunk_a_duration: "40～60s", chunk_b_duration: "～30s" }
+    premium_tier: standard
+    characters_in_episode: [ningcaichen, nie_xiaoqian, yan_chixia, ningmu_hengniang]
+    scenes_in_episode: [ningjia, baiyangshu]
+    signatures_check:
+      zhusha_visible: true              # 但人化版的朱砂痣更温暖
+      black_vine_visibility: 0.0
+      white_hand_appears: false
+      ghost_aura: 0.0
+    hook_3s: "数年后 红榜出 宁高中进士 庄门前小倩牵着稚子来接他"
+    synopsis: "小倩诞下一子；宁登进士；纳妾后又得二子 皆有声仕途"
+    twist_1: "镜头掠过白杨树下小倩旧坟 坟上长出一朵白花花心一点朱砂"
+    twist_2: "老年燕赤霞从坟边走过 对花一拜"
+    cliffhanger: "燕赤霞身影没入山林 字幕：剑客一生 救人不求名"
+    music_emotion_arc: warmth->reflection->reverence->finale
+    shots: []

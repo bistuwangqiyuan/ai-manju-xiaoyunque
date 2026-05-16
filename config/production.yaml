@@ -1,0 +1,444 @@
+# ============================================================================
+# 漫剧产线 v5 终极选型 YAML（2026-05 选型）
+# 项目：聊斋·聂小倩 · 10 集 × 75-90s · 9:16 · 古风 3D 国漫
+# 配套：final-plan.md / research-2026-05.md / content_report.md
+# ============================================================================
+
+project:
+  name: "聊斋·聂小倩"
+  ip_status: "公版（蒲松龄 1715 卒，超 70 年保护期）"
+  episodes: 10
+  duration_per_episode_seconds: [75, 80, 80, 90, 80, 75, 80, 90, 90, 75]
+  aspect_ratio: "9:16"
+  base_resolution: "1080x1920"
+  master_resolution_top3: "2160x3840"  # 4K 母带，仅 Top 1-3 集
+  fps: 24
+  style_profile: "ancient_3d_guoman"
+  style_mix: { baishe_yuanqi: 0.60, huyao_yuehong: 0.30, wushan_wuxing: 0.10 }
+  cross_episode_arcface_target: 0.80
+
+# ============================================================================
+# Shell 1 编剧大脑（四模型分工）
+# ============================================================================
+shell1_screenwriter:
+  event_extraction:
+    provider: deepseek
+    model: deepseek-v4-pro
+    api_base: https://api.deepseek.com/v1
+    max_context_tokens: 1000000
+    temperature: 0.3
+    pricing_usd_per_M: { input: 1.74, output: 3.48, discount_until: "2026-05-31", discount_rate: 0.25 }
+    fallback: { provider: google, model: gemini-2.5-pro }
+
+  episode_writer_master:
+    provider: anthropic
+    model: claude-opus-4-7-20260413
+    api_base: https://api.anthropic.com/v1
+    max_tokens_per_episode: 8000
+    temperature: 0.7
+    pricing_usd_per_M: { input: 5, output: 25, cache_discount: 0.90, batch_discount: 0.50 }
+    fallback: { provider: anthropic, model: claude-sonnet-4-6-20260301 }
+
+  template_reformatter:
+    provider: volcengine
+    model: doubao-seed-1.6-thinking-250615
+    api_base: https://ark.cn-beijing.volces.com/api/v3
+    max_context_tokens: 256000
+    temperature: 0.5
+    pricing_cny_per_M: { input: 0.8, output: 8 }
+    fallback: { provider: alibaba, model: qwen3-max }
+
+  json_schema_validator:
+    provider: google
+    model: gemini-2.5-pro
+    api_base: https://generativelanguage.googleapis.com/v1beta
+    max_context_tokens: 2000000
+    response_mime_type: application/json
+    schema_strict_mode: true
+    pricing_usd_per_M:
+      input_le_200k: 1.25
+      input_gt_200k: 2.50
+      output_le_200k: 10
+      output_gt_200k: 15
+    fallback: { provider: openai, model: gpt-5.5 }
+
+# ============================================================================
+# Shell 2 角色资产 + 三重 ID 锁
+# ============================================================================
+shell2_character_assets:
+  num_reference_images_per_character: 14
+
+  primary_image_gen:
+    provider: volcengine
+    model: seedream-5.0-lite
+    req_key: jimeng_t2i_v50_lite
+    api_base: https://visual.volcengineapi.com
+    num_images: 8
+    aspect_ratio: "3:4"
+    deep_thinking: true
+    fallback: { provider: volcengine, model: seedream-4.0, req_key: jimeng_t2i_v40 }
+
+  variant_image_gen:
+    provider: volcengine
+    model: jimeng-image-4.6
+    req_key: jimeng_t2i_v46
+    num_images: 6
+    reference_weight: 0.85
+
+  id_lock_vector:
+    provider: bytedance
+    model: InfiniteYou
+    runtime: fal-ai
+    fal_endpoint: "fal-ai/infinite-you"
+    embedding_dim: 512
+
+  multi_id_lock:
+    provider: open-source
+    model: PuLID
+    runtime: replicate
+    replicate_endpoint: "fofr/pulid"
+    max_concurrent_characters: 4
+
+  edit_fallback:
+    provider: black-forest-labs
+    model: flux-kontext-pro
+    runtime: fal-ai
+    fal_endpoint: "fal-ai/flux-kontext/pro"
+    clip_similarity_target: 0.92
+
+# ============================================================================
+# Shell 3 视频生成（小云雀核心 + 多模型协同）
+# ============================================================================
+shell3_video_generation:
+  # ★ 主路：整集量产（官方文档 2026-05 锁定）
+  primary_engine:
+    provider: volcengine
+    name: skylark_agent_v20_pippit_iv2v_with_vinput
+    req_key: "pippit_iv2v_v20_cvtob_with_vinput"   # ★ 官方真值（单值，无 fallback）
+    api_base: https://visual.volcengineapi.com
+    api_action_submit: CVSync2AsyncSubmitTask
+    api_action_query: CVSync2AsyncGetResult
+    api_version: "2022-08-31"
+    region: cn-north-1
+    service: cv
+    pricing_credits_per_second: 11
+    pricing_cny_per_credit: 0.0325                 # 39 元 / 1200 积分
+    pricing_basis: "(输入视频总时长 + 输出视频时长) × 单价"
+
+    # ---- 官方字段契约（v2026-05）----
+    ratio_enum: ["16:9", "9:16", "4:3", "3:4"]
+    ratio_default: "9:16"
+    duration_enum: ["～15s", "～30s", "40～60s"]    # ★ 单次最长 60s（>60s 走 chunk_renderer）
+    duration_default: "40～60s"
+    language_default: "Chinese"
+    enable_watermark: false                        # 商用：关掉官方双水印，靠本地 ASS+ffmpeg 自渲染合规水印
+    max_prompt_chars: 2000
+    max_refs_combined: 50                          # img + video ≤ 50
+    max_img_size_mb: 20
+    max_img_resolution: 4096
+    max_video_duration_seconds: 180
+    max_video_size_mb: 200
+
+    # ---- 异步任务约束 ----
+    video_url_ttl_hours: 1                         # ★ 官方：1h（必须立即转存）
+    task_id_ttl_hours: 12                          # ★ 官方：12h
+    poll_interval_seconds: 10
+    timeout_seconds: 2400
+    concurrent_limit: 8
+
+    # ---- 错误码分类（重试策略）----
+    retryable_codes: [50429, 50430, 50500, 50501, 50511]
+    audit_fatal_codes: [50411, 50412, 50413, 50512, 50513, 50514]
+
+    # ---- 隐式 AIGC 元数据（查询时通过 req_json 传入）----
+    aigc_meta_embed_on_query: true
+    aigc_meta_verify_url: https://www.gcmark.com/web/index.html#/mark/check/video
+
+  # ---- 分块策略（>60s 集自动走 2 chunk）----
+  chunk_strategy:
+    enable: true
+    threshold_seconds: 60
+    crossfade_seconds: 0.25
+    tail_frame_offset_seconds: -0.5
+    affects_episodes: [4, 8, 9]    # 90s 高光集
+
+  multi_character_scene:
+    provider: volcengine
+    model: seedance-2.0-pro
+    model_id: doubao-seedance-2-0-260128
+    api_base: https://ark.cn-beijing.volces.com/api/v3
+    use_for: "@引用系统多角色互动 / 武打群戏"
+    max_duration_seconds: 15
+    pricing_cny_per_second: 1.0
+
+  action_motion_transfer:
+    provider: alibaba
+    model: wan-2.2-animate
+    api_base: https://dashscope.aliyuncs.com/api/v1
+    use_for: "武打动作迁移（真人驱动古装角色）"
+    pricing_usd_per_second: 0.0717  # 480P
+
+# ============================================================================
+# Shell 4 质检 + 5 道修复
+# ============================================================================
+shell4_qa_repair:
+  vlm_per_shot:
+    provider: volcengine
+    model: doubao-seed-1.6-vision-250815
+    api_base: https://ark.cn-beijing.volces.com/api/v3
+    checks:
+      - "主角脸是否与参考图一致"
+      - "是否有越轴 / 180 度规则违反"
+      - "肢体是否完整（手指数、关节方向）"
+      - "嘴型是否对齐音频"
+      - "画面文字是否乱码 / 英文夹杂"
+      - "服装层次 / 配饰是否一致"
+      - "三大原创锁定符号是否在位：眉间朱砂痣 / 左肩黑藤 / 革囊苍白手"
+    pricing_cny_per_M: { input: 0.8, output: 8 }
+
+  scene_logic_check:
+    provider: volcengine
+    model: doubao-seed-1.6-thinking-250615
+    use_for: "剧情漏洞 / 物理常识 / 时空连续性"
+
+  arcface_check:
+    provider: open-source
+    model: insightface-buffalo_l
+    runtime: local
+    threshold_min: 0.78
+    threshold_target: 0.80
+    embedding_dim: 512
+
+  text_ocr_check:
+    provider: alibaba
+    model: qwen-vl-max
+    use_for: "中文字幕 / 画面文字乱码检测"
+
+  intl_long_video_audit:
+    provider: google
+    model: gemini-2.5-pro
+    use_for: "海外发行多语字幕 / 长视频审"
+
+  # 5 道修复路由
+  repair_routes:
+    face_drift:
+      primary: { provider: alibaba, model: wan-2.7-flf-14b, license: "Apache 2.0" }
+      fallback: { provider: bytedance, model: InfiniteYou }
+    closeup_lipsync:
+      primary: { provider: hedra, model: character-3, lipsync_target: 0.95 }
+      fallback: { provider: bytedance, model: omnihuman-1.5 }
+    costume_drift:
+      primary: { provider: black-forest-labs, model: flux-kontext-pro }
+    cross_show_style:
+      primary: { provider: runway, model: aleph, mode: v2v }
+    motion_axis_violation:
+      primary: { provider: volcengine, model: seedance-2.0-standard }
+      fallback: { provider: kling, model: kling-2.5-master }
+    climax_enhance:
+      primary: { provider: google, model: veo-3.1-fast }
+      top_tier: { provider: google, model: veo-3.1-standard }
+      top_god_tier: { provider: openai, model: sora-2-pro-1080p, no_face_upload: true }
+
+  shot_regenerate_max_attempts: 3
+
+# ============================================================================
+# Shell 5 后期（TTS / BGM / SFX / 字幕 / 4K 上采）
+# ============================================================================
+shell5_post_production:
+  tts:
+    voice_clone:
+      provider: volcengine
+      model: doubao-seed-tts-2.0-icl
+      api_base: https://openspeech.bytedance.com
+      similarity_target: 0.975
+      first_packet_latency_ms_max: 300
+      pricing_cny_per_10k_chars: { min: 4.9, max: 6.5 }
+      voice_yearly_subscription_cny: 150
+    voice_emotion_boost:
+      provider: minimax
+      model: speech-2.5-hd
+      pricing_usd_per_1k_chars: 0.08
+      use_for: "高情感张力角色（小倩泣诉 / 燕赤霞慷慨）"
+    voice_international:
+      provider: elevenlabs
+      model: eleven_multilingual_v3
+      pricing_usd_per_1k_chars: 0.10
+      languages: [en, ja, ko]
+
+  bgm:
+    main:
+      provider: elevenlabs
+      model: eleven-music-v1
+      api_base: https://api.elevenlabs.io/v1
+      pricing_usd_per_minute: 0.30
+      use_for: "主路 BGM（版权干净）"
+      max_duration_seconds: 240
+      instrumental: true
+    chinese_guofeng:
+      provider: 163-music
+      model: tianyin-enterprise
+      pricing_cny_per_month_enterprise: 12000
+      pricing_cny_per_month_vip: 98
+      use_for: "中文古风国乐（B站国漫频道）"
+    theme_song:
+      provider: suno
+      model: chirp-fenix-v5.5
+      tier: Premier
+      pricing_usd_per_month: 30
+      with_lyrics: true
+      use_for: "主题曲 + 片尾曲"
+
+  sfx:
+    primary:
+      provider: elevenlabs
+      model: sound-effects
+      pricing_usd_per_request: 0.12
+      max_duration_seconds: 30
+    fallback:
+      provider: stability
+      model: stable-audio-2.5
+
+  subtitle:
+    renderer: local-ass
+    font_primary: "思源黑体 CN Bold"
+    font_size_pt: 18  # 1080P
+    stroke_px: 2
+    stroke_color: "#000000"
+    fill_color: "#FFFFFF"
+    position: "bottom-center, margin 120px"
+    max_chars_per_line: 14
+    max_duration_per_line_seconds: 4
+    contrast_ratio_min: 4.2
+
+  cover:
+    chinese:
+      provider: volcengine
+      model: seedream-4.0
+      req_key: jimeng_t2i_v40
+      use_for: "中文标题海报"
+    english:
+      provider: ideogram
+      model: ideogram-3.0-quality
+      use_for: "海外英文标题海报"
+
+  upscaler_4k:
+    provider: google
+    model: veo-3.1-upscaler
+    target_resolution: 2160x3840
+    apply_to_episodes: [1, 4, 9]  # Top 1-3 集
+
+  encoder:
+    binary: ffmpeg
+    video_codec: libx264
+    crf: 18
+    preset: slow
+    audio_codec: aac
+    audio_bitrate: 192k
+    bgm_volume: 0.25
+    sfx_volume: 0.45
+    dialogue_volume: 1.0
+    container: mp4
+    pixel_format: yuv420p
+
+# ============================================================================
+# 合规与限流
+# ============================================================================
+compliance:
+  aigc_label_required: true                    # 国标 2025/09 强制
+  aigc_meta_tagged_check_response_field: true  # 小云雀响应必查字段
+  c2pa_embed: true
+  synthid_embed: true
+  visible_watermark_text: "AI 生成"
+  visible_watermark_position: "bottom-right"
+  guangdian_filing_required: true              # 广电总局 2026/04/01 新规
+  filing_category: "其他类（300 万以下成本，地方备案）"
+
+  copyright_avoidance:
+    xuke_87_forbidden_elements:
+      - "长舌树妖姥姥外观"
+      - "浴桶之吻"
+      - "黑山老妖宇宙观"
+      - "聂小倩投胎转世结局"
+    original_replacements:
+      - "6 条黑藤根 + 白杨虚影（替代长舌妖）"
+      - "月下溪水浣纱（替代浴桶吻）"
+      - "革囊中前剑客之魂（替代黑山老妖）"
+      - "鬼气消散真的活过来（原著结局，更感人）"
+
+  platform_red_lines:
+    douyin_kuaishou:
+      - "禁血腥（足心锥刺 → 白练入足心虚化）"
+      - "禁性暗示（小倩勾引 → 月下相邀）"
+      - "禁宣扬迷信（妖物有逻辑可解释）"
+    sora2_api:
+      - "禁上传他人脸照（含动漫风）"
+      - "Sora 2 仅用 ep09 纯文/图生封神镜头"
+
+# ============================================================================
+# 三大原创视觉锁定符号（跨集识别 + 版权安全）
+# ============================================================================
+visual_signatures:
+  nie_xiaoqian_zhusha:
+    description: "聂小倩眉间一点朱砂痣（圆点直径 3mm）"
+    appears_in_episodes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    color_hex: "#C5283D"
+    must_appear_every_shot: true
+
+  popo_black_vine:
+    description: "聂小倩左肩黑色藤纹束缚标记"
+    appears_in_episodes: [4, 5, 6, 7, 8]
+    visibility:
+      ep04: "0.3 隐约可见"
+      ep05: "0.4"
+      ep06: "0.6"
+      ep07: "0.3 阳光下淡化"
+      ep08: "0.8 黑藤暴起"
+    fully_dissolved_at: ep09  # 第 9 集鬼气消散
+
+  jianke_white_hand:
+    description: "革囊中伸出的苍白剑客之手（前剑客之魂）"
+    foreshadowed_in: [5, 6, 7]
+    fully_revealed_in: ep09
+
+# ============================================================================
+# 成本与产能
+# ============================================================================
+budget:
+  cny_per_episode_min: 56
+  cny_per_episode_max: 72
+  cny_total_10_episodes: 866   # 含 3 集高光精修 + 主题曲摊销 + 备案
+  cny_top_episodes_premium:    # Top 集额外成本
+    ep04: 16  # Veo 3.1 Standard 精修
+    ep08: 16  # Veo 3.1 Standard 精修
+    ep09: 30  # Sora 2 Pro 1080P 封神
+  contingency_budget_pct: 0.30  # 失败重生预算 30%
+
+production_capacity:
+  episode_render_minutes_avg: 35
+  concurrent_tasks_max: 8
+  daily_throughput_episodes: [50, 80]
+  monthly_throughput_episodes: [1500, 2000]
+
+# ============================================================================
+# 监控与告警
+# ============================================================================
+monitoring:
+  arcface_drift_alert_threshold: 0.75  # 跌破 0.75 立刻告警
+  shot_regenerate_rate_alert: 0.50     # >50% 镜头需重生时告警
+  api_5xx_alert_threshold: 0.05
+  cost_per_episode_alert_threshold_cny: 100  # 超 ¥100 告警
+
+# ============================================================================
+# 输出路径
+# ============================================================================
+paths:
+  data_root: ./data
+  characters_dir: ./data/characters
+  scenes_dir: ./data/scenes
+  style_dir: ./data/style
+  voices_dir: ./data/voices
+  episodes_dir: ./data/episodes
+  covers_dir: ./data/covers
+  master_4k_dir: ./data/master_4k
+  prompts_dir: ./prompts
+  logs_dir: ./logs

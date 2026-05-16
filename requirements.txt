@@ -1,0 +1,32 @@
+# AI 漫剧产线 v5 — Python 依赖清单
+
+# ---- 核心依赖 ----
+PyYAML>=6.0.1                 # 配置 / prompt YAML 解析
+Pillow>=10.4.0                # 封面文字层 + 帧抽取
+requests>=2.32.0              # HTTP（部分 SDK 已直接 urllib）
+
+# ---- 火山引擎 SDK（小云雀 + Seedance + Seedream） ----
+volcengine-python-sdk>=3.0.0  # 包含 visual.VisualService
+
+# ---- LLM SDK（推荐用官方 SDK 替代裸 HTTP） ----
+anthropic>=0.40.0             # Claude Opus 4.7
+openai>=1.55.0                # GPT-5 / Sora 2（替换 / 备用）
+google-generativeai>=0.8.0    # Gemini 2.5 Pro
+
+# ---- 一致性 / 质检 ----
+insightface>=0.7.3            # ArcFace 离线人脸相似度（可选）
+onnxruntime>=1.20.0           # InsightFace 后端
+numpy>=1.26.0                 # 嵌入向量计算
+
+# ---- 视频后期 ----
+ffmpeg-python>=0.2.0          # ffmpeg 命令封装（可选，主路径直接 subprocess）
+
+# ---- 开发与测试 ----
+pytest>=8.3.0
+pytest-mock>=3.14.0
+black>=24.10.0
+ruff>=0.7.0
+
+# ---- 监控（可选） ----
+loguru>=0.7.2                 # 比 stdlib logging 更友好的彩色输出
+rich>=13.9.0                  # 进度条 / 表格

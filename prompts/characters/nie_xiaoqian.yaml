@@ -1,0 +1,82 @@
+id: nie_xiaoqian
+name_zh: 聂小倩
+role: 女主角（核心人物）
+appearance_in_episodes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# ---------------- 外貌锁定 ----------------
+age: 18
+height_cm: 165
+body: |
+  纤瘦轻盈，腰肢柔曼，鬼魅期手腕透薄阳光可透；
+  第 9 集"鬼气消散"后皮肤恢复血色，体态略丰润
+hair: |
+  及腰青丝，前额留齐刘海，两侧编两股细辫盘于头顶，
+  其余青丝垂落；发饰：白玉桃簪 + 一缕白绫；
+  发丝高光：偏冷青光泽，鬼魅期更冷
+eye: |
+  杏眼大而清澈，黛眉颦颦；
+  鬼魅期：瞳色偏浅蓝灰（带淡淡幽光），眼眶微红；
+  ep07 始：瞳色逐渐回暖为深棕；
+  ep09 末：瞳色完全人化
+attire: |
+  鬼魅期（ep01-08）：白色襦裙 + 浅粉缎带，外披一层薄纱披帛随风飘动；
+  人化期（ep09 末 - ep10）：浅粉襦裙 + 朱红腰带，更明亮鲜活；
+  喜服（ep08-09）：朱红霞帔 + 凤纹绣样
+
+accessories:
+  - 鬼魅期：左手腕一枚白玉镯（半透感）
+  - 人化期：白玉镯 + 右手腕加一只红绳手链（宁采臣赠）
+  - ep10：抱孩童布偶（暗示已生子）
+
+weapon: 无（道具：ep05 一支白磷烛 / ep08 婚礼红盖头）
+
+voice: |
+  鬼魅期：清冷空灵女音，略带回声混响（后期 reverb 0.2）；
+  人化期：温暖少女音，无回声；建议复刻 ID voice_xiaoqian_v1
+voice_actor_style: "类王祖贤气声 / 江疏影低音区"
+
+# ---------------- 三大原创锁定符号（永不漂移）★ ----------------
+signature_marks:
+  - "★ 眉间一点朱砂痣（圆点直径 3mm，颜色 #C5283D，每镜可见）"
+  - "★ 左肩黑色藤纹束缚标记（visibility 见 episode_visibility_map）"
+  - "颈侧左下 0.5cm 一颗黑色小痣（与右脸颊酒窝呼应）"
+  - "右手腕鬼气环绕（鬼魅期；ep07 阳光下淡化；ep09 末消散）"
+
+# Black-vine visibility per episode (visibility 0-1)
+episode_visibility_map:
+  ep01: { black_vine: 0.0,  ghost_aura: 0.30, eye_blue: 0.40 }
+  ep02: { black_vine: 0.0,  ghost_aura: 0.30, eye_blue: 0.40 }
+  ep03: { black_vine: 0.1,  ghost_aura: 0.40, eye_blue: 0.50 }
+  ep04: { black_vine: 0.3,  ghost_aura: 0.50, eye_blue: 0.50 }
+  ep05: { black_vine: 0.4,  ghost_aura: 0.45, eye_blue: 0.45 }
+  ep06: { black_vine: 0.6,  ghost_aura: 0.35, eye_blue: 0.40 }
+  ep07: { black_vine: 0.3,  ghost_aura: 0.15, eye_blue: 0.25 }
+  ep08: { black_vine: 0.8,  ghost_aura: 0.40, eye_blue: 0.30 }
+  ep09: { black_vine: 0.0,  ghost_aura: 0.00, eye_blue: 0.00 }   # 大爆发后完全消散
+  ep10: { black_vine: 0.0,  ghost_aura: 0.00, eye_blue: 0.00 }
+
+# ---------------- Seedream 5.0 主图 prompt 前缀 ----------------
+seedream_prompt_prefix: |
+  古风3D国漫风格女主角"聂小倩"，18 岁女鬼，
+  眉间一点朱砂痣（永远可见，#C5283D），
+  杏眼浅蓝灰带幽光，黛眉颦颦，
+  及腰青丝齐刘海两股细辫盘顶白玉桃簪，
+  白色襦裙 + 浅粉缎带 + 薄纱披帛飘逸感，
+  左肩有淡淡黑色藤纹束缚标记（visibility 0.3），
+  左手腕白玉镯半透质感，
+  皮肤偏冷青鬼气环绕（visibility 0.3-0.5），
+  cel-shading 卡通描边 + Unreal Engine 5 路径追踪，
+  冷青 + 月白 + 朱砂主色调。
+
+# ---------------- 即梦 4.6 变体 prompt ----------------
+jimeng_variant_prompt: |
+  聂小倩 6 张变体：(1) 月下回眸惊鸿一瞥；
+  (2) 三更白衣叩门浅笑；
+  (3) 泣诉身世掩面低泣（露出眉间朱砂痣特写）；
+  (4) 月下指向白杨树轻抚黑藤；
+  (5) 喜服红妆持红盖头（黑藤暴起 visibility 0.8）；
+  (6) 人化后阳光下温暖微笑抱稚子。
+  保持眉间朱砂痣 + 左肩黑藤 + 白玉镯 三大锁定符号。
+
+preset_canonical_images: []
+preset_variant_images: []

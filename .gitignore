@@ -1,0 +1,50 @@
+# AI 漫剧产线 — gitignore
+
+# ===== Secrets =====
+.env
+.env.local
+*.pem
+*.key
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ===== Runtime data =====
+data/storage/
+data/episodes/
+data/_debug/
+data/pilot_short_skylark/
+data/pilot_short_skylark.bak_*/
+data/characters/*/
+data/scenes/*/
+data/style/reference_jpgs/
+data/voices/
+data/covers/
+data/master_4k/
+data/work/
+data/.skylark_req_key.json
+logs/
+
+# ===== IDE =====
+.claude/
+.cursor/
+.vscode/
+.idea/
+*.swp
+
+# ===== OS =====
+.DS_Store
+Thumbs.db

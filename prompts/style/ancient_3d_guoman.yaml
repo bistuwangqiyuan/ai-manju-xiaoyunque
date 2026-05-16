@@ -1,0 +1,93 @@
+# 古风 3D 国漫复合风格锚点（聂小倩专用）
+# 来源：content_report.md §B 风格混合公式
+
+style_id: ancient_3d_guoman_xiaoqian
+display_name: "古风 3D 国漫·聊斋聂小倩"
+version: 1.0
+mix_ratio:
+  baishe_yuanqi: 0.60       # 《白蛇：缘起》追光动画
+  huyao_yuehong: 0.30       # 《狐妖小红娘·月红篇》
+  wushan_wuxing: 0.10       # 《雾山五行》（仅打斗段水墨撞色）
+
+# ---------------------------------------------------------------------
+# 主 prompt 锚点（小云雀 / Seedance / 即梦通用）
+# ---------------------------------------------------------------------
+prompt_lock: |
+  画风：古风 3D 国漫，质感如《白蛇：缘起》（追光动画）+《狐妖小红娘·月红篇》+《雾山五行》打斗段；
+  渲染：Unreal Engine 5 路径追踪 + cel-shading 卡通描边，皮肤 SSS 次表面散射，毛发 Marschner 各向异性高光；
+  光影：林间斑驳光、月色雾气、雨夜湿石板反光、烛火暖橘 + 冷青对比；
+  色调：以冷青（#1F3A4E）+ 月白（#E8E4D4）+ 朱砂（#C5283D）为主，妖物 / 鬼气场景增加墨绿（#2A4034）；
+  构图：东方留白与黄金分割 1.618 结合，前景人物 50-60% 画面占比，景深虚化背景；
+  服化：宋明衣饰，襦裙、广袖、革带、玉佩、青丝挽髻，纹样为缠枝莲、云雷纹；
+  禁忌：禁日系大眼小嘴（如京阿尼）；禁迪士尼大眼睛 3D；禁写实电影感（如 Veo 默认）；禁画面文字（字幕本地 ASS 渲染）。
+
+# ---------------------------------------------------------------------
+# 负面 prompt（统一拒绝）
+# ---------------------------------------------------------------------
+negative_prompt: |
+  日系动漫 anime style, Disney 3D, Pixar style, photo-realistic, low quality, blurry,
+  watermark, text on screen, English subtitles, modern clothing, deformed hands,
+  extra fingers, fused fingers, multiple heads, face distortion, asymmetric eyes,
+  cgi plastic skin, oversaturated colors, broken anatomy
+
+# ---------------------------------------------------------------------
+# 参考图（用作 style_reference）
+# ---------------------------------------------------------------------
+reference_image_sources:
+  - description: "《白蛇：缘起》许宣中景，月下竹影"
+    use_for: "整体冷青基调"
+  - description: "《狐妖小红娘·月红篇》月红夜行"
+    use_for: "古风3D仙气 + 飘逸感"
+  - description: "《雾山五行》打斗水墨撞色"
+    use_for: "ep03 / ep05 / ep08 / ep09 战斗段"
+  - description: "《大鱼海棠》水墨工笔"
+    use_for: "ep04 抒情独白"
+  - description: "《白蛇 2：青蛇劫起》雨夜竹林"
+    use_for: "ep01 兰若寺月夜"
+
+local_reference_images:  # 项目自备 16-32 张精选 reference jpg
+  path: "./data/style/reference_jpgs/"
+
+# ---------------------------------------------------------------------
+# 镜头语法（供分镜大脑参考）
+# ---------------------------------------------------------------------
+shot_grammar:
+  base_shot_seconds: [1.5, 3.0]
+  transition_rate_per_minute: 3.2
+  intense_combat_cuts_per_second: [2.3, 3.0]
+  golden_3s_rule: true              # 前 3s 必须强冲击点
+  voiceover_density_chars_per_s: [8, 12]
+  camera_motions:
+    push_in:    "缓慢推近，焦点收束"
+    pull_back:  "拉远揭示空间"
+    pan_left:   "左移摇镜，揭示新元素"
+    crane_down: "俯冲下移，临近角色"
+    handheld:   "微抖手持，紧张感"
+    static:     "固定镜头，留白"
+  preferred_lens:
+    close_up:  "85mm f/1.4 浅景深"
+    medium:    "50mm f/2.0"
+    wide:      "24mm f/4.0"
+
+# ---------------------------------------------------------------------
+# 风格自适应（不同集场景的微调）
+# ---------------------------------------------------------------------
+episode_overrides:
+  ep01:
+    palette_bias: "冷青 + 月白 + 烛火橘"
+    extra_keywords: "兰若寺荒废感，藤蔓覆瓦"
+  ep03:
+    palette_bias: "墨绿 + 血色"
+    extra_keywords: "白练入足心虚化（避血腥）"
+  ep04:
+    palette_bias: "朱砂 + 月白 + 泪痕反光"
+    extra_keywords: "小倩泣诉，特写眉间朱砂痣"
+  ep05:
+    palette_bias: "冷青 + 墨绿"
+    extra_keywords: "白杨枯枝 + 月下掘骨"
+  ep08:
+    palette_bias: "暖橘 + 黑藤墨绿对撞"
+    extra_keywords: "婚礼喜堂 + 黑藤暴起 撞色冲击"
+  ep09:
+    palette_bias: "金红 + 月白 + 鬼气消散白雾"
+    extra_keywords: "革囊吞妖，加 10% 雾山五行水墨撞色"
