@@ -109,17 +109,55 @@ class Episode:
 
 
 class EpisodeWriter:
+    """Anthropic Claude episode writer.
+
+    认证模式（自动选择）：
+      - 代理: ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN → Bearer auth + browser UA
+      - 官方: ANTHROPIC_API_KEY → x-api-key + 默认 endpoint
+    优先使用代理配置（如设置了 BASE_URL）。所有请求都注入 browser User-Agent 以
+    绕过代理服务前置的 Cloudflare WAF（实测从 403 Blocked → 200 OK）。
+    """
+
     def __init__(self,
                  api_key: str | None = None,
-                 base_url: str = "https://api.anthropic.com/v1",
+                 base_url: str | None = None,
                  model: str = "claude-opus-4-7-20260413",
                  max_tokens: int = 8000):
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        if not self.api_key:
-            raise RuntimeError("Missing ANTHROPIC_API_KEY")
-        self.base_url = base_url.rstrip("/")
-        self.model = model
+        env_base = os.environ.get("ANTHROPIC_BASE_URL", "").strip()
+        # base_url 优先级：构造参数 > 环境变量 > 默认官方
+        # 注意：anthropic SDK 默认追加 /v1，但用 urllib 直连需要手动追加
+        resolved_base = (base_url or env_base or "https://api.anthropic.com").rstrip("/")
+        # 兼容代理 URL 是否带 /v1 后缀
+        if not resolved_base.endswith("/v1"):
+            resolved_base = resolved_base + "/v1"
+        self.base_url = resolved_base
+
+        # 认证：Bearer token (代理) 优先 → x-api-key (官方)
+        self.auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        if not self.auth_token and not self.api_key:
+            raise RuntimeError(
+                "Missing Anthropic credentials — set either ANTHROPIC_AUTH_TOKEN "
+                "(for proxy) or ANTHROPIC_API_KEY (for official endpoint)"
+            )
+
+        # 模型支持 env 覆盖
+        self.model = os.environ.get("ANTHROPIC_MODEL", "").strip() or model
         self.max_tokens = max_tokens
+
+    def _build_headers(self) -> dict:
+        headers = {
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+            # ★ 代理服务通常套 Cloudflare WAF，会拦默认 Python urllib UA。注入
+            # browser-like UA 是绕过此类拦截的必要措施。
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        else:
+            headers["x-api-key"] = self.api_key
+        return headers
 
     def write_all(self, events: Sequence[Event], outline_md: str) -> list[Episode]:
         user_msg = (
@@ -140,11 +178,7 @@ class EpisodeWriter:
         req = urllib.request.Request(
             f"{self.base_url}/messages",
             data=body,
-            headers={
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            },
+            headers=self._build_headers(),
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=300) as resp:

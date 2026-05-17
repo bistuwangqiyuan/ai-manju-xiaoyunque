@@ -81,7 +81,14 @@ def ffprobe_streams_format(path: str | pathlib.Path) -> dict[str, Any]:
         "-of", "json",
         str(path),
     ]
-    proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    # ★ Windows zh-CN 必须显式 encoding="utf-8"：ffprobe `-of json` 永远输出 UTF-8，
+    # 但 subprocess.run(text=True) 默认用系统 locale（cp936/GBK），遇到 UTF-8 中
+    # 多字节字符（如 © 0xa9 / 中文）会触发 UnicodeDecodeError。errors="replace"
+    # 兜底任何意外字节，防止 stdout 变 None 导致 json.loads(None) 报 TypeError。
+    proc = subprocess.run(
+        cmd, check=True, capture_output=True,
+        text=True, encoding="utf-8", errors="replace",
+    )
     return json.loads(proc.stdout)
 
 

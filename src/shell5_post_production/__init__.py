@@ -8,7 +8,9 @@ from .cover_seedream import build_cover
 from .upscale_veo31 import Veo31Upscaler
 from .ffmpeg_compose import compose_final
 from .cinematic_master import (
+    MasterConfig,
     MasterError,
+    cyberpunk_v1_config,
     master,
     select_chinese_bold_font,
 )
@@ -30,7 +32,9 @@ __all__ = [
     "build_cover",
     "Veo31Upscaler",
     "compose_final",
+    "MasterConfig",
     "MasterError",
+    "cyberpunk_v1_config",
     "master",
     "select_chinese_bold_font",
     "ffprobe_streams_format",
