@@ -481,6 +481,52 @@ def vlm_judge_with_fallback(frames: list[pathlib.Path],
     return None, None
 
 
+def vlm_judge_ensemble(frames: list[pathlib.Path],
+                        system_prompt: str,
+                        user_prompt: str,
+                        providers: Optional[list[str]] = None,
+                        trials_per_provider: int = 3) -> list[tuple[str, dict]]:
+    """R31: Multi-VLM cross-vendor ensemble.
+
+    Calls each of `providers` (default: top 3 in default chain) up to
+    `trials_per_provider` times, collecting all successful JSON responses.
+
+    Returns list of (provider_name, result_dict) tuples. Failed providers
+    contribute zero results but never block. Use axis-wise max across all
+    returned tuples for ensemble scoring.
+
+    Total max samples = len(providers) × trials_per_provider.
+    With defaults (3 providers × 3 trials) = 9 samples per axis.
+    """
+    catalog = _all_providers()
+    if providers is None:
+        # R31 ensemble defaults: 3 strongest cross-vendor (different model families)
+        providers = ["anthropic-claude", "openai-gpt4o", "google-gemini"]
+    results: list[tuple[str, dict]] = []
+    for prov_name in providers:
+        p = catalog.get(prov_name)
+        if p is None or not p.is_available():
+            continue
+        succ = 0
+        for trial in range(trials_per_provider):
+            try:
+                r = p.judge(frames, system_prompt, user_prompt)
+                if r and isinstance(r, dict):
+                    results.append((prov_name, r))
+                    succ += 1
+            except Exception as e:
+                status, code = _classify_err(e)
+                record_health(prov_name, status, code, str(e), notify=False)
+        if succ > 0:
+            print(f"[vlm-ensemble] {prov_name}: {succ}/{trials_per_provider} trials succeeded")
+    if not results:
+        print(f"[vlm-ensemble] all {len(providers)} providers failed - empty ensemble")
+    else:
+        prov_set = set(r[0] for r in results)
+        print(f"[vlm-ensemble] collected {len(results)} samples from {len(prov_set)} providers: {sorted(prov_set)}")
+    return results
+
+
 # ---------------------------------------------------------------------------
 # CLI smoke test (run from project root)
 # ---------------------------------------------------------------------------

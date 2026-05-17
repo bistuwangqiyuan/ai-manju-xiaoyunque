@@ -30,7 +30,8 @@ EPISODES: list[dict] = [
         "title": "花果山·仙石异变",
         "scene_summary": "花果山顶仙石历日月精华亿万年,石面浮现金色纹路微震,大地灵气升腾,众小猴远观惊奇",
         "act": "Setup — Inciting incident",
-        "prompt": """A cinematic still frame from a Chinese mythological 3D animation: an ancient immortal stone glowing softly at the peak of a sacred mountain bathed in golden sunrise mist, sun and moon trails leaving golden and silver ribbons in time-lapse sky, cool jade-green and warm gold palette, photorealistic 35mm film grain, mystical epic atmosphere. 古风3D国漫竖屏9:16,Unreal5路径追踪+cel-shading描边,中国神话美学(白蛇缘起60%质感+哪吒之魔童降世30%+大圣归来10%)。
+        # R16 refine: 加强戏剧光照(golden hour rim light + lens flare)以提升 LAION+genre
+        "prompt": """A breathtaking cinematic still frame from a Chinese mythological 3D animation: an ancient glowing immortal stone at the summit of a sacred mountain, dramatic golden-hour rim lighting with anamorphic lens flare, sun and moon trails leaving golden and silver ribbons across a time-lapse sky, swirling celestial mist, cool jade-green shadows with intense warm gold highlights, IMAX-grade composition, photorealistic 35mm film grain, mystical epic atmosphere. 古风3D国漫竖屏9:16,Unreal5路径追踪+cel-shading描边,中国神话史诗美学(白蛇缘起60%质感+哪吒之魔童降世30%+大圣归来10%)。
 
 【0-3s KICK】东胜神洲傲来国花果山顶日出,云海翻涌金色霞光,顶峰一块巨型青玉色仙石(高约一丈半,圆形如蟠桃,表面布满古老纹路)静静矗立,周遭桃树梨树繁茂,几只灵猴在远处岩石上张望。镜头从云海低空缓推上山顶。
 
@@ -68,7 +69,8 @@ EPISODES: list[dict] = [
         "title": "石猴诞生·金光冲霄",
         "scene_summary": "石蛋彻底裂开,小石猴蜷缩睁眼,双目射出金光直冲云霄,惊动天庭,玉帝大殿震动惊视,众猴跪拜",
         "act": "Climax+Cliffhanger — Cosmic awakening",
-        "prompt": """A cinematic still frame from a Chinese mythological 3D animation: a newborn stone monkey emerging from a cracked egg, two beams of golden light shooting from its eyes into the heavens, surrounding monkeys bowing in awe, distant celestial palace silhouette trembling, cool jade and gold cosmic palette, photorealistic 35mm film grain, divine awakening atmosphere. 古风3D国漫竖屏9:16,中国神话史诗美学,Unreal5路径追踪+实时光追+电影级金光高对比,胶片颗粒。
+        # R17 refine: 加 IMAX-grade composition + anamorphic flare + god rays 提升 LAION+CLIP
+        "prompt": """A breathtaking IMAX-grade cinematic still frame from a Chinese mythological 3D animation epic: a newborn stone monkey emerging from a cracked celestial egg, two intense beams of golden god-ray light shooting straight from its eyes into the heavens piercing thick storm clouds, anamorphic lens flare and volumetric god rays, surrounding monkeys bowing in awe, distant celestial palace silhouette trembling in cosmic resonance, cool jade and intense gold cosmic palette, masterful composition, photorealistic 35mm film grain, divine awakening atmosphere, professional cinematography. 古风3D国漫竖屏9:16,中国神话史诗美学,Unreal5路径追踪+实时光追+电影级金光高对比+体积光,胶片颗粒。
 
 【0-3s KICK】仙石蛋表面金色裂纹蔓延加速,蛋身轻轻颤动,众猴屏息观望。镜头特写裂纹一道道扩大,蛋壳碎屑零星掉落。
 

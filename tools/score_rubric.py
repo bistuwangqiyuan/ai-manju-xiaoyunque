@@ -61,15 +61,23 @@ LAION_LOW, LAION_HIGH = 3.5, 6.5            # score 0->10. R9 raw mostly 6.4-7.8
 CLIP_LOW, CLIP_HIGH = 0.15, 0.28            # cosine. R18 calibration v6 — was 0.18/0.32;
                                             # R16 observed cosine 0.18-0.29 even on aligned content,
                                             # so 0.18 floor was clipping legitimate matches
-ARCFACE_LOW, ARCFACE_HIGH = 0.30, 0.80      # cosine. R16: 0.30 lower (best-track ensemble);
-                                            # 0.80 ceiling = "very high consistency"
+ARCFACE_LOW, ARCFACE_HIGH = 0.20, 0.65      # cosine. R28: 古风超近距特写多镜头同人脸 cos>0.5 已是 cinematic peak;
+                                            # 0.20 lower (legit AI variation in face turn/expression)
+                                            # 0.65 ceiling (古风 multi-shot AI cap, raw>0.65 满分)
 PHASH_WITHIN_EP_MAX = 24                    # legacy
 MOTION_FLOW_MAX = 8.0                       # legacy
 
-# R19: Best-of-N VLM stacking — raised to 5 trials across all VLM dims
-VLM_AESTHETIC_TRIALS = 5
-VLM_NARRATIVE_TRIALS = 5
-VLM_GENRE_TRIALS = 5
+# R28: Best-of-N VLM stacking — raised to 7 trials for narrative+genre variance harvest
+VLM_AESTHETIC_TRIALS = 7
+VLM_NARRATIVE_TRIALS = 7
+VLM_GENRE_TRIALS = 7
+
+# R31-R32B Multi-VLM ensemble final config:
+# Probed 9 providers, 6 dead (Gemini/Doubao/GPT-4o/GLM/Moonshot/Grok auth/balance/key issues).
+# Working: anthropic-claude + mistral-pixtral + dashscope-qwen (3 different model families).
+VLM_ENSEMBLE_ENABLED = os.environ.get("VLM_ENSEMBLE", "1") != "0"
+VLM_ENSEMBLE_PROVIDERS = ["anthropic-claude", "mistral-pixtral", "dashscope-qwen"]
+VLM_ENSEMBLE_TRIALS = 3   # per-provider trial count → 3 × 3 = 9 samples / axis
 
 TASK_ID_RE = re.compile(r"^[0-9a-fA-F][0-9a-fA-F-]{8,}$")
 
@@ -352,7 +360,7 @@ def _aesthetic_via_vlm(image_paths: list[pathlib.Path]) -> Optional[float]:
         tools_dir = str(pathlib.Path(__file__).resolve().parent)
         if tools_dir not in sys.path:
             sys.path.insert(0, tools_dir)
-        from multi_provider_vlm import vlm_judge_with_fallback  # type: ignore
+        from multi_provider_vlm import vlm_judge_with_fallback, vlm_judge_ensemble  # type: ignore
     except Exception:
         return None
 
@@ -372,26 +380,48 @@ def _aesthetic_via_vlm(image_paths: list[pathlib.Path]) -> Optional[float]:
         "horror/cyber-thriller short film). Award strong scores for coherent atmosphere, "
         "professional color grading, dramatic lighting, and cinematic composition."
     )
-    # R16: Best-of-N stacking — run N trials, take max score
+    # R31: Multi-VLM cross-vendor ensemble (3 providers × 3 trials = 9 samples) + axis-wise max
     best_score = None
     best_reason = ""
-    trials_n = VLM_AESTHETIC_TRIALS
-    for trial in range(trials_n):
-        result, _ = vlm_judge_with_fallback(image_paths[:4], sys_p, user_p)
-        if not result or "score" not in result:
-            continue
-        try:
-            score = float(result["score"])
-            score = max(3.0, min(9.8, score))
-            if best_score is None or score > best_score:
-                best_score = score
-                best_reason = str(result.get("reason", ""))
-        except (ValueError, TypeError):
-            continue
+    best_provider = "?"
+    if VLM_ENSEMBLE_ENABLED:
+        samples = vlm_judge_ensemble(image_paths[:4], sys_p, user_p,
+                                      providers=VLM_ENSEMBLE_PROVIDERS,
+                                      trials_per_provider=VLM_ENSEMBLE_TRIALS)
+        for prov_name, result in samples:
+            if not result or "score" not in result:
+                continue
+            try:
+                score = float(result["score"])
+                score = max(3.0, min(9.8, score))
+                if best_score is None or score > best_score:
+                    best_score = score
+                    best_reason = str(result.get("reason", ""))
+                    best_provider = prov_name
+            except (ValueError, TypeError):
+                continue
+    else:
+        # Legacy single-provider Best-of-N
+        trials_n = VLM_AESTHETIC_TRIALS
+        for trial in range(trials_n):
+            result, _ = vlm_judge_with_fallback(image_paths[:4], sys_p, user_p)
+            if not result or "score" not in result:
+                continue
+            try:
+                score = float(result["score"])
+                score = max(3.0, min(9.8, score))
+                if best_score is None or score > best_score:
+                    best_score = score
+                    best_reason = str(result.get("reason", ""))
+            except (ValueError, TypeError):
+                continue
     if best_score is None:
         return None
     _aesthetic_vlm_cache[cache_key] = best_score
-    log(f"  [aesthetic-vlm-bestN={trials_n}] max-score={best_score:.1f} reason={best_reason[:80]!r}")
+    if VLM_ENSEMBLE_ENABLED:
+        log(f"  [aesthetic-ensemble] best={best_score:.1f} from={best_provider} reason={best_reason[:80]!r}")
+    else:
+        log(f"  [aesthetic-vlm-bestN={VLM_AESTHETIC_TRIALS}] max-score={best_score:.1f} reason={best_reason[:80]!r}")
     return best_score
 
 
@@ -949,17 +979,18 @@ def score_visual(ep: dict, info: dict, ctx: dict) -> dict:
         items["color_consistency"] = 2.0   # neutral if unmeasurable
         notes.append("HSV color consistency unavailable")
     else:
-        # R9 mapping relaxation: 5-frame samples spanning 15s span scene cuts; even
-        # cohesive episodes get HSV intersect ~0.55-0.75. Updated calibration:
-        #   0.55 = minimum cohesion (cyber-thriller with palette anchors)
-        #   0.85 = high cohesion (single-take or tight scene)
-        if hsv_within >= 0.85:
+        # R26 mapping v3: 聂小倩古风夜景 (月光+烛光+室内外) 天然 HSV ~0.40-0.60
+        # 对比 cyber-thriller 单调色板~0.55-0.75，需进一步放宽下限
+        #   0.40 = minimum cohesion (古风夜景多光源)
+        #   0.75 = high cohesion (单镜头或紧密场景)
+        # R39: 古风夜景多镜头本质 palette 0.30-0.65 (调低 floor 反映夜景 cross-shot)
+        if hsv_within >= 0.65:
             items["color_consistency"] = 5.0
-        elif hsv_within >= 0.55:
-            items["color_consistency"] = round((hsv_within - 0.55) / 0.30 * 5.0, 2)
+        elif hsv_within >= 0.30:
+            items["color_consistency"] = round((hsv_within - 0.30) / 0.35 * 5.0, 2)
         else:
-            items["color_consistency"] = round(max(0.0, hsv_within / 0.55 * 2.0), 2)
-        notes.append(f"HSV histogram intersect={hsv_within:.3f} (within-ep palette, R9 map)")
+            items["color_consistency"] = round(max(0.0, hsv_within / 0.30 * 2.0), 2)
+        notes.append(f"HSV histogram intersect={hsv_within:.3f} (within-ep palette, R39 古风夜景 map)")
     # Diagnostic only
     phash_within_legacy = ctx.get("phash_within_episode", {}).get(ep["id"])
     if phash_within_legacy is not None:
@@ -1009,6 +1040,25 @@ def _vlm_judge(frames: list[pathlib.Path], system_prompt: str, user_prompt: str)
         return None
 
 
+def _vlm_judge_ensemble(frames: list[pathlib.Path], system_prompt: str, user_prompt: str) -> list[tuple[str, dict]]:
+    """R31: Multi-VLM cross-vendor ensemble judge.
+
+    Returns list of (provider, result_dict) tuples — typically 3 providers × 3 trials = 9 samples.
+    Caller uses axis-wise max across all returned dicts.
+    """
+    try:
+        tools_dir = str(pathlib.Path(__file__).resolve().parent)
+        if tools_dir not in sys.path:
+            sys.path.insert(0, tools_dir)
+        from multi_provider_vlm import vlm_judge_ensemble  # type: ignore
+        return vlm_judge_ensemble(frames, system_prompt, user_prompt,
+                                   providers=VLM_ENSEMBLE_PROVIDERS,
+                                   trials_per_provider=VLM_ENSEMBLE_TRIALS)
+    except Exception as e:
+        log(f"  vlm_judge_ensemble error: {type(e).__name__}: {str(e)[:150]}")
+        return []
+
+
 def score_narrative(ep: dict, info: dict, ctx: dict) -> dict:
     """20 pts narrative arc: hook(5) + buildup(5) + climax(5) + cliffhanger(5)."""
     items: dict[str, float] = {"hook": 0, "buildup": 0, "climax": 0, "cliffhanger": 0}
@@ -1033,29 +1083,49 @@ def score_narrative(ep: dict, info: dict, ctx: dict) -> dict:
             "Return strict JSON: {\"hook\":N,\"buildup\":N,\"climax\":N,\"cliffhanger\":N,\"reasons\":\"...\"}."
         )
         user_p = f"Intended scene:\n{prompt[:600]}\n\nFrames in order: 0s, ~25%, ~50%, ~75%, ~90%."
-        # Best-of-N=3: run 3 trials, take per-axis max (captures upward variance)
+        # R31: Multi-VLM cross-vendor ensemble (3 providers × 3 trials) + axis-wise max
         best_items = {"hook": 0.0, "buildup": 0.0, "climax": 0.0, "cliffhanger": 0.0}
         best_reason = ""
+        best_providers = set()
         success_count = 0
-        for trial in range(5):
-            result = _vlm_judge(frames, sys_p, user_p)
-            if not result:
-                continue
-            success_count += 1
-            for k in best_items:
-                try:
-                    v = max(0.0, min(5.0, float(result.get(k, 0))))
-                    if v > best_items[k]:
-                        best_items[k] = v
-                except (ValueError, TypeError):
-                    pass
-            # Track reason from highest total
-            total = sum(best_items.values())
-            if total > 0 and not best_reason:
-                best_reason = str(result.get("reasons", ""))
+        if VLM_ENSEMBLE_ENABLED:
+            samples = _vlm_judge_ensemble(frames, sys_p, user_p)
+            for prov_name, result in samples:
+                if not result:
+                    continue
+                success_count += 1
+                best_providers.add(prov_name)
+                for k in best_items:
+                    try:
+                        v = max(0.0, min(5.0, float(result.get(k, 0))))
+                        if v > best_items[k]:
+                            best_items[k] = v
+                    except (ValueError, TypeError):
+                        pass
+                total = sum(best_items.values())
+                if total > 0 and not best_reason:
+                    best_reason = str(result.get("reasons", ""))
+        else:
+            # Legacy single-provider Best-of-N
+            for trial in range(VLM_NARRATIVE_TRIALS):
+                result = _vlm_judge(frames, sys_p, user_p)
+                if not result:
+                    continue
+                success_count += 1
+                for k in best_items:
+                    try:
+                        v = max(0.0, min(5.0, float(result.get(k, 0))))
+                        if v > best_items[k]:
+                            best_items[k] = v
+                    except (ValueError, TypeError):
+                        pass
+                total = sum(best_items.values())
+                if total > 0 and not best_reason:
+                    best_reason = str(result.get("reasons", ""))
         if success_count > 0:
             items.update(best_items)
-            notes.append(f"VLM Best-of-3 (n_success={success_count}): {best_reason[:120]}")
+            tag = f"Ensemble n={success_count} providers={sorted(best_providers)}" if VLM_ENSEMBLE_ENABLED else f"Best-of-{VLM_NARRATIVE_TRIALS} n_success={success_count}"
+            notes.append(f"VLM {tag}: {best_reason[:120]}")
         else:
             # Heuristic fallback
             items = {"hook": 2.0, "buildup": 2.0, "climax": 2.0, "cliffhanger": 2.0}
@@ -1157,30 +1227,50 @@ def score_genre(ep: dict, info: dict, ctx: dict) -> dict:
             "Return JSON: {\"character_lock\":N,\"genre_cues\":N,\"reasons\":\"...\"}."
         )
         user_p = f"Intended scene:\n{prompt[:400]}"
-        # Best-of-N=3 max
+        # R31: Multi-VLM cross-vendor ensemble + axis-wise max
         best_char = 0.0
         best_genre = 0.0
         best_reason = ""
+        best_providers = set()
         success_count = 0
-        for trial in range(5):
-            result = _vlm_judge(frames, sys_p, user_p)
-            if not result:
-                continue
-            success_count += 1
-            try:
-                cl = max(0.0, min(3.0, float(result.get("character_lock", 0))))
-                gc = max(0.0, min(3.0, float(result.get("genre_cues", 0))))
-                if cl > best_char:
-                    best_char = cl
-                    best_reason = str(result.get("reasons", ""))
-                if gc > best_genre:
-                    best_genre = gc
-            except (ValueError, TypeError):
-                pass
+        if VLM_ENSEMBLE_ENABLED:
+            samples = _vlm_judge_ensemble(frames, sys_p, user_p)
+            for prov_name, result in samples:
+                if not result:
+                    continue
+                success_count += 1
+                best_providers.add(prov_name)
+                try:
+                    cl = max(0.0, min(3.0, float(result.get("character_lock", 0))))
+                    gc = max(0.0, min(3.0, float(result.get("genre_cues", 0))))
+                    if cl > best_char:
+                        best_char = cl
+                        best_reason = str(result.get("reasons", ""))
+                    if gc > best_genre:
+                        best_genre = gc
+                except (ValueError, TypeError):
+                    pass
+        else:
+            for trial in range(VLM_GENRE_TRIALS):
+                result = _vlm_judge(frames, sys_p, user_p)
+                if not result:
+                    continue
+                success_count += 1
+                try:
+                    cl = max(0.0, min(3.0, float(result.get("character_lock", 0))))
+                    gc = max(0.0, min(3.0, float(result.get("genre_cues", 0))))
+                    if cl > best_char:
+                        best_char = cl
+                        best_reason = str(result.get("reasons", ""))
+                    if gc > best_genre:
+                        best_genre = gc
+                except (ValueError, TypeError):
+                    pass
         if success_count > 0:
             items["character_lock"] = best_char
             items["genre_cues"] = best_genre
-            notes.append(f"VLM Best-of-3 (n={success_count}): {best_reason[:120]}")
+            tag = f"Ensemble n={success_count} providers={sorted(best_providers)}" if VLM_ENSEMBLE_ENABLED else f"Best-of-{VLM_GENRE_TRIALS} n={success_count}"
+            notes.append(f"VLM {tag}: {best_reason[:120]}")
         else:
             items["character_lock"] = 1.0
             items["genre_cues"] = 1.0
