@@ -9,50 +9,53 @@ import { useRouter } from 'next/navigation';
 
 const PLANS = [
   {
-    id: 'starter',
-    name: '试看版',
-    price: '¥99',
-    period: '/单集',
-    description: '单集试水，先看效果再决定',
+    id: 'free',
+    name: 'Free',
+    price: '¥0',
+    period: '',
+    description: '每日 3 集免费，零成本试用',
     features: [
-      '1 集 75-90s 古风国漫',
-      '小云雀 v2 标准画质',
-      'ASS 字幕 + 1 条 BGM',
-      'AIGC 双标识合规',
-      'MP4 1080p 永久下载',
+      '✅ 每日 3 集 免费生成',
+      '✅ 全部古风 / 武侠 / 都市风格',
+      '✅ 1080p MP4 永久下载',
+      '✅ 跨集 ArcFace ≥ 0.80 一致性',
+      '✅ 质量评分 ≥ 90 才放行',
+      '⚠️ 单次只能 1 集（不可批量）',
     ],
-    cta: '购买单集',
+    cta: '立即注册',
     highlight: false,
   },
   {
-    id: 'series',
-    name: '十集套装',
-    price: '¥1,299',
-    period: '/十集',
-    description: '完整一部短剧，热推上线',
+    id: 'starter',
+    name: 'Pro',
+    price: '¥0.72',
+    period: '/集起',
+    description: '按成本×1.1 计费 · 充值即用',
     features: [
-      '10 集 × 90s 古风国漫',
-      '跨集 ArcFace ≥ 0.80 锁定',
-      '高光集走 Veo / Sora 精修',
-      '4K 上扫 + 主题曲(可选)',
-      '7-10 天交付',
-      '广电备案模板',
+      '✅ 不限每日生成数',
+      '✅ 一次最多 10 集套装',
+      '✅ 高光集走 Veo / Sora 精修',
+      '✅ 4K 上扫 + 主题曲',
+      '✅ 优先队列（≤ 3 并发）',
+      '✅ 充值任意金额自动升级',
+      '✅ 透明计费：成本 ¥0.65 × 1.10',
     ],
-    cta: '购买十集',
+    cta: '充值升级',
     highlight: true,
   },
   {
     id: 'studio',
-    name: '工作室版',
-    price: '¥定制',
+    name: 'Studio',
+    price: '定制',
     period: '',
-    description: '多部并行 / 私有部署',
+    description: '企业版 / API / 私有部署',
     features: [
-      '不限部数月度套餐',
-      'IP / 风格定制锚点',
-      '专属客户成功',
-      'API 接入 / Webhook',
-      'SLA 99.9% 优先队列',
+      '🏢 不限部数月度套餐',
+      '🏢 IP / 风格定制锚点',
+      '🏢 API 接入 / Webhook',
+      '🏢 SLA 99.9% 优先队列',
+      '🏢 私有部署 / 数据不出域',
+      '🏢 专属客户成功',
     ],
     cta: '联系销售',
     highlight: false,
@@ -69,6 +72,10 @@ export default function PricingPage() {
     setErr(null);
     if (!user) {
       router.push(`/signup?next=/pricing`);
+      return;
+    }
+    if (planId === 'free') {
+      router.push('/dashboard');
       return;
     }
     if (planId === 'studio') {
@@ -145,12 +152,14 @@ export default function PricingPage() {
         <h2 className="font-serif text-2xl text-ink-900 mb-4">常见问题</h2>
         <dl className="grid md:grid-cols-2 gap-x-10 gap-y-6 text-sm">
           {[
-            ['交付周期多久？', '单集 6-12 小时，十集套装 7-10 天。'],
-            ['可以指定小说吗？', '可以上传任意公版或你拥有版权的文本。'],
-            ['费用包含哪些？', '所有渲染、TTS、BGM、字幕、合规标识。'],
-            ['失败可以退款吗？', '支持 3 次免费修复，仍不通过全额退款。'],
-            ['支持哪些风格？', '当前主推古风 3D 国漫，更多风格陆续开放。'],
-            ['用 Vercel + Railway 部署？', '是的，前端 Vercel，渲染 Worker 在 Railway。'],
+            ['Free 怎么算配额？', '按 UTC 0:00 重置；已取消的任务不占用配额。'],
+            ['Pro 怎么计费？', '每集成本 ¥0.65 × 1.10 = ¥0.72。10 集 = ¥7.15。'],
+            ['充值即升 Pro 吗？', '是。首次任意金额充值，账户自动从 Free 升 Pro，无年费。'],
+            ['质量怎么保证？', '内置 5 维评分（一致性/美学/贴合/字幕/节奏），低于 90 自动修复重试。'],
+            ['失败可以退款吗？', '渲染失败按已完成进度比例退款；3 次自动修复后仍 < 90 分仍交付当前最优版本。'],
+            ['可以并行渲染吗？', 'Pro/Studio 可同时排队多任务，3 个 worker 并发执行。'],
+            ['支持哪些风格？', '当前古风 3D 国漫主推，武侠水墨/都市悬疑可选。Studio 可定制。'],
+            ['用什么部署？', '前端 Vercel，后端 Railway，数据库 Neon Postgres。全球低延迟。'],
           ].map(([q, a]) => (
             <div key={q}>
               <dt className="font-semibold text-ink-900 mb-1">{q}</dt>

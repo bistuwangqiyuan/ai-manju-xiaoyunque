@@ -3,11 +3,22 @@
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
+export type Tier = 'free' | 'pro' | 'studio' | 'admin';
+
 export interface User {
   id: number;
   email: string;
   credits_cents: number;
+  tier: Tier;
   created_at: string;
+}
+
+export interface QualityBreakdown {
+  consistency: number;
+  aesthetic: number;
+  fidelity: number;
+  subtitle: number;
+  pacing: number;
 }
 
 export interface Job {
@@ -22,8 +33,22 @@ export interface Job {
   result_url: string | null;
   cover_url: string | null;
   error: string | null;
+  quality_score: number | null;
+  quality_breakdown: QualityBreakdown | null;
+  quality_retries: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface Quota {
+  tier: Tier;
+  credits_cents: number;
+  free_daily_limit: number;
+  free_used_today: number;
+  free_remaining_today: number | null;
+  cost_per_episode_cents: number;
+  episode_base_cost_cents: number;
+  profit_multiplier: number;
 }
 
 export interface JobLog {
@@ -87,6 +112,7 @@ export const api = {
   me: () => request<User>('/auth/me'),
 
   listJobs: () => request<Job[]>('/jobs'),
+  getQuota: () => request<Quota>('/jobs/quota'),
   getJob: (id: number) => request<Job>(`/jobs/${id}`),
   getJobLogs: (id: number) => request<JobLog[]>(`/jobs/${id}/logs`),
   createJob: (payload: {

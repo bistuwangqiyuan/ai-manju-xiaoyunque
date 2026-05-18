@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api, Job, JobLog } from '@/lib/api';
 import { formatDate, formatYuan } from '@/lib/utils';
-import { ArrowLeft, Download, XCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Download, XCircle, RefreshCw, Award } from 'lucide-react';
 
 const STATUS_TEXT: Record<Job['status'], string> = {
   queued: '排队中',
@@ -153,6 +153,61 @@ export default function JobDetailPage() {
           <div className="p-4 rounded-lg bg-red-100 text-red-800 text-sm mb-4">
             <div className="font-semibold mb-1">错误</div>
             {job.error}
+          </div>
+        )}
+
+        {/* 质量评分 */}
+        {job.quality_score !== null && (
+          <div className="card !shadow-none p-5 mb-4 border-2 border-cinnabar-200/60 bg-gradient-to-br from-ink-50 to-cinnabar-50/30">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Award className={`w-5 h-5 ${job.quality_score >= 90 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                <span className="font-semibold text-ink-900">质量评分</span>
+                {job.quality_retries > 0 && (
+                  <span className="badge bg-ink-100 text-ink-600 text-xs">
+                    自动修复 {job.quality_retries} 次
+                  </span>
+                )}
+              </div>
+              <div className="text-right">
+                <div className={`font-serif text-3xl ${job.quality_score >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {job.quality_score}
+                  <span className="text-base text-ink-400">/100</span>
+                </div>
+                <div className="text-xs text-ink-500">
+                  {job.quality_score >= 90 ? '✓ 已达 90 分标准' : '低于 90 分标准'}
+                </div>
+              </div>
+            </div>
+            {job.quality_breakdown && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                {[
+                  ['consistency', '人物一致'],
+                  ['aesthetic', '画面美学'],
+                  ['fidelity', '剧本贴合'],
+                  ['subtitle', '字幕准确'],
+                  ['pacing', '节奏张力'],
+                ].map(([key, label]) => {
+                  const v = (job.quality_breakdown as any)?.[key] ?? 0;
+                  return (
+                    <div key={key}>
+                      <div className="flex justify-between text-xs text-ink-600 mb-1">
+                        <span>{label}</span>
+                        <span className={v >= 90 ? 'text-emerald-700 font-semibold' : 'text-ink-700'}>
+                          {v}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all ${v >= 90 ? 'bg-emerald-500' : v >= 80 ? 'bg-amber-500' : 'bg-cinnabar-500'}`}
+                          style={{ width: `${v}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

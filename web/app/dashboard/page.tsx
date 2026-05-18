@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { api, Job } from '@/lib/api';
+import { api, Job, Quota } from '@/lib/api';
 import { formatDate, formatYuan } from '@/lib/utils';
-import { Plus, Sparkles, RefreshCw } from 'lucide-react';
+import { Plus, Sparkles, RefreshCw, Crown, AlertTriangle, Zap } from 'lucide-react';
 
 const STATUS_TEXT: Record<Job['status'], string> = {
   queued: '排队中',
@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const { user, loading: authLoading, refresh } = useAuth();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [quota, setQuota] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -40,8 +41,9 @@ export default function DashboardPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await api.listJobs();
-      setJobs(data);
+      const [j, q] = await Promise.all([api.listJobs(), api.getQuota()]);
+      setJobs(j);
+      setQuota(q);
       setErr(null);
     } catch (e: any) {
       setErr(e.message);
@@ -71,15 +73,10 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-3xl text-ink-900 mb-1">仪表盘</h1>
-          <p className="text-ink-600 text-sm">
-            欢迎，{user.email} · 余额{' '}
-            <span className="text-cinnabar-700 font-semibold">
-              {formatYuan(user.credits_cents)}
-            </span>
-          </p>
+          <p className="text-ink-600 text-sm">欢迎，{user.email}</p>
         </div>
         <div className="flex gap-2">
           <Link href="/pricing" className="btn-secondary">
@@ -90,6 +87,79 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Tier 信息卡片 */}
+      {quota && (
+        <div className="grid sm:grid-cols-3 gap-4 mb-6">
+          <div className="card p-5">
+            <div className="text-xs text-ink-500 mb-1">当前等级</div>
+            <div className="flex items-center gap-2 mb-1">
+              {quota.tier === 'free' ? (
+                <span className="font-serif text-2xl text-ink-900">Free</span>
+              ) : quota.tier === 'pro' ? (
+                <span className="font-serif text-2xl text-cinnabar-700 flex items-center gap-1.5">
+                  <Crown className="w-5 h-5" /> Pro
+                </span>
+              ) : (
+                <span className="font-serif text-2xl text-emerald-700">
+                  {quota.tier.toUpperCase()}
+                </span>
+              )}
+            </div>
+            {quota.tier === 'free' ? (
+              <Link href="/pricing" className="text-xs text-cinnabar-700 hover:underline">
+                升级 Pro → 配额无限 →
+              </Link>
+            ) : (
+              <div className="text-xs text-emerald-700">✓ 无每日配额限制</div>
+            )}
+          </div>
+
+          {quota.tier === 'free' ? (
+            <div className="card p-5">
+              <div className="text-xs text-ink-500 mb-1">今日免费配额</div>
+              <div className="font-serif text-2xl text-ink-900">
+                {quota.free_remaining_today} <span className="text-base text-ink-500">/ {quota.free_daily_limit}</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-cinnabar-500 transition-all"
+                  style={{
+                    width: `${((quota.free_used_today) / quota.free_daily_limit) * 100}%`,
+                  }}
+                />
+              </div>
+              {quota.free_remaining_today === 0 && (
+                <div className="mt-2 text-xs text-cinnabar-700 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> 今日额度已用完
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="card p-5">
+              <div className="text-xs text-ink-500 mb-1">余额</div>
+              <div className="font-serif text-2xl text-ink-900">
+                {formatYuan(quota.credits_cents)}
+              </div>
+              <Link href="/pricing" className="text-xs text-cinnabar-700 hover:underline">
+                充值 →
+              </Link>
+            </div>
+          )}
+
+          <div className="card p-5">
+            <div className="text-xs text-ink-500 mb-1">单集费用</div>
+            <div className="font-serif text-2xl text-ink-900">
+              {quota.tier === 'free' ? '免费' : formatYuan(quota.cost_per_episode_cents)}
+            </div>
+            <div className="text-xs text-ink-500 mt-1">
+              {quota.tier === 'free'
+                ? `${quota.free_daily_limit} 集/日`
+                : `成本 ${formatYuan(quota.episode_base_cost_cents)} × ${quota.profit_multiplier}`}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">

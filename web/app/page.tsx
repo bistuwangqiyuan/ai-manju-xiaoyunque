@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Film, ShieldCheck, Zap, Globe2, BookOpen } from 'lucide-react';
+import { ShowcaseGallery } from '@/components/showcase-gallery';
 
 const FEATURES = [
   {
@@ -110,6 +111,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Showcase Gallery */}
+      <ShowcaseGallery />
 
       {/* Features */}
       <section className="mx-auto max-w-6xl px-6 py-20">

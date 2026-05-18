@@ -3,9 +3,9 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { api } from '@/lib/api';
+import { api, Quota } from '@/lib/api';
 import { formatYuan } from '@/lib/utils';
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { Sparkles, ArrowLeft, Crown, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 const STYLES = [
@@ -14,11 +14,10 @@ const STYLES = [
   { id: 'urban_drama', label: '都市悬疑', desc: '现代感 + 强光影对比' },
 ];
 
-const PER_EPISODE_CENTS = 9900; // ¥99/集
-
 export default function NewJobPage() {
   const { user, loading: authLoading, refresh } = useAuth();
   const router = useRouter();
+  const [quota, setQuota] = useState<Quota | null>(null);
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [style, setStyle] = useState(STYLES[0].id);
@@ -30,8 +29,18 @@ export default function NewJobPage() {
     if (!authLoading && !user) router.replace('/login?next=/dashboard/new');
   }, [authLoading, user, router]);
 
-  const cost = episodes * PER_EPISODE_CENTS;
-  const enough = user ? user.credits_cents >= cost : false;
+  useEffect(() => {
+    if (!user) return;
+    api.getQuota().then(setQuota).catch(() => {});
+  }, [user]);
+
+  const isFree = quota?.tier === 'free';
+  const maxEpisodes = isFree ? 1 : 10;
+  const effectiveEpisodes = Math.min(episodes, maxEpisodes);
+  const costPerEpisode = quota?.cost_per_episode_cents ?? 0;
+  const totalCost = effectiveEpisodes * costPerEpisode;
+  const freeBlocked = isFree && (quota?.free_remaining_today ?? 0) <= 0;
+  const enoughCredits = !quota || quota.tier === 'free' || quota.credits_cents >= totalCost;
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -40,7 +49,11 @@ export default function NewJobPage() {
       setErr('小说片段至少 50 字');
       return;
     }
-    if (!enough) {
+    if (freeBlocked) {
+      setErr('今日免费配额已用完，请充值升级 Pro');
+      return;
+    }
+    if (!enoughCredits) {
       setErr('余额不足，请先充值');
       return;
     }
@@ -50,7 +63,7 @@ export default function NewJobPage() {
         title: title || '未命名漫剧',
         novel_excerpt: excerpt,
         style,
-        episodes,
+        episodes: effectiveEpisodes,
       });
       await refresh();
       router.push(`/dashboard/jobs/${job.id}`);
@@ -61,7 +74,7 @@ export default function NewJobPage() {
     }
   };
 
-  if (authLoading || !user) {
+  if (authLoading || !user || !quota) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16 text-center text-ink-600">
         加载中…
@@ -76,9 +89,56 @@ export default function NewJobPage() {
       </Link>
       <div className="card p-8">
         <h1 className="font-serif text-3xl text-ink-900 mb-1">新建漫剧</h1>
-        <p className="text-ink-600 text-sm mb-8">
-          填写文本与风格，提交后流水线自动启动。
+        <p className="text-ink-600 text-sm mb-6">
+          填写文本与风格，提交后流水线自动启动（并发 3 渲染池 · 质量 ≥ 90 才放行）
         </p>
+
+        {/* Tier 状态条 */}
+        {isFree ? (
+          <div className="rounded-xl border border-ink-200 bg-ink-50/60 p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-cinnabar-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-ink-800 flex-1">
+                <div className="font-semibold mb-1">
+                  Free 会员 · 今日剩余 {quota.free_remaining_today}/{quota.free_daily_limit} 集
+                </div>
+                <div className="text-ink-600 text-xs leading-relaxed">
+                  免费用户每天 3 集，每次只能生成 1 集。想生成完整 10 集套装？
+                  <Link href="/pricing" className="text-cinnabar-700 underline ml-1">
+                    升级 Pro
+                  </Link>{' '}
+                  即可不限量。
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-cinnabar-200 bg-cinnabar-50/40 p-4 mb-6">
+            <div className="flex items-center gap-2 text-sm">
+              <Crown className="w-4 h-4 text-cinnabar-700" />
+              <span className="font-semibold text-ink-900">
+                {quota.tier.toUpperCase()} 会员
+              </span>
+              <span className="text-ink-600">
+                · 余额 {formatYuan(quota.credits_cents)}
+              </span>
+              <span className="text-ink-500 ml-auto text-xs">
+                单集 {formatYuan(quota.cost_per_episode_cents)}
+                <span className="text-ink-400">（成本×{quota.profit_multiplier}）</span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {freeBlocked && (
+          <div className="rounded-lg bg-cinnabar-100 text-cinnabar-800 p-4 mb-5 flex items-start gap-2 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="font-semibold mb-1">今日免费配额已用完</div>
+              <Link href="/pricing" className="underline">充值任意金额自动升级 Pro，配额无限</Link>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
@@ -130,45 +190,26 @@ export default function NewJobPage() {
           </div>
 
           <div>
-            <label className="label">集数（1-10）</label>
+            <label className="label">
+              集数（1-{maxEpisodes}）
+              {isFree && (
+                <span className="text-xs text-ink-500 ml-2">Free 用户最多 1 集</span>
+              )}
+            </label>
             <input
               type="range"
               min={1}
-              max={10}
-              value={episodes}
+              max={maxEpisodes}
+              value={effectiveEpisodes}
               onChange={(e) => setEpisodes(Number(e.target.value))}
               className="w-full accent-cinnabar-600"
+              disabled={maxEpisodes === 1}
             />
             <div className="flex justify-between text-sm">
-              <span className="text-ink-700">{episodes} 集 × 90s</span>
+              <span className="text-ink-700">{effectiveEpisodes} 集 × 90s</span>
               <span className="text-cinnabar-700 font-semibold">
-                {formatYuan(cost)}
+                {totalCost === 0 ? '免费（占用日配额）' : formatYuan(totalCost)}
               </span>
-            </div>
-          </div>
-
-          <div className="card !shadow-none p-4 bg-ink-50/60">
-            <div className="flex items-start gap-3 text-sm">
-              <Sparkles className="w-5 h-5 text-cinnabar-600 flex-shrink-0 mt-0.5" />
-              <div className="text-ink-700">
-                当前余额{' '}
-                <span className="font-semibold text-ink-900">
-                  {formatYuan(user.credits_cents)}
-                </span>
-                ，本任务预计花费{' '}
-                <span className="font-semibold text-cinnabar-700">
-                  {formatYuan(cost)}
-                </span>
-                。
-                {!enough && (
-                  <Link
-                    href="/pricing"
-                    className="ml-2 text-cinnabar-700 underline"
-                  >
-                    去充值
-                  </Link>
-                )}
-              </div>
             </div>
           </div>
 
@@ -181,9 +222,17 @@ export default function NewJobPage() {
           <button
             type="submit"
             className="btn-primary w-full"
-            disabled={loading || !enough}
+            disabled={loading || freeBlocked || !enoughCredits}
           >
-            {loading ? '提交中…' : `提交渲染任务（${formatYuan(cost)}）`}
+            {loading
+              ? '提交中…'
+              : freeBlocked
+              ? '今日配额已用完'
+              : !enoughCredits
+              ? `余额不足，需 ${formatYuan(totalCost)}`
+              : totalCost === 0
+              ? '提交（占用 1 个免费配额）'
+              : `提交渲染任务（扣费 ${formatYuan(totalCost)}）`}
           </button>
         </form>
       </div>
