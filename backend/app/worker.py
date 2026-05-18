@@ -231,9 +231,29 @@ async def _single_worker(worker_idx: int) -> None:
             await asyncio.sleep(settings.WORKER_POLL_INTERVAL)
 
 
+def _recover_orphaned_jobs() -> None:
+    """
+    启动时把上次 redeploy 杀掉的 in-flight 任务重置回 queued，让新的 worker 重新接手。
+    单 service 单 Postgres 部署下安全（无并发 instance race）。
+    """
+    db = SessionLocal()
+    try:
+        n = db.query(Job).filter(Job.status == "running").update(
+            {Job.status: "queued", Job.progress: 0}, synchronize_session=False
+        )
+        if n:
+            db.commit()
+            logger.info("Recovered %d orphaned 'running' job(s) → 'queued'", n)
+    except Exception:
+        logger.exception("Failed to recover orphaned jobs (will continue anyway)")
+    finally:
+        db.close()
+
+
 async def worker_loop() -> None:
     """Pool of N concurrent worker coroutines (settings.WORKER_CONCURRENCY)."""
     n = max(1, settings.WORKER_CONCURRENCY)
+    _recover_orphaned_jobs()
     logger.info("Worker pool starting: %d workers (poll=%.1fs, mock=%s, quality_pass=%d)",
                 n, settings.WORKER_POLL_INTERVAL, settings.use_mock_worker, settings.QUALITY_PASS)
     tasks = [asyncio.create_task(_single_worker(i + 1)) for i in range(n)]
