@@ -7,7 +7,9 @@ builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'"
+# 必须用 sh -c 包一层，否则 Railway 直接 exec 时 $PORT 不会被展开
+# 用 TOML 字面量字符串（单引号）避免双重转义
+startCommand = 'sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"'
 healthcheckPath = "/api/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
