@@ -62,7 +62,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "xyq_users"  # 前缀避开 Vercel/Neon 自带的 users 表
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
@@ -74,10 +74,10 @@ class User(Base):
 
 
 class Job(Base):
-    __tablename__ = "jobs"
+    __tablename__ = "xyq_jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("xyq_users.id", ondelete="CASCADE"), index=True)
 
     title: Mapped[str] = mapped_column(String(120), default="未命名漫剧")
     status: Mapped[str] = mapped_column(String(20), default="queued", index=True)  # queued/running/succeeded/failed/cancelled
@@ -98,10 +98,10 @@ class Job(Base):
 
 
 class JobLog(Base):
-    __tablename__ = "job_logs"
+    __tablename__ = "xyq_job_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), index=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("xyq_jobs.id", ondelete="CASCADE"), index=True)
     ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     level: Mapped[str] = mapped_column(String(10), default="INFO")
     message: Mapped[str] = mapped_column(Text, default="")
@@ -110,10 +110,10 @@ class JobLog(Base):
 
 
 class Payment(Base):
-    __tablename__ = "payments"
+    __tablename__ = "xyq_payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("xyq_users.id", ondelete="CASCADE"), index=True)
     amount_cents: Mapped[int] = mapped_column(Integer, default=0)
     plan: Mapped[str] = mapped_column(String(40), default="")
     provider: Mapped[str] = mapped_column(String(20), default="mock")
