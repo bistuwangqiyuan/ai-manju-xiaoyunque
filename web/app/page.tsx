@@ -1,174 +1,152 @@
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Film, ShieldCheck, Zap, Globe2, BookOpen } from 'lucide-react';
+import { ArrowRight, Sparkles, Film, ShieldCheck, Zap, Award, BookOpen, Play } from 'lucide-react';
 import { ShowcaseGallery } from '@/components/showcase-gallery';
 
-const FEATURES = [
+const STEPS = [
   {
+    n: '1',
+    title: '免费注册',
+    desc: '只要一个邮箱，赠 100 元体验金',
     icon: Sparkles,
-    title: '工业级一致性',
-    desc: '跨集 ArcFace ≥ 0.80 角色锁定，五道修复防线，杜绝脸漂移、风格断层。',
   },
   {
-    icon: Film,
-    title: '9:16 古风 3D 国漫',
-    desc: '小云雀 v2 + Seedance + 海外旗舰精修，整集级渲染，最高 4K 60fps。',
-  },
-  {
-    icon: Zap,
-    title: '一集 75-90 秒',
-    desc: '钩子-冲突-反转-悬念四段节拍，红果 / 听花岛已验证的爆款短剧结构。',
-  },
-  {
-    icon: ShieldCheck,
-    title: '合规绿灯',
-    desc: 'AIGC 双标识 + 广电备案模板，仅用公版与已授权素材，可直接上线分发。',
-  },
-  {
-    icon: Globe2,
-    title: '7-10 天交付',
-    desc: '从小说到 10 集成片，全自动流水线，单集成本 ¥56-72，10 集仅 ¥866 起。',
-  },
-  {
+    n: '2',
+    title: '粘贴小说',
+    desc: '把小说片段或大纲贴进去',
     icon: BookOpen,
-    title: '小说一键改编',
-    desc: '编剧四模型流水线：Claude Opus 主笔 + DeepSeek 抽取 + Gemini 校验。',
+  },
+  {
+    n: '3',
+    title: '点击生成',
+    desc: '等几分钟，下载 9:16 古风国漫',
+    icon: Film,
   },
 ];
 
-const STATS = [
-  { num: '10', unit: '集', label: '一次交付' },
-  { num: '90s', unit: '', label: '单集时长' },
-  { num: '¥866', unit: '起', label: '十集成本' },
-  { num: '0.80+', unit: '', label: 'ArcFace 一致性' },
+const TRUST = [
+  { num: '96.81', unit: '/100', label: 'R40 实测均分' },
+  { num: '95+', unit: '保证', label: '不达标自动重做' },
+  { num: '3', unit: '集/天', label: '每天免费用' },
+  { num: '¥0.72', unit: '/集', label: '充值即用' },
 ];
 
 export default function HomePage() {
   return (
     <>
-      {/* Hero */}
+      {/* Hero — 简化到极致 */}
       <section className="relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cinnabar-100 text-cinnabar-800 text-xs font-medium mb-6">
-              <Sparkles className="w-3.5 h-3.5" />
-              v5 终极方案 · 小云雀 Agent 2.0 内核
-            </div>
-            <h1 className="font-serif text-5xl md:text-6xl font-bold text-ink-900 leading-tight mb-6">
-              把一本小说<br />
-              <span className="text-cinnabar-700">变成十集古风国漫</span>
-            </h1>
-            <p className="text-lg text-ink-700 mb-8 leading-relaxed">
-              世界级 AI 漫剧工业流水线。小云雀 v2 为核心，海外旗舰精修，
-              跨集人物锁定、五道修复防线、合规绿灯一气呵成。
-              7-10 天，从文字到 10 集 × 90 秒 9:16 短剧。
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/signup" className="btn-primary">
-                立即开始 <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-              <Link href="/pricing" className="btn-secondary">查看定价</Link>
-            </div>
-            <div className="mt-10 grid grid-cols-4 gap-4">
-              {STATS.map((s) => (
-                <div key={s.label} className="text-center">
-                  <div className="font-serif text-2xl text-ink-900">
-                    {s.num}
-                    <span className="text-sm text-ink-500 ml-1">{s.unit}</span>
-                  </div>
-                  <div className="text-xs text-ink-600 mt-1">{s.label}</div>
-                </div>
-              ))}
-            </div>
+        <div className="mx-auto max-w-5xl px-6 pt-16 pb-12 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium mb-6">
+            <Award className="w-3.5 h-3.5" />
+            R40 实测均分 96.81/100 · 自动保证 95 分以上
+          </div>
+          <h1 className="font-serif text-5xl md:text-7xl font-bold text-ink-900 leading-[1.1] mb-6">
+            把一段小说<br />
+            <span className="text-cinnabar-700">变成一集古风漫剧</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-ink-700 mb-10 max-w-2xl mx-auto leading-relaxed">
+            粘贴文字 · 点击生成 · 下载视频。
+            <br className="hidden sm:block" />
+            <span className="text-base md:text-lg text-ink-600">每天 3 集免费，无需信用卡。</span>
+          </p>
+
+          {/* 超大双按钮 */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-cinnabar-600 text-white text-lg font-semibold shadow-2xl hover:bg-cinnabar-700 hover:scale-105 transition"
+            >
+              免费试用，立即开始 <ArrowRight className="ml-2 w-5 h-5" />
+            </Link>
+            <a
+              href="#showcase"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl border-2 border-ink-300 bg-white/80 text-ink-900 text-lg font-semibold hover:bg-white hover:border-ink-500 transition"
+            >
+              <Play className="mr-2 w-5 h-5 fill-cinnabar-600 text-cinnabar-600" />
+              先看几个示例
+            </a>
           </div>
 
-          {/* Right visual */}
-          <div className="relative">
-            <div className="card aspect-[9/16] max-w-sm mx-auto relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-ink-200 via-ink-100 to-cinnabar-100" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center px-8">
-                  <div className="seal w-20 h-20 text-4xl mx-auto mb-4">雀</div>
-                  <div className="font-serif text-2xl text-ink-900 mb-2">聂小倩</div>
-                  <div className="text-sm text-ink-600">第一集 · 兰若惊鸿</div>
-                  <div className="mt-6 text-xs text-ink-500 font-mono">
-                    9:16 · 1080×1920 · 75s
-                  </div>
+          {/* Trust numbers */}
+          <div className="grid grid-cols-4 gap-4 max-w-2xl mx-auto">
+            {TRUST.map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="font-serif text-2xl md:text-3xl text-ink-900">
+                  {s.num}
+                  <span className="text-sm text-ink-500 ml-1">{s.unit}</span>
                 </div>
-              </div>
-              <div className="absolute top-4 right-4 badge bg-black/60 text-white text-xs">
-                ▶ 示例预览
-              </div>
-              <div className="absolute bottom-4 left-4 right-4 text-white">
-                <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-                  <div className="h-full w-1/3 bg-cinnabar-500" />
-                </div>
-                <div className="flex justify-between text-xs mt-1 text-white/80">
-                  <span>00:25</span>
-                  <span>01:15</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Showcase Gallery */}
-      <ShowcaseGallery />
-
-      {/* Features */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="text-center mb-14">
-          <h2 className="font-serif text-3xl md:text-4xl text-ink-900 mb-3">
-            为什么选择小云雀
-          </h2>
-          <p className="text-ink-600">六大工业级能力，对标全球最强 AI 视频流水线</p>
-        </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="card p-6 hover:shadow-2xl transition">
-              <f.icon className="w-8 h-8 text-cinnabar-600 mb-4" />
-              <h3 className="font-semibold text-lg text-ink-900 mb-2">{f.title}</h3>
-              <p className="text-sm text-ink-600 leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pipeline */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="card p-10">
-          <h2 className="font-serif text-3xl text-ink-900 mb-2">五壳工业流水线</h2>
-          <p className="text-ink-600 mb-10">完整可复现的端到端架构 · 任意一壳可独立调用</p>
-          <div className="grid md:grid-cols-5 gap-4">
-            {[
-              { n: '1', name: '编剧', desc: '四模型协同抽取节拍' },
-              { n: '2', name: '角色资产', desc: '三重 ID 锁 + 14 张参考图' },
-              { n: '3', name: '小云雀 v2', desc: '整集级有参考视频生成' },
-              { n: '4', name: '质检修复', desc: 'ArcFace + 五道修复防线' },
-              { n: '5', name: '后期', desc: 'TTS / BGM / 字幕 / 4K 上扫' },
-            ].map((s) => (
-              <div key={s.n} className="relative">
-                <div className="font-serif text-3xl text-cinnabar-700 mb-1">
-                  Shell {s.n}
-                </div>
-                <div className="font-semibold text-ink-900">{s.name}</div>
-                <div className="text-xs text-ink-600 mt-1">{s.desc}</div>
+                <div className="text-xs text-ink-600 mt-1">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto max-w-4xl px-6 py-20 text-center">
-        <h2 className="font-serif text-3xl md:text-4xl text-ink-900 mb-4">
-          准备好让你的小说<span className="text-cinnabar-700">活过来</span>了吗？
+      {/* 三步使用 */}
+      <section className="mx-auto max-w-5xl px-6 py-16">
+        <div className="text-center mb-10">
+          <h2 className="font-serif text-3xl md:text-4xl text-ink-900 mb-2">
+            就 3 步，70 岁也能用
+          </h2>
+          <p className="text-ink-600">
+            不用学软件，不用懂技术，会用浏览器就行
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          {STEPS.map((step, i) => (
+            <div key={step.n} className="card p-8 text-center relative">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-cinnabar-600 text-white font-serif text-2xl flex items-center justify-center shadow-lg">
+                {step.n}
+              </div>
+              <step.icon className="w-12 h-12 text-cinnabar-600 mx-auto mt-4 mb-4" />
+              <h3 className="font-serif text-2xl text-ink-900 mb-2">{step.title}</h3>
+              <p className="text-base text-ink-700 leading-relaxed">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="text-center mt-10">
+          <Link href="/signup" className="btn-primary text-base">
+            就试一下 <ArrowRight className="ml-2 w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Showcase Gallery — 真实样本 */}
+      <div id="showcase">
+        <ShowcaseGallery />
+      </div>
+
+      {/* 评分保证 */}
+      <section className="mx-auto max-w-4xl px-6 py-16">
+        <div className="card p-10 text-center">
+          <Award className="w-12 h-12 text-emerald-600 mx-auto mb-4" />
+          <h2 className="font-serif text-3xl text-ink-900 mb-3">
+            每一集都达 95 分以上
+          </h2>
+          <p className="text-ink-700 text-base max-w-2xl mx-auto mb-6 leading-relaxed">
+            采用业内公认的工业评分标准（ArcFace、CLIP、LAION-Aesthetic），
+            分 Tech / Visual / Narrative / Genre 4 大维度共 100 分。
+            <strong>达不到 95 分？系统会自动重做最多 2 次，直到达标才交给你。</strong>
+          </p>
+          <Link href="/quality" className="btn-secondary">
+            看评分方法
+          </Link>
+        </div>
+      </section>
+
+      {/* 最后 CTA */}
+      <section className="mx-auto max-w-3xl px-6 py-20 text-center">
+        <h2 className="font-serif text-4xl text-ink-900 mb-4">
+          每天 3 集免费用 · 不用付钱
         </h2>
-        <p className="text-ink-600 mb-8">
-          注册即赠 ¥100 体验金，足够生成一集试看片。
+        <p className="text-lg text-ink-600 mb-8">
+          注册时送 100 元体验金，足够生成一集试看片
         </p>
-        <Link href="/signup" className="btn-primary text-base">
-          免费注册 <ArrowRight className="ml-2 w-4 h-4" />
+        <Link
+          href="/signup"
+          className="inline-flex items-center justify-center px-10 py-5 rounded-xl bg-cinnabar-600 text-white text-xl font-semibold shadow-2xl hover:bg-cinnabar-700 hover:scale-105 transition"
+        >
+          免费注册，1 分钟搞定 <ArrowRight className="ml-2 w-6 h-6" />
         </Link>
       </section>
     </>

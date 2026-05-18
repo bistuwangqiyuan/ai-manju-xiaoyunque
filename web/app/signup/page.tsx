@@ -65,8 +65,12 @@ function SignupForm() {
           {err}
         </div>
       )}
-      <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? '注册中…' : '免费注册（送 ¥100 体验金）'}
+      <button
+        type="submit"
+        className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-cinnabar-600 text-white text-base font-semibold shadow-lg hover:bg-cinnabar-700 transition disabled:opacity-50"
+        disabled={loading}
+      >
+        {loading ? '正在注册…' : '注册（送 100 元体验金）'}
       </button>
       <p className="text-sm text-ink-600 text-center">
         已有账号？
@@ -85,9 +89,10 @@ export default function SignupPage() {
   return (
     <div className="mx-auto max-w-md px-6 py-16">
       <div className="card p-8">
-        <h1 className="font-serif text-2xl text-ink-900 mb-1">开启你的漫剧</h1>
-        <p className="text-sm text-ink-600 mb-6">
-          注册即赠 ¥100 体验金，足够生成一集试看片。
+        <h1 className="font-serif text-3xl text-ink-900 mb-2">免费注册</h1>
+        <p className="text-base text-ink-700 mb-6 leading-relaxed">
+          每天可以免费做 <strong className="text-cinnabar-700">3 个视频</strong>。
+          再送 100 元体验金。不用信用卡，不用绑微信。
         </p>
         <Suspense>
           <SignupForm />

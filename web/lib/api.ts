@@ -14,11 +14,17 @@ export interface User {
 }
 
 export interface QualityBreakdown {
-  consistency: number;
-  aesthetic: number;
-  fidelity: number;
-  subtitle: number;
-  pacing: number;
+  // 四大主项（100-Pt Rubric）
+  tech: number;        // / 40
+  visual: number;      // / 30
+  narrative: number;   // / 20
+  genre: number;       // / 10
+  // 工业指标子项
+  arcface?: number;    // / 10 - 人物一致性
+  clip_align?: number; // / 10 - 文图对齐
+  aesthetic?: number;  // / 10 - LAION 美学
+  hsv_color?: number;  // / 10 - 色彩
+  motion?: number;     // / 10 - 运动 sweet-spot
 }
 
 export interface Job {

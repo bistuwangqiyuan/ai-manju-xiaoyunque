@@ -60,7 +60,9 @@ class Settings(BaseSettings):
     # SQLite 单进程兜底，多 worker 也安全（只是退化为顺序）
     WORKER_CONCURRENCY: int = 3
     # 质量门槛：渲染后分数 < QUALITY_PASS 自动重试，最多 QUALITY_MAX_RETRIES 次
-    QUALITY_PASS: int = 90
+    # 采用项目内已验证的 100-Pt Rubric：Tech 40 + Visual 30 + Narrative 20 + Genre 10
+    # R40 实测 mean=96.81 / min=96.47，所以 95 是稳定可达的工业级门槛
+    QUALITY_PASS: int = 95
     QUALITY_MAX_RETRIES: int = 2
 
     @property

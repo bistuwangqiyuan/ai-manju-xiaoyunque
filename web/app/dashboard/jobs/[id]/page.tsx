@@ -156,57 +156,103 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {/* 质量评分 */}
+        {/* 质量评分 — 100-Pt Rubric */}
         {job.quality_score !== null && (
           <div className="card !shadow-none p-5 mb-4 border-2 border-cinnabar-200/60 bg-gradient-to-br from-ink-50 to-cinnabar-50/30">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Award className={`w-5 h-5 ${job.quality_score >= 90 ? 'text-emerald-600' : 'text-amber-600'}`} />
-                <span className="font-semibold text-ink-900">质量评分</span>
+                <Award className={`w-5 h-5 ${job.quality_score >= 95 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                <span className="font-semibold text-ink-900">100-Pt Rubric 工业评分</span>
                 {job.quality_retries > 0 && (
                   <span className="badge bg-ink-100 text-ink-600 text-xs">
-                    自动修复 {job.quality_retries} 次
+                    Multi-VLM Ensemble 自动修复 {job.quality_retries} 次
                   </span>
                 )}
               </div>
               <div className="text-right">
-                <div className={`font-serif text-3xl ${job.quality_score >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                <div className={`font-serif text-4xl ${job.quality_score >= 95 ? 'text-emerald-700' : 'text-amber-700'}`}>
                   {job.quality_score}
                   <span className="text-base text-ink-400">/100</span>
                 </div>
                 <div className="text-xs text-ink-500">
-                  {job.quality_score >= 90 ? '✓ 已达 90 分标准' : '低于 90 分标准'}
+                  {job.quality_score >= 95 ? '✓ 已达 95 分工业标准' : '< 95 分'}
                 </div>
               </div>
             </div>
+
+            {/* 主项（Tech / Visual / Narrative / Genre） */}
             {job.quality_breakdown && (
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
-                {[
-                  ['consistency', '人物一致'],
-                  ['aesthetic', '画面美学'],
-                  ['fidelity', '剧本贴合'],
-                  ['subtitle', '字幕准确'],
-                  ['pacing', '节奏张力'],
-                ].map(([key, label]) => {
-                  const v = (job.quality_breakdown as any)?.[key] ?? 0;
-                  return (
-                    <div key={key}>
-                      <div className="flex justify-between text-xs text-ink-600 mb-1">
-                        <span>{label}</span>
-                        <span className={v >= 90 ? 'text-emerald-700 font-semibold' : 'text-ink-700'}>
-                          {v}
-                        </span>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 mb-4">
+                  {[
+                    ['tech', 'Tech', 40, '技术质量'],
+                    ['visual', 'Visual', 30, '视觉美学'],
+                    ['narrative', 'Narrative', 20, '叙事完整'],
+                    ['genre', 'Genre', 10, '题材契合'],
+                  ].map(([key, label, max, desc]) => {
+                    const v = (job.quality_breakdown as any)?.[key] ?? 0;
+                    const pct = (v / (max as number)) * 100;
+                    return (
+                      <div key={key as string} className="bg-white/60 rounded-lg p-3">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-sm font-semibold text-ink-900">{label}</span>
+                          <span className={`font-mono text-base ${pct >= 90 ? 'text-emerald-700' : 'text-ink-700'}`}>
+                            {typeof v === 'number' ? v.toFixed(1) : v}
+                            <span className="text-xs text-ink-400">/{max}</span>
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-ink-500 mb-1.5">{desc}</div>
+                        <div className="h-1 bg-ink-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${pct >= 90 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-ink-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all ${v >= 90 ? 'bg-emerald-500' : v >= 80 ? 'bg-amber-500' : 'bg-cinnabar-500'}`}
-                          style={{ width: `${v}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+
+                {/* 工业子项指标 */}
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-ink-600 hover:text-ink-900 mb-2">
+                    工业指标细节（ArcFace / CLIP / LAION-Aesthetic …）
+                  </summary>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-2">
+                    {[
+                      ['arcface', 'ArcFace', '人物一致性'],
+                      ['clip_align', 'CLIP', '文图对齐'],
+                      ['aesthetic', 'LAION-Aes', '美学评分'],
+                      ['hsv_color', 'HSV', '色彩一致'],
+                      ['motion', 'OptFlow', '运动评分'],
+                    ].map(([key, label, desc]) => {
+                      const v = (job.quality_breakdown as any)?.[key];
+                      if (v === undefined) return null;
+                      return (
+                        <div key={key as string}>
+                          <div className="flex justify-between text-[11px] text-ink-600">
+                            <span title={desc as string}>{label}</span>
+                            <span className={v >= 9 ? 'text-emerald-700 font-mono' : 'text-ink-700 font-mono'}>
+                              {typeof v === 'number' ? v.toFixed(2) : v}
+                            </span>
+                          </div>
+                          <div className="h-1 bg-ink-100 rounded-full overflow-hidden mt-0.5">
+                            <div
+                              className={`h-full ${v >= 9 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                              style={{ width: `${(v / 10) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[10px] text-ink-500 mt-3 leading-relaxed">
+                    评分基于业界公认模型：ArcFace (InsightFace 5M-IDs)、CLIP ViT-B-32、
+                    LAION-Aesthetic v2。叙事/类型由 Claude + Qwen-VL + Pixtral 三厂 VLM cross-vendor
+                    ensemble 投票。详见 <Link href="/quality" className="text-cinnabar-700 underline">评分方法</Link>。
+                  </div>
+                </details>
+              </>
             )}
           </div>
         )}

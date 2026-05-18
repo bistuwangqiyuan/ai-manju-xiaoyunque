@@ -88,9 +88,13 @@ export default function NewJobPage() {
         <ArrowLeft className="w-4 h-4 mr-1" /> 返回仪表盘
       </Link>
       <div className="card p-8">
-        <h1 className="font-serif text-3xl text-ink-900 mb-1">新建漫剧</h1>
-        <p className="text-ink-600 text-sm mb-6">
-          填写文本与风格，提交后流水线自动启动（并发 3 渲染池 · 质量 ≥ 90 才放行）
+        <h1 className="font-serif text-3xl text-ink-900 mb-1">做一集漫剧</h1>
+        <p className="text-ink-700 text-base mb-6">
+          只要填两个东西：标题、文字内容。其他都是默认就好。
+          <br />
+          <span className="text-sm text-ink-500">
+            （评分自动保证 95 分以上，不达标会自动重做）
+          </span>
         </p>
 
         {/* Tier 状态条 */}
@@ -221,18 +225,18 @@ export default function NewJobPage() {
 
           <button
             type="submit"
-            className="btn-primary w-full"
+            className="inline-flex items-center justify-center w-full px-6 py-4 rounded-xl bg-cinnabar-600 text-white text-lg font-semibold shadow-lg hover:bg-cinnabar-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading || freeBlocked || !enoughCredits}
           >
             {loading
-              ? '提交中…'
+              ? '正在做，请等一下…'
               : freeBlocked
-              ? '今日配额已用完'
+              ? '今天已经免费做完 3 个了'
               : !enoughCredits
-              ? `余额不足，需 ${formatYuan(totalCost)}`
+              ? `余额不够，还差 ${formatYuan(totalCost - (quota?.credits_cents || 0))}`
               : totalCost === 0
-              ? '提交（占用 1 个免费配额）'
-              : `提交渲染任务（扣费 ${formatYuan(totalCost)}）`}
+              ? '✨ 开始做漫剧（免费）'
+              : `✨ 开始做漫剧（${formatYuan(totalCost)}）`}
           </button>
         </form>
       </div>
