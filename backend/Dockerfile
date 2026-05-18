@@ -1,6 +1,9 @@
 # ============================================================
 # 小云雀 AI 漫剧 · Backend (FastAPI + worker)
 # 适用平台: Railway / Render / Fly.io / 任意 Docker 主机
+# ------------------------------------------------------------
+# 构建上下文 = 仓库根目录（由根目录 railway.toml 指定 dockerfilePath）
+# 本地手动构建：   docker build -f backend/Dockerfile -t xyq-backend .
 # ============================================================
 FROM python:3.11-slim
 
@@ -21,11 +24,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # 先复制 requirements.txt 利用 docker layer cache
-COPY requirements.txt ./
+COPY backend/requirements.txt ./
 RUN pip install -r requirements.txt
 
 # 复制后端代码
-COPY app ./app
+COPY backend/app ./app
 
 # storage 目录用于本地落盘视频（生产建议挂 volume 或换 S3/R2）
 RUN mkdir -p /app/storage

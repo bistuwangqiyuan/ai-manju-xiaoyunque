@@ -63,11 +63,9 @@ git push -u origin main
 ### 3.1 创建项目
 
 1. https://railway.com → **New Project** → **Deploy from GitHub repo**
-2. 选刚才推上去的仓库
-3. Railway 会扫到根目录，**但本仓库后端在子目录 `backend/`**，需要手动改：
-   - 进入 service 设置 → **Settings** → **Service** →
-     - **Root Directory** 改成 `backend`
-     - **Builder** 选 `Dockerfile`（应该已自动识别）
+2. 选刚才推上去的仓库 `bistuwangqiyuan/ai-manju-xiaoyunque`，分支 `main`
+3. **不用改 Root Directory**。仓库根目录已经有 `railway.toml`，Railway 会自动读取它，用 `backend/Dockerfile`（构建上下文 = 仓库根）构建，启动命令 / 健康探针 / 重启策略全配好了。
+4. 如果 Railway 在第一次构建时报"找不到 Dockerfile"或别的，那是它老 UI 没读到配置——这时再去 service → Settings → Source 把 Branch 确认是 `main` 即可（Root Directory 留空）。
 
 ### 3.2 加 Postgres（推荐生产用）
 
