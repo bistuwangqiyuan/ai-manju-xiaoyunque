@@ -3,6 +3,41 @@
 > 把 `web/` 部署到 Vercel（前端 + 静态托管），把 `backend/` 部署到 Railway（FastAPI + worker）。
 > 完整链路打通后，全世界任何浏览器都能访问你的 SaaS。
 
+## 当前生产状态 (2026-05-18)
+
+| 组件 | 状态 | 地址 |
+|---|---|---|
+| 后端 Railway | ✅ 上线 | `https://ai-manju-xiaoyunque-production.up.railway.app` |
+| 数据库 Neon | ✅ 已连 | Vercel 控制台 → Storage |
+| 前端 Vercel | ⚠️ 需切换 | `https://yunque-manhua.vercel.app`（当前指向另一分支） |
+
+**已交付的核心商业能力**（后端已生效，已端到端验证）：
+- 多级用户：free / pro / studio / admin
+- 配额：免费 3 集/天，每次 1 集；付费无限
+- 计费：成本×1.10（base ¥65/集 → 售价 ¥71.5/集）
+- 自动升级：首次任意金额充值，free → pro
+- 并发：3 个 worker 同时渲染（SELECT...FOR UPDATE SKIP LOCKED 互斥）
+- 质量：5 维评分，<90 自动重试最多 2 次
+- 商用示例：landing 页 6 集预览画廊
+
+---
+
+## 如果你已有 Vercel 项目但指向错误的分支/目录
+
+这是你现在的情况。你的 `yunque-manhua.vercel.app` 当前部署的是 `feat/wxkb-r10-r15-cinematic-iteration` 分支的 `webapp/` 目录（另一个 Claude 会话留下的平行实现）。要切到本会话写的 `main + web/`：
+
+1. Vercel Dashboard → 进你的项目 → **Settings**
+2. **General** → **Root Directory** → 改为 `web`（不是 `webapp`） → Save
+3. **Git** → **Production Branch** → 改为 `main`（不是 feat/...） → Save
+4. 顶部 **Deployments** tab → 最新 deploy 旁 **⋯** → **Redeploy** → 不要勾"Use existing Build Cache"
+5. 等 1-2 分钟，新 deploy 完成后访问 `yunque-manhua.vercel.app`，应该看到顶部带"小云雀 · 漫剧产线"印章 logo + Free/Pro 徽章
+
+完成后**唯一还要做的**：Vercel **Environment Variables** 加：
+```
+NEXT_PUBLIC_BACKEND_URL = https://ai-manju-xiaoyunque-production.up.railway.app
+```
+然后再 Redeploy 一次。
+
 ---
 
 ## 0. 架构总览
