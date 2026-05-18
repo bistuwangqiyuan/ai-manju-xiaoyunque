@@ -1,0 +1,34 @@
+{
+  "name": "yunque-manhua-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "云雀漫剧 — AI 国漫一键生成，基于 Skylark Agent 2.0 = Seedance 2.0 fast 720p",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.18",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.4",
+    "lucide-react": "^0.460.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.16.10",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "typescript": "5.6.3",
+    "tailwindcss": "3.4.14",
+    "postcss": "8.4.49",
+    "autoprefixer": "10.4.20",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.18"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
