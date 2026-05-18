@@ -1,11 +1,11 @@
-import { GeneratorForm } from '@/components/GeneratorForm';
 import { Header } from '@/components/Header';
+import { HomeShell } from '@/components/HomeShell';
 
 export default function HomePage() {
   return (
     <main className="min-h-screen pb-24">
       <Header />
-      <section className="pt-12 md:pt-20 pb-12 px-6">
+      <section className="pt-10 md:pt-16 pb-8 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
             云雀漫剧
@@ -16,18 +16,28 @@ export default function HomePage() {
           <p className="mt-6 text-base md:text-lg text-ink2 max-w-2xl mx-auto leading-relaxed">
             输入提示词，约 5 分钟后收获一段 15 秒 1080×1920 竖屏国漫短片。
             <br className="hidden md:block" />
-            R40 实测 <strong className="text-ink">96.81/100</strong> 评分基线 ·
-            基于火山方舟 Skylark Agent 2.0。
+            R40 实测峰值 <strong className="text-ink">97.10/100</strong>，3 集平均
+            <strong className="text-ink">96.81/100</strong> · 基于火山方舟 Skylark Agent 2.0。
           </p>
-          <p className="mt-3 text-sm text-ink2">
-            免费用户每日 1 条 · Pro 用户每日 100 条
-          </p>
+          <div className="mt-5 inline-flex items-center gap-3 text-xs text-ink2">
+            <span className="inline-flex items-center gap-1.5 px-3 h-7 rounded-full bg-white border border-line">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              免费 1 条/天
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 h-7 rounded-full bg-white border border-line">
+              <span className="text-yellow-600">⭐</span> Pro 100 条/天
+            </span>
+            <a
+              href="#samples"
+              className="inline-flex items-center px-3 h-7 rounded-full bg-ink text-white"
+            >
+              看示例 ↓
+            </a>
+          </div>
         </div>
       </section>
 
-      <section className="px-6">
-        <GeneratorForm />
-      </section>
+      <HomeShell />
 
       <Footer />
     </main>

@@ -9,9 +9,10 @@
  *   3. setInterval 轮询 GET /api/status/[taskId]，每 12s 一次
  *   4. status='done' 拿 videoUrl → 通过 /api/proxy-video 播放
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import Link from 'next/link';
 import { ExamplePrompts, type ExamplePrompt } from './ExamplePrompts';
+import type { Sample } from './SampleGallery';
 
 interface MeData {
   authenticated: boolean;
@@ -31,7 +32,12 @@ type Stage =
 const POLL_INTERVAL_MS = 12_000;
 const MAX_POLL_MINUTES = 15;
 
-export function GeneratorForm() {
+export interface GeneratorFormHandle {
+  setPromptFromSample: (sample: Sample) => void;
+  scrollIntoView: () => void;
+}
+
+export const GeneratorForm = forwardRef<GeneratorFormHandle>(function GeneratorForm(_, ref) {
   const [prompt, setPrompt] = useState('');
   const [ratio, setRatio] = useState<'9:16' | '16:9'>('9:16');
   const [duration, setDuration] = useState<'～15s' | '～30s'>('～15s');
@@ -39,6 +45,17 @@ export function GeneratorForm() {
   const [me, setMe] = useState<MeData | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startRef = useRef<number>(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    setPromptFromSample: (s: Sample) => {
+      setPrompt(s.prompt);
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    scrollIntoView: () => {
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+  }), []);
 
   useEffect(() => {
     fetch('/api/me', { cache: 'no-store' })
@@ -160,7 +177,7 @@ export function GeneratorForm() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div ref={rootRef} className="w-full max-w-4xl mx-auto">
       {/* NOT-LOGGED-IN BANNER */}
       {(stage.kind === 'idle' || stage.kind === 'submitting') && me && !isLoggedIn && (
         <div className="mb-6 rounded-2xl border border-line bg-white p-6 text-center">
@@ -359,7 +376,7 @@ export function GeneratorForm() {
       )}
     </div>
   );
-}
+});
 
 function SegmentedControl({
   label,
