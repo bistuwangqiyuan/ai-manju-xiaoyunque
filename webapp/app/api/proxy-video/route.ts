@@ -16,20 +16,23 @@ export const dynamic = 'force-dynamic';
 // Hobby cap 10s; 20MB video may not finish within. Fallback: client uses videoUrl directly
 export const maxDuration = 10;
 
-// Whitelist only trusted Volcengine CDN hosts to prevent SSRF
-const ALLOWED_HOSTS = [
-  'tos-cn-i-',           // volc tos cn
-  'volcengine.com',
-  'volccdn.com',
-  '.tos.cn-',
-  'volc-image-i-',
+// Whitelist only trusted Volcengine / AIGC-cloud CDN hosts to prevent SSRF.
+// As of 2026-05, Skylark Agent 2.0 returns video_url on `aigc-cloud.com` host
+// (e.g. v11-aiop.aigc-cloud.com) backed by tencent-cos. Earlier deployments
+// also used `tos-cn-*` and `volcengine.com`.
+const ALLOWED_HOST_PATTERNS = [
+  /^[a-z0-9-]+\.aigc-cloud\.com$/i,        // current Skylark CDN
+  /^[a-z0-9-]+\.volccdn\.com$/i,           // older edge CDN
+  /^[a-z0-9-]+\.volcengineapi\.com$/i,     // OpenAPI surface (unlikely to hold video)
+  /(^|\.)volcengine\.com$/i,
+  /^tos-cn-[a-z0-9-]+\.volces\.com$/i,
 ];
 
 function isAllowed(url: string): boolean {
   try {
     const u = new URL(url);
     if (u.protocol !== 'https:') return false;
-    return ALLOWED_HOSTS.some((p) => u.hostname.includes(p));
+    return ALLOWED_HOST_PATTERNS.some((rx) => rx.test(u.hostname));
   } catch {
     return false;
   }

@@ -141,8 +141,10 @@ export interface SubmitResult {
  * Caller polls via queryStatus until done, then displays video_url.
  */
 export async function submitGenerate(opts: SubmitOptions): Promise<SubmitResult> {
-  const accessKey = process.env.VOLC_ACCESS_KEY;
-  const secretKey = process.env.VOLC_SECRET_KEY;
+  // Trim: env vars piped via `echo | vercel env add` keep trailing \n which breaks
+  // HTTP headers ("is an invalid header value"). Trim defensively everywhere.
+  const accessKey = (process.env.VOLC_ACCESS_KEY || '').trim();
+  const secretKey = (process.env.VOLC_SECRET_KEY || '').trim();
   if (!accessKey || !secretKey) {
     throw new SkylarkError(
       'Volcengine credentials missing — set VOLC_ACCESS_KEY and VOLC_SECRET_KEY env vars',
@@ -239,8 +241,8 @@ export function isRunning(s: TaskStatus): boolean {
  * Query task status. Cheap (~1s) — client should poll every 10-15s.
  */
 export async function queryStatus(taskId: string): Promise<QueryResult> {
-  const accessKey = process.env.VOLC_ACCESS_KEY;
-  const secretKey = process.env.VOLC_SECRET_KEY;
+  const accessKey = (process.env.VOLC_ACCESS_KEY || '').trim();
+  const secretKey = (process.env.VOLC_SECRET_KEY || '').trim();
   if (!accessKey || !secretKey) throw new SkylarkError('credentials missing', -1);
   if (!taskId) throw new SkylarkError('taskId required', -1);
 
