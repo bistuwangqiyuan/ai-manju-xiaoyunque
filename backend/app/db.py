@@ -30,9 +30,19 @@ class Base(DeclarativeBase):
 
 def _engine():
     url = settings.DATABASE_URL
+    # Vercel/Heroku 给的连接串常常是 postgres://，SQLAlchemy 2.x 只认 postgresql://
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+
     kwargs: dict = {"future": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
+    else:
+        # Neon / Vercel Postgres / Railway Postgres 等 serverless Postgres
+        # 会主动断开空闲连接，pool_pre_ping 在每次借出连接前发一个 SELECT 1 探活
+        kwargs["pool_pre_ping"] = True
+        # 连接复用 5 分钟后强制重建，避开 PgBouncer 的空闲断连
+        kwargs["pool_recycle"] = 300
     return create_engine(url, **kwargs)
 
 
