@@ -13,10 +13,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PORT=8000
 
-# 系统依赖：ffmpeg 用于后期合成，build-essential 给某些 wheel 兜底
+# 系统依赖：仅 ffmpeg（后期合成用）+ ca-certificates
+# 不装 build-essential：bcrypt / psycopg2-binary 等都有预编译 wheel，250MB+ 浪费
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg \
-      build-essential \
       curl \
       ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -30,9 +30,11 @@ RUN pip install -r requirements.txt
 # 复制后端代码
 COPY backend/app ./app
 
-# storage 目录用于本地落盘视频（生产建议挂 volume 或换 S3/R2）
+# storage 目录用于本地落盘视频
+# 不用 Dockerfile VOLUME（Railway 显式不支持 dockerfile VOLUME 指令）
+# 持久化方式：在 Railway service → Settings → Volumes 挂载到 /app/storage
+# 或者把 result_url 改成 S3/R2/Vercel Blob 的 URL
 RUN mkdir -p /app/storage
-VOLUME ["/app/storage"]
 
 EXPOSE 8000
 
