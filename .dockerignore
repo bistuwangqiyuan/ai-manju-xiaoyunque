@@ -1,47 +1,58 @@
-# Root-level .dockerignore for Railway builds (context = repo root)
-# 让镜像只包含 backend/，剩下的都排除掉
+# Root-level .dockerignore (build context = repo root)
+# 只用最保守的模式，避免 BuildKit 版本差异
+# 注意：Dockerfile 显式 COPY backend/requirements.txt 和 backend/app
+# 所以即便这里少排除点东西，也不会进镜像
 
-# Frontend：用不上
-web/
+# 前端整个目录
+web
 
-# Backend 局部产物
-backend/.venv
-backend/__pycache__
-backend/**/__pycache__
-backend/**/*.pyc
-backend/*.db
-backend/*.sqlite
-backend/smoke.log
-backend/data.db
-backend/storage/*
-!backend/storage/.gitkeep
+# Python 缓存（任意深度）
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# 虚拟环境
+.venv
+venv
+env
+
+# 本地数据/日志
+*.db
+*.sqlite
+*.log
+smoke.db
+smoke.log
+data.db
+
+# 本地 .env（生产用 Railway Variables）
+.env
+.env.local
+.env.development
+.env.production
 backend/.env
-backend/.env.*
-!backend/.env.example
+backend/.env.local
 
-# 工程文档（不入镜像）
+# 工程文档（不进镜像）
 *.md
-final-plan.md
-content_report.md
-research-2026-05.md
-tech.md
-novel-无限恐怖.md
 
-# 原项目其余目录（暂不需要进镜像；接入真实流水线时再放开 src/）
-prompts/
-pilot/
-config/
-compliance/
-tests/
+# 原 AI 流水线目录（接入真实渲染前不需要）
+prompts
+pilot
+config
+compliance
+tests
 prompt
-data/
+data
 
-# 通用
+# Storage 容器内自己建
+backend/storage
+
+# Git / IDE / OS
 .git
 .gitignore
 .gitattributes
 .DS_Store
-*.log
-.claude/
-.vercel/
-node_modules/
+.claude
+.vercel
+node_modules
