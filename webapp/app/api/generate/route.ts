@@ -21,7 +21,8 @@ import crypto from 'node:crypto';
 
 export const runtime = 'nodejs';      // need node crypto for HMAC
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// Vercel Hobby tier caps at 10s; submit only takes 1-3s so this is enough
+export const maxDuration = 10;
 
 // ----- in-memory rate limiter (per-IP per-day) -----
 // 注意: serverless 冷启动会重置；生产建议接 Upstash Redis。

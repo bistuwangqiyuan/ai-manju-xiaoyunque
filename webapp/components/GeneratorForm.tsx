@@ -230,8 +230,10 @@ export function GeneratorForm() {
 
           <div className="flex gap-3 justify-center pt-2">
             <a
-              href={`/api/proxy-video?url=${encodeURIComponent(stage.videoUrl)}`}
+              href={stage.videoUrl}
               download="yunque-manhua.mp4"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-6 h-11 inline-flex items-center rounded-full bg-ink text-white text-sm font-medium hover:bg-black"
             >
               下载 mp4
@@ -310,15 +312,17 @@ function SegmentedControl({
 }
 
 function VideoPlayer({ videoUrl, taskId }: { videoUrl: string; taskId: string }) {
-  const proxied = `/api/proxy-video?url=${encodeURIComponent(videoUrl)}`;
+  // Direct Volcengine CDN URL is best for playback (zero CORS issue for <video> tag,
+  // bypasses our 10s serverless function limit on Hobby tier).
   return (
     <div className="rounded-3xl overflow-hidden border border-line bg-black mx-auto" style={{ maxWidth: 480 }}>
       <video
-        src={proxied}
+        src={videoUrl}
         controls
         autoPlay
         loop
         playsInline
+        crossOrigin="anonymous"
         className="w-full h-auto block"
       />
     </div>

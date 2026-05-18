@@ -12,7 +12,7 @@ import { queryStatus, SkylarkError } from '@/lib/skylark';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 10;
 
 export async function GET(
   _req: Request,

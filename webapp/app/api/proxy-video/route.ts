@@ -13,7 +13,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// Hobby cap 10s; 20MB video may not finish within. Fallback: client uses videoUrl directly
+export const maxDuration = 10;
 
 // Whitelist only trusted Volcengine CDN hosts to prevent SSRF
 const ALLOWED_HOSTS = [
