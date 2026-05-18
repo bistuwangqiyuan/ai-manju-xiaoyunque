@@ -75,15 +75,18 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-serif text-3xl text-ink-900 mb-1">仪表盘</h1>
+          <h1 className="font-serif text-3xl text-ink-900 mb-1">我的作品</h1>
           <p className="text-ink-600 text-sm">欢迎，{user.email}</p>
         </div>
         <div className="flex gap-2">
           <Link href="/pricing" className="btn-secondary">
             <Sparkles className="w-4 h-4 mr-1" /> 充值
           </Link>
-          <Link href="/dashboard/new" className="btn-primary">
-            <Plus className="w-4 h-4 mr-1" /> 新建漫剧
+          <Link
+            href="/dashboard/new"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-cinnabar-600 text-white text-base font-semibold shadow-lg hover:bg-cinnabar-700 transition"
+          >
+            <Plus className="w-5 h-5 mr-1.5" /> 做一集新的
           </Link>
         </div>
       </div>
@@ -177,9 +180,14 @@ export default function DashboardPage() {
           <div className="py-12 text-center text-ink-500">加载中…</div>
         ) : jobs.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-ink-600 mb-4">还没有任务，开始你的第一部漫剧吧。</p>
-            <Link href="/dashboard/new" className="btn-primary">
-              <Plus className="w-4 h-4 mr-1" /> 新建漫剧
+            <p className="text-lg text-ink-700 mb-6">
+              你还没做过漫剧。点下面的按钮试试看 👇
+            </p>
+            <Link
+              href="/dashboard/new"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-cinnabar-600 text-white text-lg font-semibold shadow-xl hover:bg-cinnabar-700 hover:scale-105 transition"
+            >
+              <Plus className="w-6 h-6 mr-2" /> 做我的第一集漫剧
             </Link>
           </div>
         ) : (

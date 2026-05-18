@@ -25,10 +25,11 @@ export function Nav() {
           <span className="font-semibold tracking-wide">小云雀 · 漫剧产线</span>
         </Link>
         <nav className="flex items-center gap-2">
-          <Link href="/pricing" className="btn-ghost">定价</Link>
+          <Link href="/quality" className="btn-ghost">评分方法</Link>
+          <Link href="/pricing" className="btn-ghost">价格</Link>
           {user && tierMeta ? (
             <>
-              <Link href="/dashboard" className="btn-ghost">仪表盘</Link>
+              <Link href="/dashboard" className="btn-ghost">我的作品</Link>
               <span className={`hidden sm:inline-flex badge ${tierMeta.cls}`}>
                 <tierMeta.icon className="w-3 h-3 mr-1" />
                 {tierMeta.label}
