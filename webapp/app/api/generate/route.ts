@@ -1,11 +1,16 @@
 /**
  * POST /api/generate
  *
- * Submit a new Skylark generation job. Returns task_id (~1-3s).
- * Client should then poll GET /api/status/[taskId] every 10-15s.
+ * Authenticated endpoint. Requires session cookie.
+ * Free tier: 1 video/day. Pro tier: 100 videos/day.
+ * Quota: per UTC calendar day (resets at 00:00 UTC).
  *
  * Body: { prompt, ratio?, duration?, language?, imgUrls?, videoUrls? }
- * Response: 200 { taskId } | 400/429/500 { error, code? }
+ * Response:
+ *   200 { taskId, dailyLimit, usedToday }
+ *   401 { error: '未登录, 请先注册或登录' }
+ *   429 { error: '今日额度已用完', dailyLimit, usedToday, tier }
+ *   503 { error: '数据库未配置' }
  */
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -17,64 +22,70 @@ import {
   type Duration,
   type Language,
 } from '@/lib/skylark';
+import { readSessionFromRequest } from '@/lib/auth';
+import { getQuota, recordGeneration, isDbReady } from '@/lib/db';
 import crypto from 'node:crypto';
 
-export const runtime = 'nodejs';      // need node crypto for HMAC
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-// Vercel Hobby tier caps at 10s; submit only takes 1-3s so this is enough
 export const maxDuration = 10;
-
-// ----- in-memory rate limiter (per-IP per-day) -----
-// 注意: serverless 冷启动会重置；生产建议接 Upstash Redis。
-// 这里只做基础防护。
-const RATE_BUCKET = new Map<string, { count: number; resetAt: number }>();
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function checkRateLimit(ip: string): { ok: boolean; remaining: number } {
-  const limit = parseInt(process.env.DAILY_GENERATION_LIMIT || '0', 10);
-  if (limit <= 0) return { ok: true, remaining: -1 };
-  const now = Date.now();
-  const entry = RATE_BUCKET.get(ip);
-  if (!entry || entry.resetAt < now) {
-    RATE_BUCKET.set(ip, { count: 1, resetAt: now + DAY_MS });
-    return { ok: true, remaining: limit - 1 };
-  }
-  if (entry.count >= limit) return { ok: false, remaining: 0 };
-  entry.count += 1;
-  return { ok: true, remaining: limit - entry.count };
-}
-
-function getClientIp(req: NextRequest): string {
-  const fwd = req.headers.get('x-forwarded-for');
-  if (fwd) return fwd.split(',')[0].trim();
-  return req.headers.get('x-real-ip') || 'unknown';
-}
 
 export async function POST(req: NextRequest) {
   try {
+    // ----- 1. 鉴权 -----
+    const session = await readSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { error: '未登录, 请先注册或登录', requireAuth: true },
+        { status: 401 },
+      );
+    }
+
+    if (!isDbReady()) {
+      return NextResponse.json(
+        { error: '数据库未配置 — 请管理员先在 Vercel 启用 Neon' },
+        { status: 503 },
+      );
+    }
+
+    // ----- 2. 额度检查 (UTC 日历日) -----
+    const quota = await getQuota(session.uid);
+    if (!quota) {
+      return NextResponse.json({ error: '用户不存在', requireAuth: true }, { status: 401 });
+    }
+    if (quota.used_today >= quota.daily_limit) {
+      return NextResponse.json(
+        {
+          error: `今日额度已用完 (${quota.used_today}/${quota.daily_limit})。免费用户每天 1 条；升级 Pro 享每天 100 条`,
+          tier: quota.tier,
+          dailyLimit: quota.daily_limit,
+          usedToday: quota.used_today,
+          quotaExhausted: true,
+        },
+        { status: 429 },
+      );
+    }
+
+    // ----- 3. 请求参数 -----
     const body = await req.json();
     const prompt: string = String(body.prompt ?? '').trim();
     if (!prompt) {
       return NextResponse.json({ error: 'prompt required' }, { status: 400 });
     }
 
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(ip);
-    if (!rl.ok) {
-      return NextResponse.json(
-        { error: 'daily generation limit reached', remaining: 0 },
-        { status: 429 },
-      );
-    }
+    const ratio = (body.ratio ?? '9:16') as Ratio;
+    const duration = (body.duration ?? '～15s') as Duration;
+    const language = (body.language ?? 'Chinese') as Language;
 
     const aigcProducerId =
       'yunque_' + crypto.randomBytes(8).toString('hex');
 
+    // ----- 4. 提交 Skylark -----
     const result = await submitGenerate({
       prompt,
-      ratio: (body.ratio ?? '9:16') as Ratio,
-      duration: (body.duration ?? '～15s') as Duration,
-      language: (body.language ?? 'Chinese') as Language,
+      ratio,
+      duration,
+      language,
       enableWatermark: false,
       imgUrls: Array.isArray(body.imgUrls) ? body.imgUrls : undefined,
       videoUrls: Array.isArray(body.videoUrls) ? body.videoUrls : undefined,
@@ -86,8 +97,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // ----- 5. 写库 (记录额度消耗) -----
+    await recordGeneration({
+      userId: session.uid,
+      taskId: result.taskId,
+      prompt,
+      ratio,
+      duration,
+      status: 'submitted',
+    });
+
     return NextResponse.json(
-      { taskId: result.taskId, remainingToday: rl.remaining },
+      {
+        taskId: result.taskId,
+        dailyLimit: quota.daily_limit,
+        usedToday: quota.used_today + 1,   // 算上本次
+      },
       { status: 200 },
     );
   } catch (e: any) {

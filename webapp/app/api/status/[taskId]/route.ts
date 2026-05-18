@@ -7,23 +7,37 @@
  *   { status: 'done', videoUrl, outputDurationSeconds }     ready to play
  *   { status: 'expired'|'not_found' }                       hard error
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { queryStatus, SkylarkError } from '@/lib/skylark';
+import { readSessionFromRequest } from '@/lib/auth';
+import { updateGenerationStatus } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: { taskId: string } },
 ) {
   try {
+    // require auth to prevent open status enumeration
+    const session = await readSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { error: '未登录', requireAuth: true },
+        { status: 401 },
+      );
+    }
     const taskId = params.taskId;
     if (!taskId || taskId.length < 8) {
       return NextResponse.json({ error: 'invalid taskId' }, { status: 400 });
     }
     const result = await queryStatus(taskId);
+    // best-effort persist status into DB (don't fail user if DB hiccups)
+    try {
+      await updateGenerationStatus(taskId, result.status, result.videoUrl ?? null);
+    } catch {/* ignore */}
     return NextResponse.json(
       {
         taskId: result.taskId,

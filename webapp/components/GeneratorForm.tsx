@@ -10,7 +10,16 @@
  *   4. status='done' 拿 videoUrl → 通过 /api/proxy-video 播放
  */
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { ExamplePrompts, type ExamplePrompt } from './ExamplePrompts';
+
+interface MeData {
+  authenticated: boolean;
+  email?: string;
+  tier?: 'free' | 'pro';
+  dailyLimit?: number;
+  usedToday?: number;
+}
 
 type Stage =
   | { kind: 'idle' }
@@ -27,17 +36,37 @@ export function GeneratorForm() {
   const [ratio, setRatio] = useState<'9:16' | '16:9'>('9:16');
   const [duration, setDuration] = useState<'～15s' | '～30s'>('～15s');
   const [stage, setStage] = useState<Stage>({ kind: 'idle' });
+  const [me, setMe] = useState<MeData | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startRef = useRef<number>(0);
 
   useEffect(() => {
+    fetch('/api/me', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then(setMe)
+      .catch(() => setMe({ authenticated: false }));
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
 
+  async function refreshMe() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      setMe(await r.json());
+    } catch {/* ignore */}
+  }
+
   const promptLen = prompt.length;
-  const canSubmit = promptLen >= 20 && promptLen <= 2000 && stage.kind === 'idle';
+  const isLoggedIn = me?.authenticated === true;
+  const quotaExhausted =
+    isLoggedIn && (me?.usedToday ?? 0) >= (me?.dailyLimit ?? 0);
+  const canSubmit =
+    promptLen >= 20 &&
+    promptLen <= 2000 &&
+    stage.kind === 'idle' &&
+    isLoggedIn &&
+    !quotaExhausted;
 
   function pickExample(ex: ExamplePrompt) {
     setPrompt(ex.prompt);
@@ -64,6 +93,10 @@ export function GeneratorForm() {
         return;
       }
       const taskId = data.taskId as string;
+      // immediately reflect quota decrement
+      if (typeof data.usedToday === 'number') {
+        setMe((prev) => prev ? { ...prev, usedToday: data.usedToday } : prev);
+      }
       setStage({ kind: 'polling', taskId, status: 'in_queue', secondsElapsed: 0 });
       startPolling(taskId);
     } catch (e: any) {
@@ -128,9 +161,59 @@ export function GeneratorForm() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
+      {/* NOT-LOGGED-IN BANNER */}
+      {(stage.kind === 'idle' || stage.kind === 'submitting') && me && !isLoggedIn && (
+        <div className="mb-6 rounded-2xl border border-line bg-white p-6 text-center">
+          <h2 className="text-lg font-medium text-ink">登录后即可开始生成</h2>
+          <p className="mt-2 text-sm text-ink2 leading-relaxed">
+            注册免费账号 → 每天 1 条免费生成额度；升级 Pro → 每天 100 条。
+          </p>
+          <div className="mt-5 flex gap-3 justify-center">
+            <Link
+              href="/register"
+              className="inline-flex items-center px-6 h-11 rounded-full bg-ink text-white text-sm font-medium hover:bg-black"
+            >
+              立即注册
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center px-6 h-11 rounded-full border border-line text-ink text-sm font-medium hover:bg-white"
+            >
+              已有账号 登录
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* QUOTA BANNER (logged in) */}
+      {(stage.kind === 'idle' || stage.kind === 'submitting') && isLoggedIn && (
+        <div className="mb-6 rounded-2xl border border-line bg-white p-4 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-ink2">{me?.email}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs ${
+              me?.tier === 'pro' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'
+            }`}>
+              {me?.tier === 'pro' ? '⭐ Pro' : '免费'}
+            </span>
+          </div>
+          <div className={`font-medium ${quotaExhausted ? 'text-red-600' : 'text-ink'}`}>
+            今日额度 {me?.usedToday}/{me?.dailyLimit}
+          </div>
+        </div>
+      )}
+
       {/* INPUT FORM */}
-      {(stage.kind === 'idle' || stage.kind === 'submitting') && (
+      {(stage.kind === 'idle' || stage.kind === 'submitting') && isLoggedIn && (
         <div className="space-y-6">
+          {quotaExhausted && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <strong>今日额度已用完。</strong>
+              {' '}免费用户每天 1 条；
+              <Link href="/account" className="underline hover:text-red-900">
+                升级 Pro
+              </Link>{' '}享每天 100 条。明日 UTC 00:00 后重置。
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium mb-2 text-ink">
               提示词

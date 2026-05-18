@@ -1,4 +1,5 @@
 import { GeneratorForm } from '@/components/GeneratorForm';
+import { Header } from '@/components/Header';
 
 export default function HomePage() {
   return (
@@ -18,6 +19,9 @@ export default function HomePage() {
             R40 实测 <strong className="text-ink">96.81/100</strong> 评分基线 ·
             基于火山方舟 Skylark Agent 2.0。
           </p>
+          <p className="mt-3 text-sm text-ink2">
+            免费用户每日 1 条 · Pro 用户每日 100 条
+          </p>
         </div>
       </section>
 
@@ -27,30 +31,6 @@ export default function HomePage() {
 
       <Footer />
     </main>
-  );
-}
-
-function Header() {
-  return (
-    <header className="sticky top-0 z-20 glass border-b border-line/50">
-      <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-accent" />
-          云雀漫剧
-        </div>
-        <nav className="flex items-center gap-6 text-sm text-ink2">
-          <a href="#about" className="hover:text-ink">关于</a>
-          <a
-            href="https://github.com/bistuwangqiyuan/ai-manju-xiaoyunque"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-ink"
-          >
-            GitHub
-          </a>
-        </nav>
-      </div>
-    </header>
   );
 }
 
