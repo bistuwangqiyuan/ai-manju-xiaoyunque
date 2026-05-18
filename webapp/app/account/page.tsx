@@ -7,9 +7,10 @@ interface MeData {
   authenticated: boolean;
   email?: string;
   tier?: 'free' | 'pro';
-  dailyLimit?: number;
+  dailyLimit?: number;       // -1 = unlimited (pro)
   usedToday?: number;
-  proUntil?: string | null;
+  creditBalance?: number;    // ¥
+  costPerVideo?: number;     // ¥ per video for pro
 }
 
 export default function AccountPage() {
@@ -38,8 +39,10 @@ export default function AccountPage() {
   }
   if (!me.authenticated) return null;
 
-  const tierLabel = me.tier === 'pro' ? '⭐ Pro' : '免费';
-  const remaining = (me.dailyLimit ?? 0) - (me.usedToday ?? 0);
+  const isPro = me.tier === 'pro';
+  const balance = me.creditBalance ?? 0;
+  const costPerVideo = me.costPerVideo ?? 5.5;
+  const videosRemaining = isPro ? Math.floor(balance / costPerVideo) : (me.dailyLimit ?? 3) - (me.usedToday ?? 0);
 
   return (
     <div className="max-w-2xl mx-auto pt-16 px-6">
@@ -50,29 +53,47 @@ export default function AccountPage() {
 
       <div className="mt-8 rounded-2xl border border-line bg-white p-6 space-y-4">
         <Row label="邮箱" value={me.email!} />
-        <Row label="套餐" value={tierLabel} />
-        <Row label="每日额度" value={`${me.usedToday}/${me.dailyLimit}（剩余 ${remaining}）`} />
-        {me.proUntil && (
-          <Row label="Pro 有效期" value={new Date(me.proUntil).toLocaleString('zh-CN')} />
+        <Row label="套餐" value={isPro ? '⭐ Pro 充值用户' : '免费用户'} />
+        {isPro ? (
+          <>
+            <Row label="账户余额" value={`¥${balance.toFixed(2)}`} highlight />
+            <Row label="单次扣费" value={`¥${costPerVideo.toFixed(2)} / 视频`} hint="按火山方舟成本 1.1× 计费" />
+            <Row label="今日已生成" value={`${me.usedToday} 条（无上限）`} />
+            <Row label="剩余可生成" value={`约 ${videosRemaining} 条`} />
+          </>
+        ) : (
+          <>
+            <Row label="每日免费额度" value={`${me.usedToday}/${me.dailyLimit}（UTC 日历日重置）`} />
+            <Row label="今日剩余" value={`${videosRemaining} 条`} highlight={videosRemaining > 0} />
+          </>
         )}
       </div>
 
-      {me.tier === 'free' && (
-        <div className="mt-6 rounded-2xl border border-accent/20 bg-accent/5 p-6">
-          <h2 className="text-lg font-medium text-ink">升级到 Pro</h2>
-          <p className="mt-2 text-sm text-ink2 leading-relaxed">
-            Pro 用户每日 <strong className="text-ink">100 条</strong> 生成额度（免费版 1 条/天）。
-            <br />
-            目前支付通道尚未开通，请发邮件申请：
-          </p>
-          <a
-            href={`mailto:hello@yunque-manhua.com?subject=申请升级 Pro&body=邮箱: ${encodeURIComponent(me.email!)}`}
-            className="mt-4 inline-flex items-center px-5 h-11 rounded-full bg-ink text-white text-sm font-medium hover:bg-black"
-          >
-            发邮件申请 Pro
-          </a>
-        </div>
-      )}
+      <div className="mt-6 rounded-2xl border border-accent/20 bg-accent/5 p-6">
+        <h2 className="text-lg font-medium text-ink">
+          {isPro ? '继续充值' : '充值升级 Pro'}
+        </h2>
+        <p className="mt-2 text-sm text-ink2 leading-relaxed">
+          {isPro
+            ? '余额低于单次成本时会被拦截。建议保持 ≥ ¥50 余额。'
+            : '充值即升级 Pro（自动），按 ¥5.50/视频 扣费，无每日上限。'}
+        </p>
+        <ul className="mt-3 text-sm text-ink2 space-y-1">
+          <li>· 1 视频 = 15 秒 1080×1920 竖屏国漫</li>
+          <li>· 实际成本：火山方舟 Skylark 2.0 ¥5/视频</li>
+          <li>· 平台服务费：1.1× 成本 = <strong>¥5.50/视频</strong></li>
+          <li>· 推荐充值：¥55 (10 条) / ¥110 (20 条) / ¥550 (100 条)</li>
+        </ul>
+        <p className="mt-4 text-sm text-ink2">
+          暂未对接 Stripe/Alipay，请发邮件申请充值：
+        </p>
+        <a
+          href={`mailto:hello@yunque-manhua.com?subject=申请充值&body=邮箱: ${encodeURIComponent(me.email!)}%0A充值金额: ¥`}
+          className="mt-3 inline-flex items-center px-5 h-11 rounded-full bg-ink text-white text-sm font-medium hover:bg-black"
+        >
+          发邮件申请充值
+        </a>
+      </div>
 
       <button
         onClick={logout}
@@ -84,11 +105,14 @@ export default function AccountPage() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, highlight, hint }: { label: string; value: string; highlight?: boolean; hint?: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-ink2">{label}</span>
-      <span className="text-ink font-medium">{value}</span>
+    <div className="flex items-start justify-between text-sm">
+      <div>
+        <div className="text-ink2">{label}</div>
+        {hint && <div className="text-xs text-ink2/70 mt-0.5">{hint}</div>}
+      </div>
+      <span className={`font-medium ${highlight ? 'text-accent' : 'text-ink'}`}>{value}</span>
     </div>
   );
 }

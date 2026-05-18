@@ -45,8 +45,9 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       email: user.email,
       tier: user.tier,
-      dailyLimit: quota?.daily_limit ?? 1,
+      dailyLimit: quota?.daily_limit ?? 3,
       usedToday: quota?.used_today ?? 0,
+      creditBalance: (Number(quota?.credit_balance_fen) || 0) / 100,
     });
     await setSessionCookie(res, { uid: user.id, email: user.email });
     return res;

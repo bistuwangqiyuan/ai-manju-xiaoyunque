@@ -18,30 +18,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false });
   }
   if (!isDbReady()) {
-    // session valid but db missing — degrade gracefully
     return NextResponse.json({
       authenticated: true,
       email: session.email,
       tier: 'free',
-      dailyLimit: 1,
+      dailyLimit: 3,
       usedToday: 0,
+      creditBalance: 0,
+      costPerVideo: 5.50,
       dbReady: false,
     });
   }
   const quota = await getQuota(session.uid);
   if (!quota) {
-    // user row vanished (e.g. admin deleted)
     return NextResponse.json({ authenticated: false });
   }
-  // Coerce PG bigint -> number (Neon serverless returns bigint as string).
   const usedToday = Number(quota.used_today) || 0;
-  const dailyLimit = Number(quota.daily_limit) || 1;
+  const dailyLimit = Number(quota.daily_limit) || 3;
+  const creditBalanceFen = Number(quota.credit_balance_fen) || 0;
   return NextResponse.json({
     authenticated: true,
     email: quota.email,
     tier: quota.tier,
-    dailyLimit,
+    dailyLimit,                                  // -1 means unlimited (pro)
     usedToday,
-    proUntil: quota.pro_until,
+    creditBalance: creditBalanceFen / 100,       // ¥
+    costPerVideo: 5.50,                          // ¥ per video for pro tier
   });
 }

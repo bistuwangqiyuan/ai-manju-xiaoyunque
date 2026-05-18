@@ -23,7 +23,14 @@ import {
   type Language,
 } from '@/lib/skylark';
 import { readSessionFromRequest } from '@/lib/auth';
-import { getQuota, recordGeneration, isDbReady } from '@/lib/db';
+import {
+  getQuota,
+  recordGeneration,
+  debitCredits,
+  isDbReady,
+  COST_PER_VIDEO_FEN,
+  FREE_TIER_DAILY,
+} from '@/lib/db';
 import crypto from 'node:crypto';
 
 export const runtime = 'nodejs';
@@ -48,22 +55,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ----- 2. 额度检查 (UTC 日历日) -----
+    // ----- 2. 额度/余额检查 -----
     const quota = await getQuota(session.uid);
     if (!quota) {
       return NextResponse.json({ error: '用户不存在', requireAuth: true }, { status: 401 });
     }
-    if (quota.used_today >= quota.daily_limit) {
-      return NextResponse.json(
-        {
-          error: `今日额度已用完 (${quota.used_today}/${quota.daily_limit})。免费用户每天 1 条；升级 Pro 享每天 100 条`,
-          tier: quota.tier,
-          dailyLimit: quota.daily_limit,
-          usedToday: quota.used_today,
-          quotaExhausted: true,
-        },
-        { status: 429 },
-      );
+    if (quota.tier === 'free') {
+      // Free: enforce daily limit (default 3)
+      if (quota.used_today >= quota.daily_limit) {
+        return NextResponse.json(
+          {
+            error: `今日免费额度已用完 (${quota.used_today}/${quota.daily_limit})。明日 UTC 00:00 重置，或充值升级 Pro 享无限生成（按 ¥5.50/视频 扣费）`,
+            tier: 'free',
+            dailyLimit: quota.daily_limit,
+            usedToday: quota.used_today,
+            quotaExhausted: true,
+          },
+          { status: 429 },
+        );
+      }
+    } else {
+      // Pro: check credit balance
+      if (quota.credit_balance_fen < COST_PER_VIDEO_FEN) {
+        return NextResponse.json(
+          {
+            error: `余额不足: 当前余额 ¥${(quota.credit_balance_fen / 100).toFixed(2)}, 单次生成需 ¥${(COST_PER_VIDEO_FEN / 100).toFixed(2)}。请充值后再生成`,
+            tier: 'pro',
+            creditBalance: quota.credit_balance_fen / 100,
+            costPerVideo: COST_PER_VIDEO_FEN / 100,
+            balanceInsufficient: true,
+          },
+          { status: 402 },   // Payment Required
+        );
+      }
     }
 
     // ----- 3. 请求参数 -----
@@ -97,7 +121,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ----- 5. 写库 (记录额度消耗) -----
+    // ----- 5. 写库 + 扣费 (pro tier) -----
+    const costFen = quota.tier === 'pro' ? COST_PER_VIDEO_FEN : 0;
     await recordGeneration({
       userId: session.uid,
       taskId: result.taskId,
@@ -105,13 +130,29 @@ export async function POST(req: NextRequest) {
       ratio,
       duration,
       status: 'submitted',
+      costFen: costFen || undefined,
     });
+    let newBalance = quota.credit_balance_fen;
+    if (quota.tier === 'pro') {
+      try {
+        newBalance = await debitCredits(session.uid, COST_PER_VIDEO_FEN, result.taskId);
+      } catch (e: any) {
+        // race condition: balance went insufficient between check and debit
+        return NextResponse.json(
+          { error: '余额不足 (并发扣费失败)', balanceInsufficient: true },
+          { status: 402 },
+        );
+      }
+    }
 
     return NextResponse.json(
       {
         taskId: result.taskId,
+        tier: quota.tier,
         dailyLimit: quota.daily_limit,
-        usedToday: quota.used_today + 1,   // 算上本次
+        usedToday: quota.used_today + 1,
+        creditBalance: newBalance / 100,
+        chargedFen: costFen,
       },
       { status: 200 },
     );

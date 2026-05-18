@@ -8,6 +8,7 @@ interface MeData {
   tier?: 'free' | 'pro';
   dailyLimit?: number;
   usedToday?: number;
+  creditBalance?: number;
 }
 
 export function Header() {
@@ -44,12 +45,12 @@ export function Header() {
               href="/account"
               className="inline-flex items-center gap-2 h-8 px-3 rounded-full border border-line bg-white hover:border-ink2 text-ink"
             >
-              {me.tier === 'pro' ? (
-                <span className="text-yellow-600">⭐</span>
-              ) : null}
-              <span className="max-w-[180px] truncate text-xs">{me.email}</span>
+              {me.tier === 'pro' ? <span className="text-yellow-600">⭐</span> : null}
+              <span className="max-w-[150px] truncate text-xs">{me.email}</span>
               <span className="text-xs text-ink2">
-                {me.usedToday}/{me.dailyLimit}
+                {me.tier === 'pro'
+                  ? `¥${(me.creditBalance ?? 0).toFixed(2)}`
+                  : `${me.usedToday}/${me.dailyLimit}`}
               </span>
             </Link>
           ) : (

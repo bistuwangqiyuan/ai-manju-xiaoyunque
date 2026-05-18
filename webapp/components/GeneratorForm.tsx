@@ -18,8 +18,10 @@ interface MeData {
   authenticated: boolean;
   email?: string;
   tier?: 'free' | 'pro';
-  dailyLimit?: number;
+  dailyLimit?: number;       // -1 = unlimited (pro)
   usedToday?: number;
+  creditBalance?: number;
+  costPerVideo?: number;
 }
 
 type Stage =
@@ -76,14 +78,19 @@ export const GeneratorForm = forwardRef<GeneratorFormHandle>(function GeneratorF
 
   const promptLen = prompt.length;
   const isLoggedIn = me?.authenticated === true;
-  const quotaExhausted =
-    isLoggedIn && (me?.usedToday ?? 0) >= (me?.dailyLimit ?? 0);
+  const isPro = me?.tier === 'pro';
+  const costPerVideo = me?.costPerVideo ?? 5.5;
+  const creditBalance = me?.creditBalance ?? 0;
+  const quotaExhausted = isLoggedIn && !isPro &&
+    (me?.usedToday ?? 0) >= (me?.dailyLimit ?? 3);
+  const balanceInsufficient = isLoggedIn && isPro && creditBalance < costPerVideo;
   const canSubmit =
     promptLen >= 20 &&
     promptLen <= 2000 &&
     stage.kind === 'idle' &&
     isLoggedIn &&
-    !quotaExhausted;
+    !quotaExhausted &&
+    !balanceInsufficient;
 
   function pickExample(ex: ExamplePrompt) {
     setPrompt(ex.prompt);
@@ -110,10 +117,12 @@ export const GeneratorForm = forwardRef<GeneratorFormHandle>(function GeneratorF
         return;
       }
       const taskId = data.taskId as string;
-      // immediately reflect quota decrement
-      if (typeof data.usedToday === 'number') {
-        setMe((prev) => prev ? { ...prev, usedToday: data.usedToday } : prev);
-      }
+      // immediately reflect quota/balance decrement
+      setMe((prev) => prev ? {
+        ...prev,
+        usedToday: typeof data.usedToday === 'number' ? data.usedToday : prev.usedToday,
+        creditBalance: typeof data.creditBalance === 'number' ? data.creditBalance : prev.creditBalance,
+      } : prev);
       setStage({ kind: 'polling', taskId, status: 'in_queue', secondsElapsed: 0 });
       startPolling(taskId);
     } catch (e: any) {
@@ -183,7 +192,8 @@ export const GeneratorForm = forwardRef<GeneratorFormHandle>(function GeneratorF
         <div className="mb-6 rounded-2xl border border-line bg-white p-6 text-center">
           <h2 className="text-lg font-medium text-ink">登录后即可开始生成</h2>
           <p className="mt-2 text-sm text-ink2 leading-relaxed">
-            注册免费账号 → 每天 1 条免费生成额度；升级 Pro → 每天 100 条。
+            注册免费账号 → 每天 <strong className="text-ink">3 条</strong> 免费额度；
+            充值后无每日上限，按 <strong className="text-ink">¥5.50/视频</strong> 扣费。
           </p>
           <div className="mt-5 flex gap-3 justify-center">
             <Link
@@ -202,19 +212,21 @@ export const GeneratorForm = forwardRef<GeneratorFormHandle>(function GeneratorF
         </div>
       )}
 
-      {/* QUOTA BANNER (logged in) */}
+      {/* QUOTA / BALANCE BANNER (logged in) */}
       {(stage.kind === 'idle' || stage.kind === 'submitting') && isLoggedIn && (
         <div className="mb-6 rounded-2xl border border-line bg-white p-4 flex items-center justify-between text-sm">
           <div className="flex items-center gap-3">
             <span className="text-ink2">{me?.email}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs ${
-              me?.tier === 'pro' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'
+              isPro ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'
             }`}>
-              {me?.tier === 'pro' ? '⭐ Pro' : '免费'}
+              {isPro ? '⭐ Pro' : '免费'}
             </span>
           </div>
-          <div className={`font-medium ${quotaExhausted ? 'text-red-600' : 'text-ink'}`}>
-            今日额度 {me?.usedToday}/{me?.dailyLimit}
+          <div className={`font-medium ${quotaExhausted || balanceInsufficient ? 'text-red-600' : 'text-ink'}`}>
+            {isPro
+              ? `余额 ¥${creditBalance.toFixed(2)}（剩约 ${Math.floor(creditBalance / costPerVideo)} 条）`
+              : `今日 ${me?.usedToday}/${me?.dailyLimit}`}
           </div>
         </div>
       )}
@@ -224,11 +236,20 @@ export const GeneratorForm = forwardRef<GeneratorFormHandle>(function GeneratorF
         <div className="space-y-6">
           {quotaExhausted && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              <strong>今日额度已用完。</strong>
-              {' '}免费用户每天 1 条；
+              <strong>今日免费额度已用完。</strong>
+              {' '}免费用户每天 3 条，明日 UTC 00:00 后重置；
+              {' '}或<Link href="/account" className="underline hover:text-red-900">
+                充值升 Pro
+              </Link>享无每日上限（按 ¥5.50/视频 扣费）。
+            </div>
+          )}
+          {balanceInsufficient && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <strong>余额不足：¥{creditBalance.toFixed(2)}。</strong>
+              {' '}单次生成需 ¥{costPerVideo.toFixed(2)}，
               <Link href="/account" className="underline hover:text-red-900">
-                升级 Pro
-              </Link>{' '}享每天 100 条。明日 UTC 00:00 后重置。
+                立即充值
+              </Link>。
             </div>
           )}
           <div>

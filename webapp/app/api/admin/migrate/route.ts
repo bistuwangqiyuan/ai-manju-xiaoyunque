@@ -15,25 +15,29 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
+// SCHEMA: free tier = 3 video/day, pro tier = unlimited as long as
+// credit_balance_fen >= COST_PER_VIDEO_FEN. Charge 1.1× cost on submit.
+// (1 fen = 0.01 yuan = 0.01 RMB)
 const SCHEMA_STATEMENTS = [
-  // R1: drop pre-existing yunque tables if any (idempotent fresh start)
-  // The Neon template comes with sample `users` having `username NOT NULL` etc.
-  // Drop them so we own the schema.
-  `DROP TABLE IF EXISTS generations CASCADE`,
-  `DROP VIEW IF EXISTS v_user_quota_today`,
-  `DROP TABLE IF EXISTS users CASCADE`,
-  `CREATE TABLE users (
+  // Idempotent CREATE
+  `CREATE TABLE IF NOT EXISTS users (
     id            BIGSERIAL PRIMARY KEY,
     email         TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     tier          TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'pro')),
-    pro_until     TIMESTAMPTZ,
-    daily_limit_override INTEGER,
+    credit_balance_fen BIGINT NOT NULL DEFAULT 0,  -- in fen (0.01 RMB)
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login_at TIMESTAMPTZ
   )`,
-  `CREATE INDEX idx_users_email ON users (lower(email))`,
-  `CREATE TABLE generations (
+  // ALTERs for existing tables (idempotent column add)
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance_fen BIGINT NOT NULL DEFAULT 0`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'free'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ`,
+  // Drop legacy columns we no longer use (if they exist)
+  `ALTER TABLE users DROP COLUMN IF EXISTS pro_until`,
+  `ALTER TABLE users DROP COLUMN IF EXISTS daily_limit_override`,
+  `CREATE INDEX IF NOT EXISTS idx_users_email ON users (lower(email))`,
+  `CREATE TABLE IF NOT EXISTS generations (
     id          BIGSERIAL PRIMARY KEY,
     user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     task_id     TEXT NOT NULL,
@@ -42,20 +46,31 @@ const SCHEMA_STATEMENTS = [
     duration    TEXT,
     status      TEXT NOT NULL DEFAULT 'submitted',
     video_url   TEXT,
+    cost_fen    BIGINT,            -- charged amount (only for pro tier deductions)
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
-  `CREATE INDEX idx_generations_user_date ON generations (user_id, created_at DESC)`,
-  `CREATE OR REPLACE VIEW v_user_quota_today AS
+  `ALTER TABLE generations ADD COLUMN IF NOT EXISTS cost_fen BIGINT`,
+  `CREATE INDEX IF NOT EXISTS idx_generations_user_date ON generations (user_id, created_at DESC)`,
+  // Credit history (audit trail of recharges + deductions)
+  `CREATE TABLE IF NOT EXISTS credit_ledger (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    delta_fen   BIGINT NOT NULL,      -- positive = recharge, negative = consumption
+    balance_after_fen BIGINT NOT NULL,
+    reason      TEXT NOT NULL,        -- 'recharge' | 'video_submit' | 'refund' | 'admin_adjust'
+    task_id     TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_credit_ledger_user ON credit_ledger (user_id, created_at DESC)`,
+  // Updated quota view: separate free-tier daily counter from pro credit_balance
+  `DROP VIEW IF EXISTS v_user_quota_today`,
+  `CREATE VIEW v_user_quota_today AS
    SELECT
      u.id AS user_id,
      u.email,
      u.tier,
-     u.pro_until,
-     COALESCE(u.daily_limit_override,
-              CASE WHEN u.tier = 'pro' AND (u.pro_until IS NULL OR u.pro_until > NOW())
-                   THEN 100
-                   ELSE 1
-              END) AS daily_limit,
+     u.credit_balance_fen,
+     CASE WHEN u.tier = 'pro' THEN -1 ELSE 3 END AS daily_limit,  -- -1 = unlimited (pro)
      (SELECT COUNT(*) FROM generations g
       WHERE g.user_id = u.id
         AND g.created_at >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
