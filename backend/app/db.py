@@ -130,5 +130,41 @@ class Payment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+def _apply_simple_migrations(connection) -> None:
+    """
+    幂等小迁移：对于新加的列，自动 ALTER TABLE ADD COLUMN IF NOT EXISTS。
+    避免每次 schema 演进都要手动 drop table。
+
+    只支持 Postgres（IF NOT EXISTS 需要 Postgres ≥ 9.6）。
+    SQLite 直接跳过（dev DB 反正会重建）。
+    """
+    from sqlalchemy import text
+    dialect = connection.dialect.name
+    if dialect != "postgresql":
+        return
+
+    # (table_name, column_name, column_type_sql)
+    migrations = [
+        ("xyq_users", "tier", "VARCHAR(20) DEFAULT 'free' NOT NULL"),
+        ("xyq_jobs", "quality_score", "INTEGER"),
+        ("xyq_jobs", "quality_breakdown", "TEXT"),
+        ("xyq_jobs", "quality_retries", "INTEGER DEFAULT 0 NOT NULL"),
+    ]
+    for table, col, coltype in migrations:
+        try:
+            connection.execute(text(
+                f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {coltype}"
+            ))
+        except Exception as e:
+            # 表可能还没建，create_all 之后会建好，这里忽略即可
+            import logging
+            logging.getLogger("xyq.db").warning("migration %s.%s skipped: %s", table, col, e)
+    connection.commit()
+
+
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    # 在 create_all 之后跑迁移：如果是新装库，create_all 已带新列；
+    # 如果是旧库，create_all 跳过已存在的表，这里负责把缺的列补上
+    with engine.connect() as conn:
+        _apply_simple_migrations(conn)
