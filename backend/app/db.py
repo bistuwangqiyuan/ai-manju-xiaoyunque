@@ -68,6 +68,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     credits_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # 用户等级：free / pro / studio / admin
+    tier: Mapped[str] = mapped_column(String(20), default="free", nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     jobs: Mapped[list["Job"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -89,6 +91,12 @@ class Job(Base):
     result_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # 质量评分（满分 100，目标 ≥ 90）
+    quality_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # JSON 字符串：{"consistency": 92, "aesthetic": 88, ...}
+    quality_breakdown: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quality_retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

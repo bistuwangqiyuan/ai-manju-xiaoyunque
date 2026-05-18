@@ -32,6 +32,9 @@ def create_checkout(
     if settings.use_mock_billing:
         # mock 模式：直接给用户加额度（仅用于开发联调）
         user.credits_cents += plan["amount_cents"]
+        # 首次充值：free → pro 自动升级
+        if user.tier == "free":
+            user.tier = "pro"
         db.add(
             Payment(
                 user_id=user.id,
@@ -92,6 +95,9 @@ def topup(
     if not settings.use_mock_billing:
         raise HTTPException(status_code=400, detail="生产环境请走 /checkout")
     user.credits_cents += payload.amount_cents
+    # 首次充值：free → pro 自动升级
+    if user.tier == "free":
+        user.tier = "pro"
     db.add(
         Payment(
             user_id=user.id,
@@ -130,6 +136,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             user = db.get(User, pay.user_id)
             if user:
                 user.credits_cents += pay.amount_cents
+                # 首次付费：free → pro 自动升级
+                if user.tier == "free":
+                    user.tier = "pro"
             db.commit()
 
     return {"received": True}

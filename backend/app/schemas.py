@@ -20,6 +20,7 @@ class UserOut(BaseModel):
     id: int
     email: str
     credits_cents: int
+    tier: str = "free"
     created_at: datetime
 
     class Config:
@@ -50,11 +51,44 @@ class JobOut(BaseModel):
     result_url: Optional[str]
     cover_url: Optional[str]
     error: Optional[str]
+    quality_score: Optional[int] = None
+    # {consistency, aesthetic, fidelity, subtitle, pacing} 全部 0-100 整数
+    quality_breakdown: Optional[dict] = None
+    quality_retries: int = 0
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+def job_to_out(job) -> "JobOut":
+    """Convert SQLAlchemy Job → JobOut, parsing quality_breakdown JSON string."""
+    import json
+    qb = None
+    if job.quality_breakdown:
+        try:
+            qb = json.loads(job.quality_breakdown)
+        except Exception:
+            qb = None
+    return JobOut(
+        id=job.id,
+        title=job.title,
+        status=job.status,
+        progress=job.progress,
+        cost_cents=job.cost_cents,
+        episodes=job.episodes,
+        novel_excerpt=job.novel_excerpt,
+        style=job.style,
+        result_url=job.result_url,
+        cover_url=job.cover_url,
+        error=job.error,
+        quality_score=job.quality_score,
+        quality_breakdown=qb,
+        quality_retries=job.quality_retries,
+        created_at=job.created_at,
+        updated_at=job.updated_at,
+    )
 
 
 class JobLogOut(BaseModel):
