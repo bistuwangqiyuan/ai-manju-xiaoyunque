@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #faf7f2;
+  --foreground: #2a1e13;
+}
+
+html, body {
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans), 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(at 20% 10%, rgba(212, 173, 119, 0.22) 0px, transparent 50%),
+    radial-gradient(at 85% 85%, rgba(168, 65, 44, 0.12) 0px, transparent 55%);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-cinnabar-600 text-white font-medium shadow-ink hover:bg-cinnabar-700 transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-ink-300 bg-white/60 text-ink-900 font-medium hover:bg-white transition;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-3 py-2 rounded-md text-ink-700 hover:text-cinnabar-700 hover:bg-ink-100/60 transition;
+  }
+  .card {
+    @apply bg-white/80 backdrop-blur border border-ink-200/60 rounded-2xl shadow-ink;
+  }
+  .input {
+    @apply w-full px-3 py-2 rounded-lg border border-ink-300 bg-white/80 focus:outline-none focus:ring-2 focus:ring-cinnabar-400 focus:border-transparent transition;
+  }
+  .label {
+    @apply block text-sm font-medium text-ink-800 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+  .seal {
+    @apply inline-flex items-center justify-center w-12 h-12 rounded bg-cinnabar-700 text-white font-serif text-xl shadow-lg rotate-[-6deg];
+  }
+}

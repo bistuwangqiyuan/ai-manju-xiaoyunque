@@ -1,0 +1,22 @@
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.2
+pydantic-settings==2.6.1
+
+# Auth
+bcrypt==4.2.1
+PyJWT==2.10.0
+email-validator==2.2.0
+
+# Database
+SQLAlchemy==2.0.36
+
+# HTTP
+httpx==0.27.2
+
+# Payments (optional, only if STRIPE_SECRET_KEY set)
+stripe==11.2.0
+
+# Storage (S3-compatible, optional)
+boto3==1.35.71
