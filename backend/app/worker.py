@@ -52,8 +52,15 @@ def _set_progress(db: Session, job: Job, progress: int, status: Optional[str] = 
     db.commit()
 
 
-SAMPLE_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-SAMPLE_COVER_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg"
+# Mock 渲染产出指向前端 web/public/samples/ 下的真实 R40 成片
+# （这些 mp4 是项目内 Skylark Agent 2.0 真实生成，96-97/100）
+# 让用户提交任务后看到的"成片"和示例画廊同源同质
+SAMPLE_BUNDLES = [
+    ("/samples/nie01_lanruosi.mp4", "/samples/nie01_lanruosi.jpg"),
+    ("/samples/nie02_appears.mp4", "/samples/nie02_appears.jpg"),
+    ("/samples/nie03_yan_chixia.mp4", "/samples/nie03_yan_chixia.jpg"),
+    ("/samples/xiyou01_immortal_stone.mp4", "/samples/xiyou01_immortal_stone.jpg"),
+]
 
 
 def _compute_quality(retry: int) -> tuple[int, dict]:
@@ -187,9 +194,10 @@ async def _run_mock(db: Session, job: Job) -> None:
         _log(db, job, "WARN", f"评分 {score} < {pass_threshold}，自动触发修复重试 ({attempt+1}/{max_retries})")
         attempt += 1
 
-    # 最终产物
-    job.result_url = SAMPLE_VIDEO_URL
-    job.cover_url = SAMPLE_COVER_URL
+    # 最终产物：按 job_id 轮询挑一个真实 R40 样片（让不同任务看到不同成片）
+    video, cover = SAMPLE_BUNDLES[job.id % len(SAMPLE_BUNDLES)]
+    job.result_url = video
+    job.cover_url = cover
     db.commit()
 
     if score >= pass_threshold:

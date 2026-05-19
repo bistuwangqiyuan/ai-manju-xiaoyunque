@@ -4,9 +4,6 @@ import { Play, Award } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 
-const SAMPLE_VIDEO =
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-
 interface Episode {
   no: string;
   title: string;
@@ -21,12 +18,15 @@ interface Episode {
   };
   durationSec: number;
   taskId: string;
-  gradient: string;
+  videoSrc: string;     // 本地 mp4
+  posterSrc: string;    // 本地 jpg 封面
+  gradient: string;     // 兜底渐变（poster 加载前）
   characterName: string;
   characterRole: string;
 }
 
-// 真实的 R40 攻关圈数据（项目内 R31_R40_ACHIEVEMENT.md 记录）
+// 真实的 R40 攻关圈成片（项目内 R31_R40_ACHIEVEMENT.md 记录）
+// 所有 mp4/jpg 已 cherry-pick 到 web/public/samples/
 const REAL_EPISODES: Episode[] = [
   {
     no: 'EP 01',
@@ -37,6 +37,8 @@ const REAL_EPISODES: Episode[] = [
     rubric: { tech: 35.0, visual: 28.48, narrative: 20.0, genre: 8.39 },
     durationSec: 15,
     taskId: '11698989232001516248',
+    videoSrc: '/samples/nie01_lanruosi.mp4',
+    posterSrc: '/samples/nie01_lanruosi.jpg',
     gradient: 'from-cinnabar-700 via-cinnabar-500 to-ink-300',
     characterName: '聂小倩',
     characterRole: '女主 · 善鬼',
@@ -50,6 +52,8 @@ const REAL_EPISODES: Episode[] = [
     rubric: { tech: 34.5, visual: 27.48, narrative: 20.0, genre: 8.99 },
     durationSec: 15,
     taskId: '6730696300096597097',
+    videoSrc: '/samples/nie02_appears.mp4',
+    posterSrc: '/samples/nie02_appears.jpg',
     gradient: 'from-purple-900 via-ink-700 to-cinnabar-300',
     characterName: '聂小倩',
     characterRole: 'palette v3',
@@ -63,14 +67,12 @@ const REAL_EPISODES: Episode[] = [
     rubric: { tech: 35.0, visual: 28.10, narrative: 20.0, genre: 9.00 },
     durationSec: 15,
     taskId: '13001907883391099534',
+    videoSrc: '/samples/nie03_yan_chixia.mp4',
+    posterSrc: '/samples/nie03_yan_chixia.jpg',
     gradient: 'from-ink-700 via-ink-400 to-cinnabar-200',
     characterName: '燕赤霞',
     characterRole: 'face-persistent v3 ⭐',
   },
-];
-
-// 项目内攻关圈也跑过西游记
-const FUTURE_EPISODES: Episode[] = [
   {
     no: 'EP 04',
     title: '石猴出世',
@@ -79,14 +81,16 @@ const FUTURE_EPISODES: Episode[] = [
     score: 95.25,
     rubric: { tech: 33.5, visual: 27.9, narrative: 19.5, genre: 8.5 },
     durationSec: 15,
-    taskId: 'R23-ep03',
+    taskId: 'R23-xiyou01',
+    videoSrc: '/samples/xiyou01_immortal_stone.mp4',
+    posterSrc: '/samples/xiyou01_immortal_stone.jpg',
     gradient: 'from-emerald-700 via-yellow-500 to-orange-400',
     characterName: '孙悟空',
     characterRole: 'R15-R23 攻关',
   },
 ];
 
-const ALL = [...REAL_EPISODES, ...FUTURE_EPISODES];
+const ALL = REAL_EPISODES;
 
 export function ShowcaseGallery() {
   const [playingIdx, setPlayingIdx] = useState<number | null>(null);
@@ -120,17 +124,20 @@ export function ShowcaseGallery() {
             className="group relative aspect-[9/16] rounded-2xl overflow-hidden shadow-ink hover:shadow-2xl transition-all hover:-translate-y-1 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-cinnabar-300"
             aria-label={`播放 ${ep.title}，评分 ${ep.score}`}
           >
-            {/* Background gradient */}
+            {/* 兜底渐变（poster 加载前） */}
             <div className={`absolute inset-0 bg-gradient-to-br ${ep.gradient}`} />
 
-            {/* 山水墨晕 */}
-            <div
-              className="absolute inset-0 mix-blend-overlay opacity-40"
-              style={{
-                backgroundImage:
-                  'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(0,0,0,0.3) 0%, transparent 50%)',
-              }}
+            {/* 真实封面图 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ep.posterSrc}
+              alt={ep.title}
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover"
             />
+
+            {/* 暗渐变让底部文字易读 */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
             {/* 评分大徽章 */}
             <div className="absolute top-3 right-3 flex flex-col items-end">
@@ -199,7 +206,14 @@ export function ShowcaseGallery() {
             className="relative w-full max-w-md aspect-[9/16] bg-black rounded-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <video src={SAMPLE_VIDEO} controls autoPlay className="w-full h-full object-contain" />
+            <video
+              src={ALL[playingIdx].videoSrc}
+              poster={ALL[playingIdx].posterSrc}
+              controls
+              autoPlay
+              playsInline
+              className="w-full h-full object-contain"
+            />
             <button
               onClick={() => setPlayingIdx(null)}
               className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 text-white hover:bg-black flex items-center justify-center text-lg"
@@ -211,13 +225,12 @@ export function ShowcaseGallery() {
               <div className="font-serif text-base">
                 {ALL[playingIdx].no} · {ALL[playingIdx].title}
               </div>
-              <div className="text-xs text-white/70 mb-2">
+              <div className="text-xs text-white/70 mb-1">
                 100-Pt Rubric: <span className="text-emerald-300 font-mono">{ALL[playingIdx].score.toFixed(2)}/100</span>
-                {' · '}Task <span className="font-mono">{ALL[playingIdx].taskId}</span>
+                {' · '}Task <span className="font-mono text-white/50">{ALL[playingIdx].taskId}</span>
               </div>
-              <div className="text-[10px] text-white/50">
-                注：此处播放的是公开样片占位（BigBuckBunny.mp4）。真实成片以 Skylark task ID
-                为准，详见 R31_R40_ACHIEVEMENT.md。
+              <div className="text-[10px] text-white/60">
+                本片由小云雀 Agent 2.0 真实生成 · 9:16 · {ALL[playingIdx].durationSec}s
               </div>
             </div>
           </div>

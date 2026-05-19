@@ -86,11 +86,16 @@ export default function JobDetailPage() {
 
   const canCancel = job.status === 'queued' || job.status === 'running';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  const fullVideoUrl = job.result_url
-    ? job.result_url.startsWith('http')
-      ? job.result_url
-      : `${backendUrl}${job.result_url}`
-    : null;
+  // /samples/... 是 Vercel 自己的静态文件（项目内真实 R40 样片，跟首页 Showcase 同源）
+  // /storage/... 是 Railway 后端运行时落地（接入真实流水线后使用）
+  // http... 是外链
+  const resolveUrl = (u: string | null): string | null => {
+    if (!u) return null;
+    if (u.startsWith('http')) return u;
+    if (u.startsWith('/samples/')) return u; // 让浏览器相对 Vercel 域名解析
+    return `${backendUrl}${u}`;
+  };
+  const fullVideoUrl = resolveUrl(job.result_url);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
@@ -263,13 +268,7 @@ export default function JobDetailPage() {
               <video
                 controls
                 src={fullVideoUrl}
-                poster={
-                  job.cover_url
-                    ? job.cover_url.startsWith('http')
-                      ? job.cover_url
-                      : `${backendUrl}${job.cover_url}`
-                    : undefined
-                }
+                poster={resolveUrl(job.cover_url) || undefined}
                 className="w-full h-full object-contain"
               />
             </div>
