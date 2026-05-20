@@ -71,12 +71,17 @@ class MasterError(RuntimeError):
 
 @dataclass
 class MasterConfig:
-    """母带配置。默认值匹配 production.yaml 的项目标准。"""
+    """母带配置。默认 ancient_v1（古风冷青+月白+朱砂）匹配 production.yaml 项目标准。
 
+    工厂函数 `cyberpunk_v1_config()` 切换到无限恐怖现代赛博惊悚 Teal-Orange 调色，
+    用于 novel-无限恐怖.md 类的现代生化危机/都市黑色科幻题材。
+    """
+
+    profile_name: str = "ancient_v1"       # 标识用，落入 manifest 便于回溯
     target_width: int = 1080
     target_height: int = 1920
     target_fps: int = 24
-    duration_cap_seconds: float = 15.0     # 截前 15s（Skylark `~15s` 档口）
+    duration_cap_seconds: float = 60.0     # 截前 60s（Skylark `40~60s` 档口，电影级叙事档）
     crf: int = 15                          # 母带级（参考片 18，发布母带 15）
     preset: str = "veryslow"
     tune: str = "film"
@@ -86,7 +91,7 @@ class MasterConfig:
     watermark_opacity: float = 0.60
     watermark_border_px: int = 2
     watermark_margin_px: int = 30
-    # 古风冷青 + 月白 + 朱砂 三级调色参数
+    # 古风冷青 + 月白 + 朱砂 三级调色参数（ancient_v1 默认）
     eq_contrast: float = 1.10
     eq_saturation: float = 1.18
     eq_gamma_r: float = 0.95
@@ -96,9 +101,45 @@ class MasterConfig:
     cb_gs: float = 0.02
     cb_bs: float = 0.08    # 蓝 shadow（月夜冷青）
     cb_bm: float = 0.03
+    # RGB 曲线：red & blue（curves filter）默认古风冷调
+    curves_red: str = "0/0 0.5/0.42 1/1"
+    curves_blue: str = "0/0.05 0.5/0.58 1/1"
     # 降噪 + 锐化
     hqdn3d: str = "4:3:6:4.5"
     unsharp: str = "5:5:0.8:5:5:0.0"
+
+
+def cyberpunk_v1_config(**overrides) -> "MasterConfig":
+    """无限恐怖现代赛博惊悚 Teal-Orange 调色 profile.
+
+    电影级 cinematic teal-orange 配方（Blade Runner 2049 / Mr. Robot 风格）：
+    - shadow 偏深青蓝（teal）→ 高对比阴影
+    - highlight 偏暖橘红（orange）→ 角色皮肤/灯光暖光
+    - mid-tone 维持平衡但稍提对比
+    - 曲线：红高光提升 / 蓝阴影提升 → 经典 teal-orange 撞色
+    - 降噪略减弱（写实/胶片颗粒不必抹平）
+    - 锐化略增强（突出金属/疤痕/枪械细节）
+    """
+
+    base = dict(
+        profile_name="cyberpunk_v1",
+        eq_contrast=1.18,           # 明暗对比拉强
+        eq_saturation=1.12,         # 饱和度稍降，写实电影感
+        eq_gamma_r=1.02,            # 红 gamma 略亮（暖肤色）
+        eq_gamma_g=0.97,            # 绿 gamma 略压（避免泛绿）
+        eq_gamma_b=0.95,            # 蓝 gamma 压低（深蓝阴影）
+        cb_rs=-0.10,                # shadow 红 -0.10（深青）
+        cb_gs=0.04,                 # shadow 绿 +0.04（teal）
+        cb_bs=0.10,                 # shadow 蓝 +0.10（teal）
+        cb_bm=0.00,                 # mid 蓝 中性
+        # 曲线：红高光 +0.08 / 蓝阴影 +0.10（经典 cinematic teal-orange）
+        curves_red="0/0 0.25/0.22 0.6/0.68 1/1",
+        curves_blue="0/0.10 0.4/0.50 0.75/0.72 1/1",
+        hqdn3d="3:2:4:3",            # 弱化降噪保留胶片颗粒
+        unsharp="5:5:1.0:5:5:0.0",   # 锐化提升（金属/疤痕/枪械细节）
+    )
+    base.update(overrides)
+    return MasterConfig(**base)
 
 
 def master(
@@ -130,20 +171,42 @@ def master(
     filter_complex = _build_filter_complex(cfg, font_path)
     creation_iso = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    cmd = _build_ffmpeg_cmd(
-        raw_path, dst_path, filter_complex, cfg,
+    # ★ 两遍 ffmpeg：先编码 → 再 remux faststart。一次性走 `-movflags +faststart`
+    # 在 filter_complex + audio 映射 + `-t` 截断的组合下，ffmpeg 8.x 会写入两个 moov atom
+    # （第一个老的 + 第二个 faststart 重排后的），让播放器选错索引→ NAL 解码失败。
+    # 拆成两步可彻底避开这个 bug：
+    #   pass1: 全套滤镜 + 编码 → tmp.mp4 (moov 在文件尾，标准 mp4 结构)
+    #   pass2: -c copy +faststart → final.mp4 (单一 moov 移到文件头)
+    tmp_path = dst_path.with_suffix(".tmp.mp4")
+    pass1_cmd = _build_ffmpeg_cmd_pass1(
+        raw_path, tmp_path, filter_complex, cfg,
         ep_id=ep_id, task_id=task_id, creation_iso=creation_iso,
     )
-    _log.info("[%s] master ffmpeg cmd: %s", ep_id, " ".join(cmd))
+    pass2_cmd = _build_ffmpeg_cmd_pass2_faststart(tmp_path, dst_path)
+    _log.info("[%s] master pass1 (encode): %s", ep_id, " ".join(pass1_cmd))
 
     t0 = _dt.datetime.now()
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
-    wallclock = (_dt.datetime.now() - t0).total_seconds()
-    if proc.returncode != 0:
-        tail = (proc.stderr or "")[-3000:]
+    proc1 = subprocess.run(pass1_cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if proc1.returncode != 0:
+        tail = (proc1.stderr or "")[-3000:]
         raise MasterError(
-            f"[{ep_id}] ffmpeg master exit={proc.returncode}; stderr tail:\n{tail}"
+            f"[{ep_id}] ffmpeg master pass1 exit={proc1.returncode}; stderr tail:\n{tail}"
         )
+
+    _log.info("[%s] master pass2 (faststart remux): %s", ep_id, " ".join(pass2_cmd))
+    proc2 = subprocess.run(pass2_cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    wallclock = (_dt.datetime.now() - t0).total_seconds()
+    if proc2.returncode != 0:
+        tail = (proc2.stderr or "")[-3000:]
+        raise MasterError(
+            f"[{ep_id}] ffmpeg master pass2 (faststart) exit={proc2.returncode}; stderr tail:\n{tail}"
+        )
+
+    # 清理临时文件
+    try:
+        tmp_path.unlink()
+    except OSError:
+        pass
 
     metrics = _collect_metrics(dst_path)
     metrics["wallclock_seconds"] = round(wallclock, 2)
@@ -181,9 +244,8 @@ def _build_filter_complex(cfg: MasterConfig, font_path: str) -> str:
             f"colorbalance=rs={cfg.cb_rs}:gs={cfg.cb_gs}:bs={cfg.cb_bs}"
             f":rm=0:gm=0:bm={cfg.cb_bm}"
         ),
-        # 3c. 显式 RGB 曲线：红 shadow 略压 + 蓝 shadow/midtone 略提（古风冷调）
-        # ffmpeg curves 内置预设无 'cool'，手工写曲线 = 经典 cinematic teal/blue 谷
-        "curves=red='0/0 0.5/0.42 1/1':blue='0/0.05 0.5/0.58 1/1'",
+        # 3c. 显式 RGB 曲线（可配置）：ancient_v1 默认古风冷调；cyberpunk_v1 切换 teal-orange
+        f"curves=red='{cfg.curves_red}':blue='{cfg.curves_blue}'",
         # 4. zscale 1080×1920，spline36 + bt709 限范
         (
             f"zscale=w={cfg.target_width}:h={cfg.target_height}"
@@ -208,9 +270,9 @@ def _build_filter_complex(cfg: MasterConfig, font_path: str) -> str:
     return ",".join(parts)
 
 
-def _build_ffmpeg_cmd(
+def _build_ffmpeg_cmd_pass1(
     raw_path: pathlib.Path,
-    dst_path: pathlib.Path,
+    tmp_path: pathlib.Path,
     filter_complex: str,
     cfg: MasterConfig,
     *,
@@ -218,7 +280,11 @@ def _build_ffmpeg_cmd(
     task_id: str,
     creation_iso: str,
 ) -> list[str]:
-    """组装 ffmpeg 命令行参数列表（subprocess.run 直传，避免 shell 转义陷阱）。"""
+    """Pass 1: 编码 + 全部滤镜，输出到 tmp.mp4（moov 在文件尾，标准 mp4）。
+
+    注意：故意 **不带** `-movflags +faststart` —— 它和 filter_complex+audio+`-t`
+    的组合会在 ffmpeg 8.x 上写出重复 moov atom（已实证），导致解码失败。
+    """
 
     x264_params = (
         "ref=6:bframes=8:me=umh:subme=10:trellis=2:psy-rd=1.0,0.15:aq-mode=3"
@@ -233,8 +299,8 @@ def _build_ffmpeg_cmd(
         "-i", str(raw_path),
         "-filter_complex", f"[0:v]{filter_complex}[v]",
         "-map", "[v]",
-        "-map", "0:a?",   # 可选 audio passthrough（Skylark 输出含静音 AAC）
-        "-t", f"{cfg.duration_cap_seconds:.2f}",   # ★ 全局硬截：video filter trim + audio 同步截
+        "-map", "0:a?",
+        "-t", f"{cfg.duration_cap_seconds:.2f}",
         "-c:v", "libx264",
         "-preset", cfg.preset,
         "-tune", cfg.tune,
@@ -247,12 +313,31 @@ def _build_ffmpeg_cmd(
         "-b:a", cfg.audio_bitrate,
         "-ar", "48000",
         "-ac", "2",
-        "-movflags", "+faststart",
         "-metadata", f"title={title}",
         "-metadata", f"comment={comment}",
         "-metadata", "copyright=© 2026 AI Manju Pilot",
         "-metadata", f"creation_time={creation_iso}",
-        "-metadata", f"composer=Skylark Agent 2.0 + Shell5 Cinematic Master",
+        "-metadata", "composer=Skylark Agent 2.0 + Shell5 Cinematic Master",
+        str(tmp_path),
+    ]
+
+
+def _build_ffmpeg_cmd_pass2_faststart(
+    tmp_path: pathlib.Path,
+    dst_path: pathlib.Path,
+) -> list[str]:
+    """Pass 2: 仅 remux (`-c copy`) + faststart，把唯一的 moov atom 移到文件头。
+
+    `-c copy` 不重新编码，几秒内完成。重排后的 mp4 流媒体首帧立刻可播。
+    """
+
+    return [
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "info",
+        "-i", str(tmp_path),
+        "-c", "copy",
+        "-map", "0:v",
+        "-map", "0:a?",
+        "-movflags", "+faststart",
         str(dst_path),
     ]
 

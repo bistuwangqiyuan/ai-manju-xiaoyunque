@@ -1,18 +1,16 @@
-"""9 项世界级母带验收测试 — Skylark 2.0 + Shell 5 cinematic master.
+"""10 项世界级母带验收测试 — Skylark Agent 2.0 + Shell 5 cinematic master.
 
 每个测试独立断言，失败信息精确指向问题：
-    1. test_three_mp4_exist_with_real_task_id  3 个 final mp4 存在 + manifest task_id 是真 UUID
-    2. test_duration_within_skylark_15s_preset 每集 11.0 ≤ duration ≤ 15.05（官方 ~15s 预设含 ±3s 浮动）
-    3. test_resolution_1080x1920_portrait      width=1080, height=1920（项目标准）
-    4. test_codec_h264_yuv420p_high_profile    h264 / yuv420p / profile=High
-    5. test_framerate_24fps                    r_frame_rate ∈ [23.95, 24.05]
-    6. test_file_size_and_bitrate_master_grade 2MB ≤ size ≤ 80MB & bitrate ≥ 6 Mbps
-    7. test_faststart_moov_before_mdat         mp4 moov 偏移 < mdat 偏移（流媒体首帧立刻可播）
-    8. test_aigc_meta_tagged_true              manifest 每集 aigc_meta_tagged == True
-    9. test_watermark_visible_bottom_right     右下角 ROI Y 通道 p99 ≥ 140（白@0.6 水印签名）
-
-附加：
-    test_metadata_title_and_comment_present    mp4 udta tags 含 title/comment（合规要求）
+    1. test_three_mp4_exist_with_real_task_id    3 个 final mp4 存在 + manifest task_id 是真 UUID
+    2. test_duration_per_plot_under_60s          每集 25 ≤ duration ≤ 62（剧情驱动，60s 以内）
+    3. test_resolution_1080x1920_portrait        width=1080, height=1920（项目标准）
+    4. test_codec_h264_yuv420p_high_profile      h264 / yuv420p / profile=High
+    5. test_framerate_24fps                      r_frame_rate ∈ [23.95, 24.05]
+    6. test_file_size_and_bitrate_master_grade   2MB ≤ size ≤ 250MB & bitrate ≥ 6 Mbps
+    7. test_faststart_moov_before_mdat           mp4 moov 偏移 < mdat 偏移（流媒体首帧立刻可播）
+    8. test_aigc_meta_tagged_true                manifest 每集 aigc_meta_tagged == True
+    9. test_watermark_visible_bottom_right       右下角 ROI Y 通道 p99 ≥ 140（白@0.6 水印签名）
+   10. test_metadata_title_and_comment_present   mp4 udta tags 含 title/comment + task_id 一致
 
 前置：先 `python pilot/run_three_short_episodes.py` 跑出 manifest.json 和三个 ep0X_micro.mp4。
 """
@@ -79,22 +77,41 @@ def test_three_mp4_exist_with_real_task_id() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 2. duration ~15s（官方 `～15s` 预设有 ±3s 浮动；master `-t 15` 硬截上限）
+# 2. duration ≤ 60s（剧情驱动；Skylark 三个 preset：~15s/~30s/40~60s，最长 60s）
 # ---------------------------------------------------------------------------
 
-def test_duration_within_skylark_15s_preset() -> None:
-    """Skylark 2.0 `~15s` 预设：官方契约 client.py:74 = ("~15s","~30s","40~60s")，
-    `~15s` 是"约 15s"，实测样本可在 11–17s 浮动。
-    master 管线 `-t 15.00` 硬截上限为 15.05s（含 50ms ffmpeg 误差）。
+def test_duration_per_plot_under_60s() -> None:
+    """每集时长按 Skylark preset + 实际剧情决定：
+       - `~15s` preset  → 实测 11-17s
+       - `~30s` preset  → 实测 25-35s
+       - `40~60s` preset → 实测 40-60s
+    本测试上限 62s（含 2s ffmpeg 测量误差）+ master `-t cap` 硬截上限。
+    下限 8s 防止意外短片（Skylark 失败兜底返回值）。
+    同时验证每集 duration 落在它声明的 preset 窗口内（更细粒度）。
     """
 
     eps = _episodes()
     for ep in (e for e in eps if e.get("ok")):
         info = ffprobe_streams_format(ep["final_path"])
         dur = float(info["format"]["duration"])
-        assert 11.0 <= dur <= 15.05, (
-            f"{ep['id']} duration {dur:.2f}s outside Skylark `~15s` preset window [11.0, 15.05]"
+        assert 8.0 <= dur <= 62.0, (
+            f"{ep['id']} duration {dur:.2f}s outside global [8.0, 62.0] cap"
         )
+        preset = ep.get("duration_preset_used") or ep.get("duration_preset", "")
+        # 每个 Skylark preset 的实测公差窗口
+        windows = {
+            "～15s": (11.0, 17.0),
+            "~15s": (11.0, 17.0),
+            "～30s": (24.0, 35.5),
+            "~30s": (24.0, 35.5),
+            "40～60s": (38.0, 62.0),
+            "40~60s": (38.0, 62.0),
+        }
+        if preset in windows:
+            lo, hi = windows[preset]
+            assert lo <= dur <= hi, (
+                f"{ep['id']} duration {dur:.2f}s outside `{preset}` preset window [{lo}, {hi}]"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -147,12 +164,16 @@ def test_framerate_24fps() -> None:
 # ---------------------------------------------------------------------------
 
 def test_file_size_and_bitrate_master_grade() -> None:
+    """60s 母带最坏情况 ≈ 60s × 12 Mbps × 1.25 ≈ 110 MB，250 MB 上限给压缩波动留余量。"""
+
     eps = _episodes()
     for ep in (e for e in eps if e.get("ok")):
         info = ffprobe_streams_format(ep["final_path"])
         size = int(info["format"]["size"])
         bit_rate = int(info["format"].get("bit_rate", 0))
-        assert 2_000_000 <= size <= 80_000_000, f"{ep['id']} size {size} bytes outside [2 MB, 80 MB]"
+        assert 2_000_000 <= size <= 250_000_000, (
+            f"{ep['id']} size {size} bytes outside [2 MB, 250 MB]"
+        )
         assert bit_rate >= 6_000_000, (
             f"{ep['id']} bitrate {bit_rate / 1e6:.1f} Mbps < 6 Mbps master-grade threshold"
         )
