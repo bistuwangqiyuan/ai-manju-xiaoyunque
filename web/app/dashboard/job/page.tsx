@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api, Job, JobLog } from '@/lib/api';
@@ -23,17 +23,17 @@ const STATUS_COLOR: Record<Job['status'], string> = {
   cancelled: 'bg-ink-100 text-ink-500',
 };
 
-export default function JobDetailPage() {
-  const params = useParams<{ id: string }>();
+function JobDetailInner() {
+  const search = useSearchParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [logs, setLogs] = useState<JobLog[]>([]);
   const [err, setErr] = useState<string | null>(null);
-  const id = Number(params?.id);
+  const id = Number(search.get('id') || '0');
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace(`/login?next=/dashboard/jobs/${id}`);
+    if (!authLoading && !user) router.replace(`/login?next=/dashboard/job?id=${id}`);
   }, [authLoading, user, id, router]);
 
   const load = async () => {
@@ -321,5 +321,13 @@ export default function JobDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function JobDetailPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16 text-center text-ink-600">加载中…</div>}>
+      <JobDetailInner />
+    </Suspense>
   );
 }

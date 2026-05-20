@@ -66,7 +66,7 @@ export default function NewJobPage() {
         episodes: effectiveEpisodes,
       });
       await refresh();
-      router.push(`/dashboard/jobs/${job.id}`);
+      router.push(`/dashboard/job?id=${job.id}`);
     } catch (e: any) {
       setErr(e.message);
     } finally {

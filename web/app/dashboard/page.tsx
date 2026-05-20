@@ -212,7 +212,7 @@ export default function DashboardPage() {
                   >
                     <td className="py-3 pr-2">
                       <Link
-                        href={`/dashboard/jobs/${j.id}`}
+                        href={`/dashboard/job?id=${j.id}`}
                         className="text-ink-900 font-medium hover:text-cinnabar-700"
                       >
                         {j.title}
@@ -243,7 +243,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-3 text-right">
                       <Link
-                        href={`/dashboard/jobs/${j.id}`}
+                        href={`/dashboard/job?id=${j.id}`}
                         className="text-cinnabar-700 hover:underline text-sm"
                       >
                         查看
