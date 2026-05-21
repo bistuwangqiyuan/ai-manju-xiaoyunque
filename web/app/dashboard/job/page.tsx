@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api, Job, JobLog } from '@/lib/api';
+import { WorkflowStepper, Scores7DPanel } from '@/components/WorkflowStepper';
 import { formatDate, formatYuan } from '@/lib/utils';
 import { ArrowLeft, Download, XCircle, RefreshCw, Award } from 'lucide-react';
 
@@ -141,9 +142,11 @@ function JobDetailInner() {
           </div>
         </div>
 
+        <WorkflowStepper currentStep={job.current_step || (job.status === 'succeeded' ? 6 : 0)} />
+
         <div className="mb-6">
           <div className="flex justify-between text-sm text-ink-700 mb-1">
-            <span>渲染进度</span>
+            <span>渲染进度 · {job.pipeline_version}</span>
             <span>{job.progress}%</span>
           </div>
           <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
@@ -259,6 +262,45 @@ function JobDetailInner() {
                 </details>
               </>
             )}
+
+            {job.scores_7d && (
+              <div className="mt-4 pt-4 border-t border-ink-200/60">
+                <div className="text-sm font-semibold text-ink-900 mb-1">7 维质量诊断（0–10）</div>
+                <Scores7DPanel scores={job.scores_7d} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {job.status === 'succeeded' && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {!job.human_approved && (
+              <button
+                type="button"
+                className="btn-primary text-sm"
+                onClick={async () => {
+                  const j = await api.approveJob(job.id);
+                  setJob(j);
+                }}
+              >
+                人工确认放行
+              </button>
+            )}
+            {job.human_approved && (
+              <span className="badge bg-emerald-100 text-emerald-800">已人工确认</span>
+            )}
+            <button
+              type="button"
+              className="btn-secondary text-sm"
+              onClick={async () => {
+                if (!confirm('重新排队渲染？将消耗配额/余额。')) return;
+                const j = await api.rerollJob(job.id);
+                setJob(j);
+                router.push(`/dashboard/job?id=${j.id}`);
+              }}
+            >
+              一键重绘
+            </button>
           </div>
         )}
 

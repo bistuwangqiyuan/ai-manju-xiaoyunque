@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Generator
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -98,11 +99,40 @@ class Job(Base):
     quality_breakdown: Mapped[str | None] = mapped_column(Text, nullable=True)
     quality_retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # 6-step workflow (流程和需求.docx)
+    current_step: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    step_artifacts: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pipeline_version: Mapped[str] = mapped_column(String(20), default="v6", nullable=False)
+    scores_7d: Mapped[str | None] = mapped_column(Text, nullable=True)
+    human_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="jobs")
     logs: Mapped[list["JobLog"]] = relationship(back_populates="job", cascade="all, delete-orphan", order_by="JobLog.id")
+    versions: Mapped[list["JobVersion"]] = relationship(
+        back_populates="job", cascade="all, delete-orphan", order_by="JobVersion.version_no"
+    )
+
+
+class JobVersion(Base):
+    """Version history for generate→evaluate→fix loops."""
+
+    __tablename__ = "xyq_job_versions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("xyq_jobs.id", ondelete="CASCADE"), index=True)
+    version_no: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    params_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scores_7d_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quality_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    result_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    cover_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    job: Mapped["Job"] = relationship(back_populates="versions")
 
 
 class JobLog(Base):
@@ -149,6 +179,11 @@ def _apply_simple_migrations(connection) -> None:
         ("xyq_jobs", "quality_score", "INTEGER"),
         ("xyq_jobs", "quality_breakdown", "TEXT"),
         ("xyq_jobs", "quality_retries", "INTEGER DEFAULT 0 NOT NULL"),
+        ("xyq_jobs", "current_step", "INTEGER DEFAULT 0 NOT NULL"),
+        ("xyq_jobs", "step_artifacts", "TEXT"),
+        ("xyq_jobs", "pipeline_version", "VARCHAR(20) DEFAULT 'v6' NOT NULL"),
+        ("xyq_jobs", "scores_7d", "TEXT"),
+        ("xyq_jobs", "human_approved", "BOOLEAN DEFAULT FALSE NOT NULL"),
     ]
     for table, col, coltype in migrations:
         try:

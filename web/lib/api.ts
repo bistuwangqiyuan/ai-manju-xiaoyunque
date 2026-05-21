@@ -42,8 +42,24 @@ export interface Job {
   quality_score: number | null;
   quality_breakdown: QualityBreakdown | null;
   quality_retries: number;
+  current_step: number;
+  step_artifacts: Record<string, unknown> | null;
+  pipeline_version: string;
+  scores_7d: Record<string, number> | null;
+  human_approved: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface JobVersion {
+  id: number;
+  version_no: number;
+  quality_score: number | null;
+  scores_7d: Record<string, number> | null;
+  result_url: string | null;
+  cover_url: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface Quota {
@@ -133,6 +149,15 @@ export const api = {
     }),
   cancelJob: (id: number) =>
     request<Job>(`/jobs/${id}/cancel`, { method: 'POST' }),
+  approveJob: (id: number) =>
+    request<Job>(`/jobs/${id}/approve`, { method: 'POST' }),
+  rerollJob: (id: number, shotId?: string) =>
+    request<Job>(`/jobs/${id}/reroll`, {
+      method: 'POST',
+      body: JSON.stringify({ shot_id: shotId ?? null }),
+    }),
+  getJobVersions: (id: number) =>
+    request<JobVersion[]>(`/jobs/${id}/versions`),
 
   createCheckout: (plan: string) =>
     request<{ url: string; mocked: boolean }>('/billing/checkout', {

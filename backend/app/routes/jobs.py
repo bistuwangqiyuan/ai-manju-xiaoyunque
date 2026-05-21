@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from ..db import Job, JobLog, User, get_db
-from ..schemas import JobCreateIn, JobLogOut, JobOut, job_to_out
+from ..db import Job, JobLog, JobVersion, User, get_db
+from ..schemas import JobCreateIn, JobLogOut, JobOut, JobVersionOut, RerollIn, job_to_out
 from ..security import get_current_user
 from ..settings import settings
 
@@ -187,3 +187,86 @@ def cancel_job(
     db.commit()
     db.refresh(job)
     return job_to_out(job)
+
+
+@router.post("/{job_id}/approve", response_model=JobOut)
+def approve_job(
+    job_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """人工复核：确认放行成片。"""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if job.status != "succeeded":
+        raise HTTPException(status_code=400, detail="仅已完成任务可确认放行")
+    job.human_approved = True
+    db.add(JobLog(job_id=job.id, level="INFO", message="用户已人工确认放行"))
+    db.commit()
+    db.refresh(job)
+    return job_to_out(job)
+
+
+@router.post("/{job_id}/reroll", response_model=JobOut)
+def reroll_job(
+    job_id: int,
+    payload: RerollIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """一键重绘：重新排队渲染（可选单镜 shot_id）。"""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if job.status == "running":
+        raise HTTPException(status_code=400, detail="任务渲染中，请稍后再试")
+    shot = payload.shot_id or "full"
+    job.status = "queued"
+    job.progress = 0
+    job.current_step = 0
+    job.human_approved = False
+    job.error = None
+    db.add(JobLog(job_id=job.id, level="INFO", message=f"用户触发重绘 scope={shot}"))
+    db.commit()
+    db.refresh(job)
+    return job_to_out(job)
+
+
+@router.get("/{job_id}/versions", response_model=List[JobVersionOut])
+def list_job_versions(
+    job_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> List[JobVersionOut]:
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    import json
+    rows = (
+        db.query(JobVersion)
+        .filter(JobVersion.job_id == job_id)
+        .order_by(JobVersion.version_no.desc())
+        .all()
+    )
+    out: list[JobVersionOut] = []
+    for r in rows:
+        s7 = None
+        if r.scores_7d_json:
+            try:
+                s7 = json.loads(r.scores_7d_json)
+            except Exception:
+                pass
+        out.append(
+            JobVersionOut(
+                id=r.id,
+                version_no=r.version_no,
+                quality_score=r.quality_score,
+                scores_7d=s7,
+                result_url=r.result_url,
+                cover_url=r.cover_url,
+                notes=r.notes,
+                created_at=r.created_at,
+            )
+        )
+    return out

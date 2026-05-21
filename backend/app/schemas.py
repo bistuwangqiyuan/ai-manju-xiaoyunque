@@ -52,9 +52,13 @@ class JobOut(BaseModel):
     cover_url: Optional[str]
     error: Optional[str]
     quality_score: Optional[int] = None
-    # {consistency, aesthetic, fidelity, subtitle, pacing} 全部 0-100 整数
     quality_breakdown: Optional[dict] = None
     quality_retries: int = 0
+    current_step: int = 0
+    step_artifacts: Optional[dict] = None
+    pipeline_version: str = "v6"
+    scores_7d: Optional[dict] = None
+    human_approved: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -62,15 +66,18 @@ class JobOut(BaseModel):
         from_attributes = True
 
 
-def job_to_out(job) -> "JobOut":
-    """Convert SQLAlchemy Job → JobOut, parsing quality_breakdown JSON string."""
+def _parse_json_field(raw: str | None) -> Optional[dict]:
     import json
-    qb = None
-    if job.quality_breakdown:
-        try:
-            qb = json.loads(job.quality_breakdown)
-        except Exception:
-            qb = None
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
+def job_to_out(job) -> "JobOut":
+    """Convert SQLAlchemy Job → JobOut, parsing JSON fields."""
     return JobOut(
         id=job.id,
         title=job.title,
@@ -84,11 +91,34 @@ def job_to_out(job) -> "JobOut":
         cover_url=job.cover_url,
         error=job.error,
         quality_score=job.quality_score,
-        quality_breakdown=qb,
+        quality_breakdown=_parse_json_field(job.quality_breakdown),
         quality_retries=job.quality_retries,
+        current_step=getattr(job, "current_step", 0) or 0,
+        step_artifacts=_parse_json_field(getattr(job, "step_artifacts", None)),
+        pipeline_version=getattr(job, "pipeline_version", "v6") or "v6",
+        scores_7d=_parse_json_field(getattr(job, "scores_7d", None)),
+        human_approved=bool(getattr(job, "human_approved", False)),
         created_at=job.created_at,
         updated_at=job.updated_at,
     )
+
+
+class JobVersionOut(BaseModel):
+    id: int
+    version_no: int
+    quality_score: Optional[int]
+    scores_7d: Optional[dict]
+    result_url: Optional[str]
+    cover_url: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RerollIn(BaseModel):
+    shot_id: Optional[str] = None
 
 
 class JobLogOut(BaseModel):

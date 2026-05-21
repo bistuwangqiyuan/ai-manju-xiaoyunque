@@ -1405,6 +1405,57 @@ def _extract_prompts_from_storyboard(storyboard_path: pathlib.Path) -> dict[str,
 
 
 # ---------------------------------------------------------------------------
+# SaaS helpers — single-file score + 7-dimension mapping (流程和需求.docx §十二)
+# ---------------------------------------------------------------------------
+
+def score_episode_file(
+    video_path: str,
+    *,
+    prompt: str = "",
+    ep_id: str = "ep01",
+) -> dict:
+    """Score one mp4; return flat dict with total + dimension totals."""
+    path = pathlib.Path(video_path)
+    if not path.exists():
+        raise FileNotFoundError(video_path)
+    info = _ffprobe(path)
+    ep = {"id": ep_id, "task_id": ep_id, "prompt": prompt}
+    ctx: dict = {"frames_by_episode": {}, "prompts": {ep_id: prompt}}
+    frames_dir = path.parent / "_score_frames"
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    dur = float(info.get("format", {}).get("duration", 15) or 15)
+    times = [max(0.5, dur * t) for t in (0.15, 0.45, 0.75)]
+    ctx["frames_by_episode"][ep_id] = extract_frames(path, times, frames_dir)
+    report = score_episode(ep, info, ctx)
+    return {
+        "total": report["total"],
+        "tech": report["technical"]["total"],
+        "visual": report["visual"]["total"],
+        "narrative": report["narrative"]["total"],
+        "genre": report["genre"]["total"],
+        "raw": report,
+    }
+
+
+def to_seven_dimensions(report: dict) -> dict[str, float]:
+    """Map 100-Pt rubric → 7 dimensions (0–10) for product UI."""
+    tech = report.get("tech", 0)
+    visual = report.get("visual", 0)
+    narrative = report.get("narrative", 0)
+    genre = report.get("genre", 0)
+    # Scale each 100-pt slice to 0–10
+    return {
+        "structure": round(min(10.0, tech / 4.0), 2),
+        "style": round(min(10.0, visual / 3.0), 2),
+        "detail": round(min(10.0, (visual + genre) / 4.0), 2),
+        "clarity": round(min(10.0, tech / 4.0), 2),
+        "color": round(min(10.0, genre * 1.0), 2),
+        "no_deform": round(min(10.0, tech / 4.5), 2),
+        "intent": round(min(10.0, (narrative + genre) / 3.0), 2),
+    }
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 

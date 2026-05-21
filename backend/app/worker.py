@@ -23,18 +23,19 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from .db import Job, JobLog, SessionLocal
+from .db import Job, JobLog, JobVersion, SessionLocal
 from .settings import settings
 
 logger = logging.getLogger("xyq.worker")
 
-# Five-shell mock pipeline stages (name, description, target progress %)
+# 6-step mock pipeline (maps to 流程和需求.docx)
 STAGES = [
-    ("shell1_screenwriter", "编剧四模型协同抽取节拍", 12),
-    ("shell2_character_assets", "角色资产三重 ID 锁注入", 22),
-    ("shell3_skylark_engine", "小云雀 v2 整集级渲染", 65),
-    ("shell4_qa_repair", "ArcFace 质检 + 五道修复防线", 85),
-    ("shell5_post_production", "TTS / BGM / 字幕 / 4K 上扫", 100),
+    (1, "shell1_screenwriter", "Step1 剧本分析", 12),
+    (2, "shell2_character_assets", "Step2 人物/道具/资产包", 22),
+    (3, "shell3_storyboard", "Step3 分镜提示词", 30),
+    (4, "shell4_skylark", "Step4 抽卡生视频", 55),
+    (5, "shell5_rough_cut", "Step5 初期粗剪", 70),
+    (6, "shell6_qa_final", "Step6 精剪审核", 100),
 ]
 
 
@@ -142,13 +143,15 @@ async def _run_mock(db: Session, job: Job) -> None:
             _log(db, job, "INFO", f"⟳ 第 {attempt} 次质量重试 (上次评分 < {pass_threshold})")
             _set_progress(db, job, 0)  # reset progress for retry visualization
 
-        for stage_id, stage_desc, target_prog in STAGES:
+        for step_no, stage_id, stage_desc, target_prog in STAGES:
             db.refresh(job)
             if job.status == "cancelled":
                 _log(db, job, "WARN", "任务被用户取消")
                 return
 
-            _log(db, job, "INFO", f"[{stage_id}] {stage_desc}")
+            job.current_step = step_no
+            job.pipeline_version = "v6-mock"
+            _log(db, job, "INFO", f"[Step{step_no}] [{stage_id}] {stage_desc}")
             start_prog = job.progress
             steps = max(1, target_prog - start_prog)
             for i in range(steps):
@@ -159,12 +162,12 @@ async def _run_mock(db: Session, job: Job) -> None:
                 await asyncio.sleep(random.uniform(0.15, 0.35))
                 _set_progress(db, job, start_prog + i + 1, status="running" if job.status == "queued" else None)
 
-            if stage_id == "shell3_skylark_engine":
+            if stage_id == "shell4_skylark":
                 for ep in range(1, job.episodes + 1):
                     _log(db, job, "INFO", f"  ↳ episode {ep:02d}/{job.episodes:02d} 渲染完成")
                     await asyncio.sleep(0.05)
 
-            if stage_id == "shell4_qa_repair":
+            if stage_id == "shell6_qa_final":
                 arcface = round(random.uniform(0.81, 0.95), 3)
                 _log(db, job, "INFO", f"  ↳ ArcFace 跨集一致性 = {arcface} (阈值 0.80) ✅")
 
@@ -198,6 +201,12 @@ async def _run_mock(db: Session, job: Job) -> None:
     video, cover = SAMPLE_BUNDLES[job.id % len(SAMPLE_BUNDLES)]
     job.result_url = video
     job.cover_url = cover
+    job.current_step = 6
+    job.pipeline_version = "v6-mock"
+    job.scores_7d = json.dumps({
+        "structure": 9.2, "style": 9.5, "detail": 9.0, "clarity": 9.3,
+        "color": 9.1, "no_deform": 8.8, "intent": 9.4,
+    })
     db.commit()
 
     if score >= pass_threshold:
@@ -208,27 +217,147 @@ async def _run_mock(db: Session, job: Job) -> None:
     _set_progress(db, job, 100, status="succeeded")
 
 
+def _publish_local(path: str, job_id: int, name: str) -> str:
+    """Copy artifact into STORAGE_DIR and return /storage/... URL."""
+    import shutil
+    from pathlib import Path
+
+    src = Path(path)
+    if not src.exists():
+        raise FileNotFoundError(path)
+    dest_dir = Path(settings.STORAGE_DIR) / "jobs" / str(job_id)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / name
+    shutil.copy2(src, dest)
+    return f"/storage/jobs/{job_id}/{name}"
+
+
+def _run_pipeline_sync(
+    job_id: int,
+    novel_excerpt: str,
+    style: str,
+    episodes: int,
+) -> tuple:
+    """Synchronous 6-step orchestrator (thread-safe, no DB)."""
+    import sys
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    for candidate in (repo, Path("/app"), Path.cwd()):
+        if (candidate / "src" / "pipeline").exists():
+            repo = candidate
+            break
+    if str(repo) not in sys.path:
+        sys.path.insert(0, str(repo))
+
+    from src.pipeline.orchestrator import PipelineOrchestrator
+
+    work_root = Path(settings.STORAGE_DIR) / "jobs" / str(job_id) / "work"
+    orch = PipelineOrchestrator(work_root, use_real_apis=True)
+    events: list[tuple] = []
+
+    def on_progress(step: int, pct: int, msg: str, artifacts: dict) -> None:
+        events.append((step, pct, msg, artifacts))
+
+    result = orch.run(
+        job_id,
+        novel_excerpt,
+        style,
+        episodes,
+        on_progress=on_progress,
+        max_quality_retries=settings.QUALITY_MAX_RETRIES,
+        quality_pass=settings.QUALITY_PASS,
+    )
+    return result, events
+
+
 async def _run_real_pipeline(db: Session, job: Job) -> None:
-    """
-    生产模式接入点（需要 API Keys）。
+    """Production 6-step pipeline via PipelineOrchestrator."""
+    import pathlib
 
-    在这里把 src/shell1_*, src/shell2_*, ..., src/shell5_* 的 Python 流水线串起来：
-        from src.shell1_screenwriter import run as run_shell1
-        from src.shell3_skylark_engine import render_episode
-        ...
+    _log(db, job, "INFO", f"[worker] 真实流水线 v6 启动 job #{job.id}")
+    job.current_step = 1
+    job.pipeline_version = "v6"
+    db.commit()
+    try:
+        result, events = await asyncio.to_thread(
+            _run_pipeline_sync,
+            job.id,
+            job.novel_excerpt,
+            job.style,
+            job.episodes,
+        )
+    except Exception as e:
+        _log(db, job, "WARN", f"真实流水线异常: {e}，降级 mock")
+        db.refresh(job)
+        await _run_mock(db, job)
+        return
 
-    建议用 asyncio.to_thread() 把同步阻塞代码包起来，渲染期间定时回写
-    job.progress / JobLog 让前端能看到进度。
+    for step, pct, msg, artifacts in events:
+        db.refresh(job)
+        if job.status == "cancelled":
+            return
+        job.current_step = step
+        job.progress = pct
+        job.step_artifacts = json.dumps(artifacts, ensure_ascii=False)
+        _log(db, job, "INFO", f"[Step{step}] {msg}")
 
-    成果文件应该上传到 S3/R2（settings.S3_*）或落地到 settings.STORAGE_DIR，
-    然后把可访问的 URL 写到 job.result_url / job.cover_url。
+    video_url = _publish_local(result.result_url, job.id, "master.mp4")
+    cover_url = None
+    if result.cover_url:
+        try:
+            cover_url = _publish_local(result.cover_url, job.id, "cover.jpg")
+        except FileNotFoundError:
+            pass
 
-    质量评分：用 InsightFace 算 ArcFace 一致性，调 Gemini Vision 评美学等，
-    填到 job.quality_score / quality_breakdown。
-    """
-    _log(db, job, "ERROR", "真实流水线尚未接入。请在 backend/app/worker.py 中实现 _run_real_pipeline()")
-    _log(db, job, "INFO", "降级到 mock 渲染流程")
-    await _run_mock(db, job)
+    try:
+        from .storage_upload import upload_if_configured
+        remote = upload_if_configured(
+            str(pathlib.Path(settings.STORAGE_DIR) / "jobs" / str(job.id) / "master.mp4"),
+            f"jobs/{job.id}/master.mp4",
+        )
+        if remote:
+            video_url = remote
+    except Exception:
+        pass
+
+    job.result_url = video_url
+    job.cover_url = cover_url
+    job.quality_score = result.quality_score
+    job.quality_breakdown = json.dumps(result.quality_breakdown, ensure_ascii=False)
+    job.quality_retries = result.quality_retries
+    job.scores_7d = json.dumps(result.scores_7d, ensure_ascii=False)
+    job.step_artifacts = json.dumps(result.step_artifacts, ensure_ascii=False)
+    job.current_step = 6
+    job.progress = 100
+
+    ver = JobVersion(
+        job_id=job.id,
+        version_no=result.version_no,
+        params_json=json.dumps(
+            {"style": job.style, "episodes": job.episodes, "task_ids": result.task_ids},
+            ensure_ascii=False,
+        ),
+        scores_7d_json=job.scores_7d,
+        quality_score=result.quality_score,
+        result_url=video_url,
+        cover_url=cover_url,
+        notes="\n".join(result.notes)[:4000] if result.notes else None,
+    )
+    db.add(ver)
+    for note in result.notes:
+        _log(db, job, "INFO", note)
+    if result.task_ids:
+        _log(db, job, "INFO", f"Skylark task_ids: {', '.join(result.task_ids[:5])}")
+
+    threshold = settings.QUALITY_PASS
+    if result.quality_score >= threshold:
+        _log(db, job, "INFO", f"✅ 质量 {result.quality_score}/100 达标")
+    else:
+        _log(db, job, "WARN", f"⚠ 质量 {result.quality_score}/100 < {threshold}，已交付最优版")
+
+    job.status = "succeeded"
+    db.commit()
 
 
 async def _process_one(job_id: int) -> None:

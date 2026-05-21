@@ -92,17 +92,35 @@ def main() -> int:
         if k and v:
             os.environ[k.strip()] = v
 
-    # TODO: 接入 Volcengine Seedream SDK 实际生成
-    # 当前是 stub - 实际接入需要确认 SDK 调用模板
-    print("WARNING: Seedream stub - to enable, implement actual API call here")
-    print(f"Would generate {sum(len(p) for p in CHARACTER_PROMPTS.values())} reference images")
-    print(f"Output root: {out_root}")
-    plan_path = out_root / "_generation_plan.json"
-    plan_path.write_text(
-        json.dumps(CHARACTER_PROMPTS, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    print(f"Wrote plan to: {plan_path}")
+    from src.shell2_character_assets.gen_seedream import SeedreamClient, SeedreamRequest
+
+    client = SeedreamClient()
+    total = 0
+    for char_id, prompts in CHARACTER_PROMPTS.items():
+        char_dir = out_root / char_id
+        char_dir.mkdir(parents=True, exist_ok=True)
+        urls: list[str] = []
+        for i, prompt in enumerate(prompts):
+            print(f"Generating {char_id} [{i+1}/{len(prompts)}] …")
+            try:
+                imgs = client.generate(
+                    SeedreamRequest(prompt=prompt, num_images=1, aspect_ratio="3:4")
+                )
+                urls.extend(imgs)
+                total += len(imgs)
+            except Exception as e:
+                print(f"  FAIL {char_id} #{i}: {e}")
+        manifest = {
+            "char_id": char_id,
+            "reference_image_urls": urls,
+            "canonical_image_url": urls[0] if urls else "",
+        }
+        (char_dir / "manifest.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"  → {char_id}: {len(urls)} images")
+
+    print(f"Done. Generated {total} reference URLs under {out_root}")
     return 0
 
 

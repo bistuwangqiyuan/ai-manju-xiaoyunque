@@ -3,13 +3,14 @@
 > 把 `web/` 部署到 Vercel（前端 + 静态托管），把 `backend/` 部署到 Railway（FastAPI + worker）。
 > 完整链路打通后，全世界任何浏览器都能访问你的 SaaS。
 
-## 当前生产状态 (2026-05-18)
+## 当前生产状态 (2026-05-20 · v6)
 
 | 组件 | 状态 | 地址 |
 |---|---|---|
 | 后端 Railway | ✅ 上线 | `https://ai-manju-xiaoyunque-production.up.railway.app` |
 | 数据库 Neon | ✅ 已连 | Vercel 控制台 → Storage |
-| 前端 Vercel | ⚠️ 需切换 | `https://yunque-manhua.vercel.app`（当前指向另一分支） |
+| 前端 Vercel | ✅ 主站 `web/` | `vercel.json` → `rootDirectory: web` |
+| 6 步流水线 | ✅ 代码就绪 | `src/pipeline/orchestrator.py` + worker v6 |
 
 **已交付的核心商业能力**（后端已生效，已端到端验证）：
 - 多级用户：free / pro / studio / admin
@@ -179,19 +180,21 @@ Railway service → **Settings** → **Volumes** → 挂 `/app/storage`。这样
 
 ---
 
-## 5. 上线验证清单
+## 5. 上线验证清单（v6）
 
 打开 `https://<your-app>.vercel.app`：
 
 - [ ] 落地页正常显示（不要有控制台 CORS 报错）
 - [ ] `/signup` 注册一个测试账号，跳转到 `/dashboard`，余额显示 ¥100
-- [ ] `/dashboard/new` 提交一个 1 集任务，扣 ¥99，跳转到任务详情
-- [ ] 任务详情页每 2.5s 自动刷新进度，约 60-90 秒后状态变为 `succeeded`
-- [ ] 视频播放器出现 BigBuckBunny 示例视频（mock 模式产物）
-- [ ] 点"下载 MP4"能下载
-- [ ] `/pricing` 点购买跳到 `/billing/success`（mock 计费），余额增加
+- [ ] `/dashboard/new` 提交一个 1 集任务，跳转到任务详情
+- [ ] 任务详情显示 **6 步 Stepper**（剧本→资产→分镜→抽卡→粗剪→精剪）
+- [ ] 进度推进后展示 **7 维质量分** + 100-Pt Rubric
+- [ ] 完成后可 **人工确认放行** / **一键重绘**
+- [ ] `/api/health` 中 `mock_worker: false`（已配置 VOLC + ANTHROPIC Key 时）
+- [ ] `python scripts/compliance_check.py --all` 通过
+- [ ] `/pricing` mock 计费或 Stripe 实收
 
-通过以上检查，**全世界用户都能用了**。
+通过以上检查，**正式对外版本可演示**。
 
 ---
 

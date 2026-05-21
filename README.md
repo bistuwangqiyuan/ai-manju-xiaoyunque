@@ -8,11 +8,20 @@
 
 ---
 
+## 对外 SaaS 部署
+
+- **前端**：[`web/`](web/) → Vercel（`vercel.json` rootDirectory = `web`）
+- **后端**：[`backend/`](backend/) → Railway（`railway.toml` + 全量 `src/` 流水线）
+- 详见 [`DEPLOY.md`](DEPLOY.md)
+
 ## 仓库结构
 
 ```
 ai漫剧小云雀/
 ├── README.md                              本文件
+├── web/                                   ★ 对外 SaaS 前端（主站）
+├── backend/                               ★ FastAPI + 6 步 worker
+├── webapp/                                演示版（已降级，非主站）
 ├── final-plan.md                          ★ v5 终极方案主交付
 ├── tech.md                                v4 历史基线
 ├── research-2026-05.md                    全球 SOTA 选型调研（69KB）
@@ -99,8 +108,11 @@ pip install -r requirements.txt
 ### D1 — 烟雾测试 + 字段对齐
 
 ```powershell
-# 1. 验证所有 Key
+# 0. 环境检查（必备 Key + ffmpeg）
 python scripts/check_env.py
+
+# 1. 合规扫描
+python scripts/compliance_check.py --all
 
 # 2. 小云雀有参考接口字段对齐（dry-run）
 python pilot/episode_1_e2e.py --episode ep01 --dry-run

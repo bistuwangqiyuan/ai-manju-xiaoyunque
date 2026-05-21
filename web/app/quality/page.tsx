@@ -23,7 +23,8 @@ export default function QualityPage() {
         <p className="text-lg text-ink-700 leading-relaxed">
           每一集成片在交付前都会跑 4 大维度、9 个工业指标的自动评分。
           总分 ≥ 95 才放行，未达标自动 Multi-VLM ensemble 修复重试，
-          最多 2 次。本方法在项目内部 R40 攻关圈实测均值 <strong>96.81/100</strong>。
+          最多 2 次。产品页同步展示 <strong>7 维诊断</strong>（结构/风格/细节/画质/色彩/无崩坏/意图，各 0–10 分）。
+          R40 攻关圈实测均值 <strong>96.81/100</strong>。
         </p>
       </div>
 
