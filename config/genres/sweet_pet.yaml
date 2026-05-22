@@ -1,0 +1,65 @@
+# 甜宠题材模板（甜宠/校园爱情/年下/契约婚）
+
+id: sweet_pet
+name_zh: 甜宠
+name_en: Sweet Romance
+description: |
+  甜宠题材：契约婚 / 年下 / 校园爱情 / 偶像剧。明亮糖色调 + 高饱和 + 浪漫光晕。
+  以宠溺、撒糖、双向暗恋为核心情感锚点。
+
+style_id: sweet_anime_3d
+aspect_ratio: "9:16"
+default_episodes: 8
+default_duration_per_episode_s: 70
+preferred_resolution: "1080x1920"
+language: Chinese
+voice_pack: sweet_zh_female
+bgm_mood: bubble_pop
+platform_preset: [douyin, xiaohongshu, wechat_video]
+
+palette:
+  primary: ["#FFD1DC", "#FFE5B4", "#FFFFFF"]   # 樱花粉 蜂蜜黄 月白
+  secondary: ["#A2D2FF", "#BDB2FF"]             # 天蓝 薰衣
+
+character_archetypes:
+  - id: female_lead_cute
+    name_zh: 女主-甜软
+    traits: ["20 岁少女", "明亮大眼", "微卷长发", "甜美笑容"]
+  - id: male_lead_warm
+    name_zh: 男主-暖男
+    traits: ["23 岁男大学生", "棒球外套", "腼腆温柔", "校草气质"]
+  - id: male_lead_younger
+    name_zh: 年下男主
+    traits: ["18 岁少年", "校服衬衫", "执着粘人", "甜美攻势"]
+
+scenes:
+  - id: bubble_cafe
+    name_zh: 奶茶店
+    keywords: [手摇饮, 灯泡串灯, 木质桌]
+  - id: cherry_road
+    name_zh: 樱花树下
+    keywords: [飘落樱花, 暖阳, 落英缤纷]
+  - id: dorm_room
+    name_zh: 宿舍
+    keywords: [毛绒玩具, 学习台灯, 床帘]
+  - id: amusement_park
+    name_zh: 游乐园
+    keywords: [摩天轮, 旋转木马, 棉花糖]
+  - id: rainy_bus_stop
+    name_zh: 雨中公车站
+    keywords: [透明伞, 街灯, 雨滴反光]
+
+sample_themes:
+  - "霸总年下！邻家少年回国后变成了霸道总裁，三年前的秘密被揭开。"
+  - "契约结婚 100 天，原来你的微笑是为了我藏起的秘密。"
+  - "校园甜剧：他在篮球场上 1V5 救下我，从此每个雨天我都借他一把伞。"
+
+style_lock_prompt: |
+  画风：甜美 3D + 半二次元（《天官赐福》动画的 3D + 《花亦山》的高光彩绘）；
+  色调：樱花粉 + 蜂蜜黄 + 月白主色，高饱和暖光晕；
+  光影：糖果质感 + 柔光 + 樱花飘落 + 泡泡气氛粒子；
+  服化：JK / 棒球外套 / 修身衬衫 / 帽衫 / 小裙；
+  禁忌：禁压抑暗调，禁恐怖元素，禁画面文字。
+
+negative_prompt: |
+  dark, horror, scary, gore, modern noir, photo-realistic gritty, watermark, text

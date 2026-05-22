@@ -144,6 +144,19 @@ function JobDetailInner() {
 
         <WorkflowStepper currentStep={job.current_step || (job.status === 'succeeded' ? 6 : 0)} />
 
+        {/* Sub-pages (per-shot / versions / export) */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Link href={`/dashboard/job/shots?id=${job.id}`} className="btn-ghost text-xs">
+            🎬 镜头与 7 维评分
+          </Link>
+          <Link href={`/dashboard/job/versions?id=${job.id}`} className="btn-ghost text-xs">
+            🗂 版本中心
+          </Link>
+          <Link href={`/dashboard/job/export?id=${job.id}`} className="btn-ghost text-xs">
+            📤 多平台导出
+          </Link>
+        </div>
+
         <div className="mb-6">
           <div className="flex justify-between text-sm text-ink-700 mb-1">
             <span>渲染进度 · {job.pipeline_version}</span>

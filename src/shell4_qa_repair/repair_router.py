@@ -3,12 +3,15 @@
 Given a set of QA findings on a shot, dispatch to the cheapest viable repair
 route. Each repair returns a replacement video path that gets spliced back
 into the master timeline by `shot_video_extractor.compose_with_ffmpeg`.
+
+The closed-loop ``repair_until_pass`` runs the diagnose→repair→re-evaluate
+cycle from the requirement doc (§自动修正): generate → 评估 → 修正 → 再评估.
 """
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Callable, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Callable, Sequence
 
 from .vlm_per_shot import ShotReport
 from .arcface_check import FaceSimilarity
@@ -104,3 +107,107 @@ class RepairRouter:
         _log.info("repair shot %s via %s (%s)",
                   context.shot_id, action.route, action.reason)
         return handler(context)
+
+    # ------------------------------------------------------------------
+    # Closed-loop generate → evaluate → fix → re-evaluate
+    # ------------------------------------------------------------------
+
+    def repair_until_pass(
+        self,
+        context: RepairContext,
+        *,
+        scorer,
+        diagnoser=None,
+        max_iter: int = 2,
+        pass_threshold: float = 7.0,
+        on_step=None,
+    ) -> "RepairLoopResult":
+        """Iterate `diagnose → repair → re-evaluate` until passing or budget runs out.
+
+        ``scorer`` must implement ``score(shot_id, path, canonical_image_url=, prompt=)``
+        returning a ``ShotScore``. ``diagnoser`` defaults to
+        ``auto_diagnose.diagnose``. Each iteration emits an event via ``on_step``
+        (if provided) so callers can stream progress into job logs.
+        """
+        from .seven_dim_scorer import ShotScore  # local import to avoid cycles
+        if diagnoser is None:
+            from .auto_diagnose import diagnose as diagnoser  # type: ignore
+
+        history: list[dict[str, Any]] = []
+        current_url = context.shot_url
+        score: ShotScore = scorer.score(
+            context.shot_id,
+            current_url,
+            canonical_image_url=context.canonical_image_url,
+            prompt=context.shot_prompt,
+        )
+        history.append({"iter": 0, "score": score.to_dict(), "url": current_url, "route": None})
+        if on_step:
+            on_step(0, score, current_url, None)
+        if score.passed or max_iter <= 0:
+            return RepairLoopResult(
+                shot_id=context.shot_id,
+                final_url=current_url,
+                final_score=score,
+                passed=score.passed,
+                iterations=history,
+            )
+
+        for it in range(1, max_iter + 1):
+            issues = diagnoser(score, pass_threshold=pass_threshold)
+            if not issues:
+                break
+            primary = issues[0]
+            action = RepairAction(
+                route=primary.route,
+                reason=primary.evidence,
+                priority=1,
+            )
+            try:
+                next_url = self.execute(action, context)
+            except (NotImplementedError, Exception) as e:
+                _log.warning("repair iter %d failed: %s", it, e)
+                history.append({"iter": it, "error": str(e), "route": action.route})
+                if on_step:
+                    on_step(it, score, current_url, action.route, error=str(e))
+                break
+            current_url = next_url
+            context.shot_url = next_url
+            score = scorer.score(
+                context.shot_id,
+                current_url,
+                canonical_image_url=context.canonical_image_url,
+                prompt=context.shot_prompt,
+            )
+            history.append({"iter": it, "score": score.to_dict(), "url": current_url, "route": action.route})
+            if on_step:
+                on_step(it, score, current_url, action.route)
+            if score.passed:
+                break
+
+        return RepairLoopResult(
+            shot_id=context.shot_id,
+            final_url=current_url,
+            final_score=score,
+            passed=score.passed,
+            iterations=history,
+        )
+
+
+@dataclass
+class RepairLoopResult:
+    shot_id: int
+    final_url: str
+    final_score: Any           # ShotScore (forward-decl typing to break cycle)
+    passed: bool
+    iterations: list[dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        score = self.final_score
+        return {
+            "shot_id": self.shot_id,
+            "final_url": self.final_url,
+            "final_score": score.to_dict() if hasattr(score, "to_dict") else score,
+            "passed": self.passed,
+            "iterations": self.iterations,
+        }

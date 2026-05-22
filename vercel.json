@@ -5,5 +5,20 @@
   "installCommand": "cd web && npm install",
   "buildCommand": "cd web && npm run build",
   "outputDirectory": "web/.next",
-  "regions": ["hkg1"]
+  "regions": ["hkg1"],
+  "env": {
+    "NEXT_PUBLIC_BACKEND_URL": "@xiaoyunque_backend_url",
+    "NEXT_PUBLIC_DEFAULT_LOCALE": "zh-CN"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {"key": "X-Frame-Options", "value": "SAMEORIGIN"},
+        {"key": "X-Content-Type-Options", "value": "nosniff"},
+        {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"},
+        {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"}
+      ]
+    }
+  ]
 }

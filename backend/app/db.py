@@ -89,6 +89,10 @@ class Job(Base):
     episodes: Mapped[int] = mapped_column(Integer, default=1)
     novel_excerpt: Mapped[str] = mapped_column(Text, default="")
     style: Mapped[str] = mapped_column(String(60), default="ancient_3d_guoman")
+    genre: Mapped[str] = mapped_column(String(40), default="ancient", nullable=False)
+    mode: Mapped[str] = mapped_column(String(20), default="excerpt", nullable=False)  # excerpt|theme|novel
+    theme: Mapped[str | None] = mapped_column(Text, nullable=True)
+    language: Mapped[str] = mapped_column(String(20), default="Chinese", nullable=False)
     result_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -114,6 +118,83 @@ class Job(Base):
     versions: Mapped[list["JobVersion"]] = relationship(
         back_populates="job", cascade="all, delete-orphan", order_by="JobVersion.version_no"
     )
+    shots: Mapped[list["Shot"]] = relationship(
+        back_populates="job", cascade="all, delete-orphan", order_by="Shot.shot_id"
+    )
+
+
+class Shot(Base):
+    """One shot of one episode (镜头).
+
+    Each shot can be individually rerolled, scored on the 7 dims, and
+    re-spliced into the master timeline.
+    """
+
+    __tablename__ = "xyq_shots"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("xyq_jobs.id", ondelete="CASCADE"), index=True)
+    episode_id: Mapped[str] = mapped_column(String(20), default="ep01", index=True)
+    shot_id: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    duration_s: Mapped[float] = mapped_column(default=3.0, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    shot_type: Mapped[str] = mapped_column(String(20), default="medium")
+    status: Mapped[str] = mapped_column(String(20), default="queued", index=True)
+    result_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    canonical_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    score_7d_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    overall_score: Mapped[float | None] = mapped_column(nullable=True)
+    passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    repair_iters: Mapped[int] = mapped_column(Integer, default=0)
+    repair_routes_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    job: Mapped["Job"] = relationship(back_populates="shots")
+
+
+class Batch(Base):
+    """Batch 转绘 (multi-file redraw) job."""
+
+    __tablename__ = "xyq_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("xyq_users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120), default="批量转绘")
+    style: Mapped[str] = mapped_column(String(40), default="ancient_3d_guoman")
+    genre: Mapped[str] = mapped_column(String(40), default="ancient")
+    aspect_ratio: Mapped[str] = mapped_column(String(10), default="9:16")
+    status: Mapped[str] = mapped_column(String(20), default="queued", index=True)
+    total_items: Mapped[int] = mapped_column(Integer, default=0)
+    finished_items: Mapped[int] = mapped_column(Integer, default=0)
+    params_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    items: Mapped[list["BatchItem"]] = relationship(
+        back_populates="batch", cascade="all, delete-orphan", order_by="BatchItem.id"
+    )
+
+
+class BatchItem(Base):
+    __tablename__ = "xyq_batch_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("xyq_batches.id", ondelete="CASCADE"), index=True)
+    source_url: Mapped[str] = mapped_column(String(500), default="")
+    result_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    params_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="queued", index=True)
+    score_7d_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    overall_score: Mapped[float | None] = mapped_column(nullable=True)
+    passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    repair_iters: Mapped[int] = mapped_column(Integer, default=0)
+    feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    batch: Mapped["Batch"] = relationship(back_populates="items")
 
 
 class JobVersion(Base):
@@ -184,6 +265,10 @@ def _apply_simple_migrations(connection) -> None:
         ("xyq_jobs", "pipeline_version", "VARCHAR(20) DEFAULT 'v6' NOT NULL"),
         ("xyq_jobs", "scores_7d", "TEXT"),
         ("xyq_jobs", "human_approved", "BOOLEAN DEFAULT FALSE NOT NULL"),
+        ("xyq_jobs", "genre", "VARCHAR(40) DEFAULT 'ancient' NOT NULL"),
+        ("xyq_jobs", "mode", "VARCHAR(20) DEFAULT 'excerpt' NOT NULL"),
+        ("xyq_jobs", "theme", "TEXT"),
+        ("xyq_jobs", "language", "VARCHAR(20) DEFAULT 'Chinese' NOT NULL"),
     ]
     for table, col, coltype in migrations:
         try:

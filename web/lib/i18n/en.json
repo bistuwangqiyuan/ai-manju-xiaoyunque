@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "studio": "Studio",
+    "templates": "Templates",
+    "library": "Library",
+    "batch": "Batch Redraw",
+    "export": "Export",
+    "versions": "Versions",
+    "docs": "Docs",
+    "showcase": "Showcase",
+    "pricing": "Pricing",
+    "login": "Sign in",
+    "signup": "Sign up",
+    "logout": "Sign out"
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "submit": "Submit",
+    "delete": "Delete",
+    "export": "Export",
+    "download": "Download",
+    "version": "Version",
+    "score": "Score",
+    "passed": "Passed",
+    "failed": "Failed",
+    "running": "Running",
+    "queued": "Queued",
+    "succeeded": "Succeeded"
+  },
+  "dashboard": {
+    "title": "AI Drama Studio",
+    "new": "Create new",
+    "no_jobs": "No projects yet.",
+    "go_create": "Start creating"
+  },
+  "new_job": {
+    "title": "Create one episode",
+    "subtitle": "Pick a genre, paste your novel or just a theme, AI handles the rest.",
+    "tab_excerpt": "Paste excerpt",
+    "tab_novel": "Upload novel",
+    "tab_theme": "Theme",
+    "field_title": "Title",
+    "field_excerpt": "Novel excerpt / outline",
+    "field_theme": "Story theme",
+    "field_genre": "Genre",
+    "field_style": "Visual style",
+    "field_episodes": "Episodes",
+    "field_language": "Language",
+    "btn_submit": "✨ Generate",
+    "btn_loading": "Generating, please wait…"
+  },
+  "job_detail": {
+    "step": "Step",
+    "shots": "Shots",
+    "versions": "Versions",
+    "scores": "7-D scores",
+    "logs": "Logs",
+    "marketing": "Marketing copy",
+    "approve": "Approve final cut",
+    "reroll": "Re-roll",
+    "repair": "Repair",
+    "translate": "Translate",
+    "continue": "Continue story",
+    "restyle": "Restyle"
+  },
+  "library": {
+    "title": "Asset Library",
+    "characters": "Characters",
+    "scenes": "Scenes",
+    "expressions": "Expressions",
+    "actions": "Actions",
+    "wardrobe": "Wardrobe"
+  },
+  "batch": {
+    "title": "Batch Redraw",
+    "upload": "Upload files",
+    "create_batch": "Create batch",
+    "run": "Run",
+    "redraw_item": "Redraw",
+    "export_zip": "Download ZIP"
+  },
+  "export": {
+    "title": "Multi-Platform Export",
+    "douyin": "Douyin",
+    "kuaishou": "Kuaishou",
+    "wechat_video": "WeChat",
+    "xiaohongshu": "Little Red Book",
+    "bilibili": "Bilibili",
+    "youtube_shorts": "YouTube Shorts",
+    "watermark": "AI + Account watermark"
+  }
+}

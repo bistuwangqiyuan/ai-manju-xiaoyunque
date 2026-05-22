@@ -21,6 +21,9 @@ from .quality_metrics import (
     sample_roi_stats,
     sample_roi_y_brightness,
 )
+from .platform_export import export_for_platforms, PLATFORM_SPECS, PlatformSpec
+from .marketing_copy import generate_marketing_copy
+from .watermark import apply_watermark
 
 __all__ = [
     "DoubaoIclClient",
@@ -42,4 +45,9 @@ __all__ = [
     "parse_top_level_boxes",
     "sample_roi_stats",
     "sample_roi_y_brightness",
+    "export_for_platforms",
+    "PLATFORM_SPECS",
+    "PlatformSpec",
+    "generate_marketing_copy",
+    "apply_watermark",
 ]

@@ -3,23 +3,32 @@
 > 把 `web/` 部署到 Vercel（前端 + 静态托管），把 `backend/` 部署到 Railway（FastAPI + worker）。
 > 完整链路打通后，全世界任何浏览器都能访问你的 SaaS。
 
-## 当前生产状态 (2026-05-20 · v6)
+## 当前生产状态 (2026-05-22 · v7 · world-class upgrade)
 
 | 组件 | 状态 | 地址 |
 |---|---|---|
-| 后端 Railway | ✅ 上线 | `https://ai-manju-xiaoyunque-production.up.railway.app` |
+| 后端 Railway | ✅ 代码就绪 | `https://ai-manju-xiaoyunque-production.up.railway.app` |
 | 数据库 Neon | ✅ 已连 | Vercel 控制台 → Storage |
 | 前端 Vercel | ✅ 主站 `web/` | `vercel.json` → `rootDirectory: web` |
-| 6 步流水线 | ✅ 代码就绪 | `src/pipeline/orchestrator.py` + worker v6 |
+| 6 步流水线 v2 | ✅ Shell4 + Shell5 全链路 | `src/pipeline/orchestrator_v2.py` |
+| 7 维 QA 闭环 | ✅ diagnose→repair→re-evaluate | `src/shell4_qa_repair/repair_router.repair_until_pass` |
+| 多题材模板 | ✅ 古风 / 现代 / 甜宠 / 悬疑 / 玄幻 | `config/genres/*.yaml` |
+| 批量转绘 | ✅ 多文件 + 7 维 loop + zip 导出 | `src/transcribe/` + `/api/batch` |
+| 多平台导出 | ✅ 抖音/快手/视频号/小红书/B站/YouTube Shorts | `src/shell5_post_production/platform_export.py` |
+| 多语言 | ✅ ElevenLabs Multilingual + 双语字幕 + zh-CN/en UI | `src/shell5_post_production/tts_elevenlabs_intl.py` + `web/lib/i18n.tsx` |
+| 高级智能 | ✅ 剧情续写 / 风格迁移 / 角色互动图 | `src/advanced/` |
+| 版本中心 | ✅ 快照 / 回滚 / 对比 | `src/common/artifact_store.py` + `/api/jobs/{id}/versions` |
+| 测试套件 | ✅ 24 个 mock-mode 测试 | `tests/test_orchestrator_v2.py` + 同目录其它 |
 
-**已交付的核心商业能力**（后端已生效，已端到端验证）：
+**已交付的核心商业能力**：
 - 多级用户：free / pro / studio / admin
 - 配额：免费 3 集/天，每次 1 集；付费无限
 - 计费：成本×1.10（base ¥65/集 → 售价 ¥71.5/集）
 - 自动升级：首次任意金额充值，free → pro
 - 并发：3 个 worker 同时渲染（SELECT...FOR UPDATE SKIP LOCKED 互斥）
-- 质量：5 维评分，<90 自动重试最多 2 次
+- 质量：7 维 + 100-pt 综合评分，未通过自动 diagnose→repair→re-evaluate（最多 2 轮）
 - 商用示例：landing 页 6 集预览画廊
+- SaaS 端到端流水线（粘贴小说 / 上传小说 / 主题生成）→ 自动剧本 → 角色资产 → 分镜 → 抽卡 → 粗剪 → 精剪审核 → 多平台导出
 
 ---
 
@@ -110,6 +119,19 @@ git push -u origin main
 
 > 不加 Postgres 也能跑，会回落到 SQLite。但 SQLite 文件存在容器内，容器重启会丢，**不要在生产用 SQLite**。
 
+#### 数据库迁移（v7 新增表）
+
+启动时 `init_db()` 会自动 `CREATE TABLE IF NOT EXISTS` 全部表 + 增量 ALTER 已有 Job 表。
+v7 新增的表：
+
+| 表 | 用途 |
+|---|---|
+| `xyq_shots` | 每个镜头的 7 维评分、修复路径、AIGC 元数据 |
+| `xyq_batches` | 批量转绘任务 |
+| `xyq_batch_items` | 批量转绘每个条目 + 7 维评分 |
+
+无需手动执行任何 SQL，第一次 Railway 容器启动时会自动建表 + 补字段。
+
 ### 3.3 配置环境变量
 
 在 backend service → **Variables** 里加：
@@ -122,10 +144,16 @@ git push -u origin main
 | `SIGNUP_BONUS_CENTS` | `10000` | 注册赠 ¥100 |
 | `LOG_LEVEL` | `INFO` | |
 
-**渲染相关（暂时全留空 → mock 模式，能跑通全链路）**：
-- `VOLC_ACCESS_KEY` / `VOLC_SECRET_KEY` / `VOLC_ARK_API_KEY`
-- `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY` / `GEMINI_API_KEY`
-- `ELEVENLABS_API_KEY` / `FAL_API_KEY`
+**渲染相关（按需配置；全留空 → mock 模式，能跑通全链路）**：
+- 核心 LLM/视频：`VOLC_ACCESS_KEY` / `VOLC_SECRET_KEY` / `VOLC_ARK_API_KEY` / `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY` / `GEMINI_API_KEY`
+- 视频生成/修复：`FAL_API_KEY`（FLUX Kontext / Wan FLF / InfiniteYou）/ `REPLICATE_API_TOKEN`（PuLID）/ `HEDRA_API_KEY`（Character-3 lip sync）/ `RUNWAY_API_KEY`（Aleph V2V 风格迁移）
+- 高光集：`OPENAI_API_KEY`（Sora 2 Pro）/ `GOOGLE_*`（Veo 3.1）/ `DASHSCOPE_API_KEY`（Wan 2.2-Animate）
+- 配音/BGM/SFX：`ELEVENLABS_API_KEY`（Multilingual v3）/ `DOUBAO_TTS_APPID` + `DOUBAO_TTS_TOKEN`（Seed-TTS ICL）/ `MINIMAX_API_KEY` / `SUNO_API_KEY` / `NETEASE_TIANYIN_API_KEY`
+
+**Mock-mode 节流开关**（CI/试运行时强制走启发式或假数据）：
+- `MOCK_MODE=1` 一键全部走 mock
+- 细粒度：`FORCE_MOCK_SCORER` / `FORCE_MOCK_THEME` / `FORCE_MOCK_NOVELTY` / `FORCE_MOCK_MARKETING` / `FORCE_MOCK_CONTINUATION` / `FORCE_MOCK_RESTYLE` / `FORCE_MOCK_TRANSLATE` / `FORCE_MOCK_REDRAW`
+- 无 ffmpeg 的容器请设 `SKIP_CINEMATIC_MASTER=1`
 
 **Stripe 相关（暂时留空 → 直接 mock 充值）**：
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
@@ -180,19 +208,41 @@ Railway service → **Settings** → **Volumes** → 挂 `/app/storage`。这样
 
 ---
 
-## 5. 上线验证清单（v6）
+## 5. 上线验证清单（v7）
+
+### 5.1 自动化（CI / 本地预检）
+
+```powershell
+# 后端 / 流水线测试（24 个 mock-mode 测试，~35s）
+pytest -q tests/test_orchestrator_v2.py tests/test_repair_loop.py tests/test_genre_templates.py `
+            tests/test_batch_redraw.py tests/test_platform_export.py tests/test_theme_to_novel.py `
+            tests/test_backend_api.py
+
+# CLI 端到端 smoke（mock 模式）
+python -m src.pipeline.orchestrator_v2 --mock --episodes 1 `
+       --novel novel-聂小倩.md --work-root data/runs/v2_smoke
+
+# 前端 type-check + build
+cd web ; npm install ; npx tsc --noEmit ; npx next build
+```
+
+全部绿即可继续手动上线验证。
+
+### 5.2 手动（生产环境冒烟）
 
 打开 `https://<your-app>.vercel.app`：
 
-- [ ] 落地页正常显示（不要有控制台 CORS 报错）
+- [ ] 落地页正常显示（不要有控制台 CORS 报错），右上角语言切换器 `zh-CN ⇄ en`
+- [ ] `/templates` 显示 5 种题材模板（古风 / 现代 / 甜宠 / 悬疑 / 玄幻），各有 sample themes
 - [ ] `/signup` 注册一个测试账号，跳转到 `/dashboard`，余额显示 ¥100
-- [ ] `/dashboard/new` 提交一个 1 集任务，跳转到任务详情
+- [ ] `/dashboard/new` 三个 tab（粘贴片段 / 上传小说 / 主题生成）都能创建任务
 - [ ] 任务详情显示 **6 步 Stepper**（剧本→资产→分镜→抽卡→粗剪→精剪）
-- [ ] 进度推进后展示 **7 维质量分** + 100-Pt Rubric
-- [ ] 完成后可 **人工确认放行** / **一键重绘**
-- [ ] `/api/health` 中 `mock_worker: false`（已配置 VOLC + ANTHROPIC Key 时）
-- [ ] `python scripts/compliance_check.py --all` 通过
-- [ ] `/pricing` mock 计费或 Stripe 实收
+- [ ] 进入 `/dashboard/job/shots` 看到每个镜头的 7 维分 + 重绘/修复/通过按钮
+- [ ] 进入 `/dashboard/job/versions` 看到版本快照 + 一键回滚
+- [ ] 进入 `/dashboard/job/export` 选择 ≥1 平台一键生成各平台尺寸版本
+- [ ] `/library` 切换 5 个 tab（角色/场景/表情/动作/服饰）正常列出
+- [ ] `/batch` 上传 3 张图，运行批次后可 zip 导出
+- [ ] `/api/health` 返回 `{status:"ok"}`，`mock_worker: false`（已配置 VOLC + ANTHROPIC Key 时）
 
 通过以上检查，**正式对外版本可演示**。
 

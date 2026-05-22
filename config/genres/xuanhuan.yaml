@@ -1,0 +1,69 @@
+# 玄幻题材模板（玄幻/修仙/异世/魔法）
+
+id: xuanhuan
+name_zh: 玄幻
+name_en: Xuanhuan / High Fantasy
+description: |
+  玄幻、修仙、异世、魔法题材：宏大世界观 + 华丽法术 + 史诗对决。
+  强调 360° 全景特效、灵气粒子、剑光、神兽、空间扭曲。
+
+style_id: xuanhuan_epic
+aspect_ratio: "9:16"
+default_episodes: 12
+default_duration_per_episode_s: 90
+preferred_resolution: "1080x1920"
+language: Chinese
+voice_pack: epic_zh
+bgm_mood: epic_choir
+platform_preset: [douyin, bilibili, youtube_shorts, kuaishou]
+
+palette:
+  primary: ["#0B132B", "#5BC0EB", "#FFD60A"]   # 墨夜 灵蓝 神金
+  secondary: ["#FF595E", "#9B5DE5"]             # 灵焰红 紫雷
+
+character_archetypes:
+  - id: protagonist_immortal
+    name_zh: 男主-仙尊
+    traits: ["年龄不定", "白发青衣", "执剑御风", "眉间金纹"]
+  - id: female_lead_goddess
+    name_zh: 女主-神女
+    traits: ["20 岁神女", "凤冠霞帔", "金红长袍", "右手太极"]
+  - id: dark_lord
+    name_zh: 反派-魔尊
+    traits: ["黑袍金边", "血瞳", "魔气环绕", "笑里藏刀"]
+  - id: divine_beast
+    name_zh: 神兽契约
+    traits: ["金色麒麟", "白虎", "九尾", "灵气环绕"]
+
+scenes:
+  - id: heaven_palace
+    name_zh: 天庭神殿
+    keywords: [玉柱, 云海, 神光, 仙鹤]
+  - id: demon_abyss
+    name_zh: 魔渊
+    keywords: [黑烟, 熔岩, 锁链, 红云]
+  - id: sword_arena
+    name_zh: 论剑台
+    keywords: [浮岛, 剑光, 闪电, 山河图]
+  - id: secret_realm
+    name_zh: 秘境
+    keywords: [灵气瀑布, 仙草, 古阵, 异兽]
+  - id: bamboo_cultivation
+    name_zh: 修真竹林
+    keywords: [青竹, 静坐, 灵气环绕, 浮空]
+
+sample_themes:
+  - "仙尊重生第三世，要在末法时代守住最后一寸灵气。"
+  - "凡人少女觉醒上古凤命，要在三界乱世中重铸神器。"
+  - "万年魔尊归来，第一战便挑战了天庭最强的护法。"
+
+style_lock_prompt: |
+  画风：玄幻 3D 国漫《剑王朝》《吞噬星空》风格 + 《雾山五行》水墨撞色打斗段；
+  色调：墨夜 + 灵蓝 + 神金；灵焰红 + 紫雷点缀；
+  光影：灵气粒子环绕、剑光长尾、空间扭曲、神兽蓝白光；
+  服化：素衣 + 仙袍 + 玉冠 + 长剑 + 神兽契约纹；
+  禁忌：禁现代元素，禁画面文字，禁日系大眼。
+
+negative_prompt: |
+  modern clothing, contemporary city, anime big eyes, watermark, text on screen,
+  cartoon flat, photo realistic gritty, deformed

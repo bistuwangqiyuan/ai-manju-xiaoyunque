@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend + pipeline (pytest, mock-mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      MOCK_MODE: "1"
+      FORCE_MOCK_SCORER: "1"
+      FORCE_MOCK_THEME: "1"
+      FORCE_MOCK_NOVELTY: "1"
+      FORCE_MOCK_MARKETING: "1"
+      FORCE_MOCK_CONTINUATION: "1"
+      FORCE_MOCK_RESTYLE: "1"
+      FORCE_MOCK_TRANSLATE: "1"
+      FORCE_MOCK_REDRAW: "1"
+      SKIP_CINEMATIC_MASTER: "1"
+      JWT_SECRET: ci-secret-for-tests-only-do-not-use
+      DATABASE_URL: sqlite:///./data/ci.db
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
+          pip install pytest httpx pytest-asyncio bcrypt
+
+      - name: Pytest (orchestrator_v2 + repair + genres + batch + platform + backend)
+        run: |
+          pytest -q \
+            tests/test_orchestrator_v2.py \
+            tests/test_repair_loop.py \
+            tests/test_genre_templates.py \
+            tests/test_batch_redraw.py \
+            tests/test_platform_export.py \
+            tests/test_theme_to_novel.py \
+            tests/test_backend_api.py
+
+  frontend:
+    name: web (typecheck + next build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npx next build

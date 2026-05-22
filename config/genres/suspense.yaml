@@ -1,0 +1,69 @@
+# 悬疑题材模板（悬疑/推理/惊悚/犯罪）
+
+id: suspense
+name_zh: 悬疑
+name_en: Suspense
+description: |
+  悬疑、推理、惊悚题材：强光影对比 + 阴影构图 + 真实情绪 + 雨夜冷色调。
+  适合反转密集、误导铺垫、最后揭秘的密室式结构。
+
+style_id: noir_cinematic
+aspect_ratio: "9:16"
+default_episodes: 12
+default_duration_per_episode_s: 80
+preferred_resolution: "1080x1920"
+language: Chinese
+voice_pack: noir_zh
+bgm_mood: dark_orchestra
+platform_preset: [douyin, kuaishou, bilibili, youtube_shorts]
+
+palette:
+  primary: ["#0F1419", "#3A506B", "#F5F5DC"]   # 深墨 钢蓝 米色
+  secondary: ["#BF1722", "#FFB000"]             # 警示红 警灯黄
+
+character_archetypes:
+  - id: female_detective
+    name_zh: 女主-警探
+    traits: ["28 岁女警探", "皮夹克 + 牛仔", "锐利眼神", "侧露伤疤"]
+  - id: male_psychiatrist
+    name_zh: 男主-犯罪心理学家
+    traits: ["32 岁顾问", "黑色风衣", "金丝眼镜", "冷静理性"]
+  - id: serial_killer
+    name_zh: 反派-连环杀手
+    traits: ["匿名", "黑帽", "皮手套", "眼神不寒而栗"]
+
+scenes:
+  - id: crime_scene_alley
+    name_zh: 案发巷弄
+    keywords: [警戒线, 雨滴, 路灯, 血迹]
+  - id: interrogation_room
+    name_zh: 审讯室
+    keywords: [双面镜, 单灯, 金属桌椅]
+  - id: morgue
+    name_zh: 太平间
+    keywords: [冷蓝光, 不锈钢, 白布]
+  - id: subway_late_night
+    name_zh: 深夜地铁
+    keywords: [无人车厢, 闪烁灯, 监控视角]
+  - id: rainy_rooftop
+    name_zh: 雨夜天台
+    keywords: [钢筋, 城市灯海, 倾盆大雨]
+  - id: archive_basement
+    name_zh: 档案室地下室
+    keywords: [档案柜, 黄页, 灯泡]
+
+sample_themes:
+  - "警探女主追查 7 起连环案，发现真凶就是身边的犯罪心理顾问。"
+  - "雨夜地铁，少女遇见小学同桌，对方今天已经被警方通缉 10 年。"
+  - "档案室角落里的红色笔记，揭开整个城市的连环密码。"
+
+style_lock_prompt: |
+  画风：电影黑色 noir + 写实 3D，《心理罪》《白夜追凶》《唐人街探案》风格；
+  色调：深墨 + 钢蓝 + 米色，警戒红 + 警灯黄高对比；
+  光影：单灯反光、雨夜霓虹、监控冷调、闪光灯定格；
+  服化：风衣、皮夹克、警服、便装；
+  禁忌：禁过于血腥，禁画面文字，禁卡通化。
+
+negative_prompt: |
+  anime, cute, kawaii, bright pastel, fantasy magic, watermark, text on screen,
+  cartoon, photo grainy, oversaturated

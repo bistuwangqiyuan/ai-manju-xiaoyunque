@@ -11,6 +11,14 @@ dockerfilePath = "backend/Dockerfile"
 # 用 TOML 字面量字符串（单引号）避免双重转义
 startCommand = 'sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"'
 healthcheckPath = "/api/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
+
+# Environment groups documented in DEPLOY.md:
+#   core_keys     (VOLC_ACCESS_KEY / ANTHROPIC_API_KEY / DEEPSEEK_API_KEY / GEMINI_API_KEY)
+#   media_keys    (FAL_API_KEY / ELEVENLABS_API_KEY / REPLICATE_API_TOKEN / HEDRA_API_KEY)
+#   advanced_keys (RUNWAY_API_KEY / OPENAI_API_KEY / DASHSCOPE_API_KEY / SUNO_API_KEY)
+#   storage_keys  (S3_ENDPOINT / S3_BUCKET / S3_ACCESS_KEY / S3_SECRET_KEY / S3_PUBLIC_BASE_URL)
+#   mock_flags    (MOCK_MODE / FORCE_MOCK_* / SKIP_CINEMATIC_MASTER)
+# 仅核心组（core_keys + storage_keys）即可获得线上 mock-tier 体验。

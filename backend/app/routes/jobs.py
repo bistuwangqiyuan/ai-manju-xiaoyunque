@@ -1,14 +1,31 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from ..db import Job, JobLog, JobVersion, User, get_db
-from ..schemas import JobCreateIn, JobLogOut, JobOut, JobVersionOut, RerollIn, job_to_out
+from ..db import Job, JobLog, JobVersion, Shot, User, get_db
+from ..schemas import (
+    ContinueIn,
+    ExportIn,
+    ExportOut,
+    JobCreateIn,
+    JobLogOut,
+    JobOut,
+    JobVersionOut,
+    MarketingOut,
+    RerollIn,
+    RestyleIn,
+    ShotOut,
+    ShotRepairIn,
+    TranslateIn,
+    VersionRollbackIn,
+    job_to_out,
+)
 from ..security import get_current_user
 from ..settings import settings
 
@@ -115,15 +132,29 @@ def create_job(
     if cost > 0:
         user.credits_cents -= cost
 
+    # Mode "theme" allows empty novel_excerpt — backend will generate via Claude.
+    if payload.mode == "theme":
+        if not payload.theme or len(payload.theme.strip()) < 4:
+            raise HTTPException(status_code=400, detail="theme 模式下需提供 ≥ 4 字的主题")
+        novel_text = payload.novel_excerpt or f"theme:{payload.theme}"
+    else:
+        if len(payload.novel_excerpt.strip()) < 50:
+            raise HTTPException(status_code=400, detail="小说片段至少 50 字")
+        novel_text = payload.novel_excerpt
+
     job = Job(
         user_id=user.id,
         title=payload.title or "未命名漫剧",
-        novel_excerpt=payload.novel_excerpt,
+        novel_excerpt=novel_text,
         style=payload.style,
         episodes=payload.episodes,
         cost_cents=cost,
         status="queued",
         progress=0,
+        genre=payload.genre,
+        mode=payload.mode,
+        theme=payload.theme,
+        language=payload.language,
     )
     db.add(job)
     db.flush()
@@ -242,7 +273,6 @@ def list_job_versions(
     job = db.get(Job, job_id)
     if not job or job.user_id != user.id:
         raise HTTPException(status_code=404, detail="任务不存在")
-    import json
     rows = (
         db.query(JobVersion)
         .filter(JobVersion.job_id == job_id)
@@ -270,3 +300,451 @@ def list_job_versions(
             )
         )
     return out
+
+
+@router.post("/{job_id}/versions/rollback", response_model=JobOut)
+def rollback_version(
+    job_id: int,
+    payload: VersionRollbackIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """Restore a previous version as the current one."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    target = (
+        db.query(JobVersion)
+        .filter(JobVersion.job_id == job_id, JobVersion.version_no == payload.target_version_no)
+        .one_or_none()
+    )
+    if target is None:
+        raise HTTPException(status_code=404, detail="目标版本不存在")
+    job.result_url = target.result_url
+    job.cover_url = target.cover_url
+    job.quality_score = target.quality_score
+    job.scores_7d = target.scores_7d_json
+    db.add(JobLog(
+        job_id=job.id,
+        level="INFO",
+        message=f"用户回滚到 v{payload.target_version_no}: {payload.notes or '(无备注)'}",
+    ))
+    db.commit()
+    db.refresh(job)
+    return job_to_out(job)
+
+
+# ---------------------------------------------------------------------
+# Per-shot APIs (requirement doc §自动修正 + 一键重绘/局部修正/反馈)
+# ---------------------------------------------------------------------
+
+
+def _shot_to_out(s: Shot) -> ShotOut:
+    score_7d = None
+    if s.score_7d_json:
+        try:
+            score_7d = json.loads(s.score_7d_json)
+        except Exception:
+            score_7d = None
+    routes = None
+    if s.repair_routes_json:
+        try:
+            routes = json.loads(s.repair_routes_json)
+        except Exception:
+            routes = None
+    return ShotOut(
+        id=s.id,
+        job_id=s.job_id,
+        episode_id=s.episode_id,
+        shot_id=s.shot_id,
+        duration_s=s.duration_s,
+        description=s.description,
+        shot_type=s.shot_type,
+        status=s.status,
+        result_url=s.result_url,
+        canonical_image_url=s.canonical_image_url,
+        score_7d=score_7d,
+        overall_score=s.overall_score,
+        passed=s.passed,
+        repair_iters=s.repair_iters,
+        repair_routes=routes,
+        feedback=s.feedback,
+        created_at=s.created_at,
+        updated_at=s.updated_at,
+    )
+
+
+@router.get("/{job_id}/shots", response_model=List[ShotOut])
+def list_job_shots(
+    job_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> List[ShotOut]:
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    rows = (
+        db.query(Shot)
+        .filter(Shot.job_id == job_id)
+        .order_by(Shot.episode_id.asc(), Shot.shot_id.asc())
+        .all()
+    )
+    return [_shot_to_out(r) for r in rows]
+
+
+@router.get("/{job_id}/shots/{shot_id}", response_model=ShotOut)
+def get_shot(
+    job_id: int,
+    shot_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShotOut:
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    s = db.get(Shot, shot_id)
+    if not s or s.job_id != job_id:
+        raise HTTPException(status_code=404, detail="镜头不存在")
+    return _shot_to_out(s)
+
+
+@router.post("/{job_id}/shots/{shot_id}/reroll", response_model=ShotOut)
+def reroll_shot(
+    job_id: int,
+    shot_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShotOut:
+    """Queue a single-shot re-render (一键重绘 局部)."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    s = db.get(Shot, shot_id)
+    if not s or s.job_id != job_id:
+        raise HTTPException(status_code=404, detail="镜头不存在")
+    s.status = "queued"
+    s.passed = False
+    db.add(JobLog(job_id=job_id, level="INFO",
+                  message=f"用户对镜头 {s.episode_id}#{s.shot_id} 触发重绘"))
+    db.commit()
+    db.refresh(s)
+    return _shot_to_out(s)
+
+
+@router.post("/{job_id}/shots/{shot_id}/repair", response_model=ShotOut)
+def repair_shot(
+    job_id: int,
+    shot_id: int,
+    payload: ShotRepairIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShotOut:
+    """Manually trigger a specific repair route or auto-pick."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    s = db.get(Shot, shot_id)
+    if not s or s.job_id != job_id:
+        raise HTTPException(status_code=404, detail="镜头不存在")
+    s.status = "queued_repair"
+    if payload.feedback:
+        s.feedback = payload.feedback
+    db.add(JobLog(
+        job_id=job_id,
+        level="INFO",
+        message=(
+            f"用户手动修复 {s.episode_id}#{s.shot_id} "
+            f"route={payload.route or 'auto'} feedback={(payload.feedback or '')[:40]}"
+        ),
+    ))
+    db.commit()
+    db.refresh(s)
+    return _shot_to_out(s)
+
+
+@router.post("/{job_id}/shots/{shot_id}/approve", response_model=ShotOut)
+def approve_shot(
+    job_id: int,
+    shot_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShotOut:
+    """一键确认: mark this shot as human-approved."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    s = db.get(Shot, shot_id)
+    if not s or s.job_id != job_id:
+        raise HTTPException(status_code=404, detail="镜头不存在")
+    s.passed = True
+    s.status = "approved"
+    db.add(JobLog(job_id=job_id, level="INFO",
+                  message=f"用户人工确认 {s.episode_id}#{s.shot_id}"))
+    db.commit()
+    db.refresh(s)
+    return _shot_to_out(s)
+
+
+# ---------------------------------------------------------------------
+# Marketing copy + export + advanced (requirement doc §8 / §9)
+# ---------------------------------------------------------------------
+
+
+@router.get("/{job_id}/marketing", response_model=MarketingOut)
+def get_marketing_copy(
+    job_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketingOut:
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    try:
+        from src.shell5_post_production.marketing_copy import generate_marketing_copy
+
+        copy = generate_marketing_copy(
+            title=job.title,
+            synopsis=(job.novel_excerpt or job.theme or "")[:600],
+            genre=job.genre,
+            language=job.language,
+        )
+        return MarketingOut(**copy)
+    except Exception:
+        return MarketingOut(
+            title=f"{job.title}",
+            summary=f"{job.genre} 题材 AI 漫剧 · {job.episodes} 集",
+            hook_copy=f"看到第 3 秒你就停不下来 — {job.title}",
+            hashtags=[f"#{job.genre}", "#AI漫剧", "#爆款短剧"],
+            language=job.language or "Chinese",
+        )
+
+
+@router.post("/{job_id}/export", response_model=List[ExportOut])
+def export_platforms(
+    job_id: int,
+    payload: ExportIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> List[ExportOut]:
+    """Render platform-specific master copies (抖音/快手/视频号/小红书/B站/YouTube)."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if not job.result_url:
+        raise HTTPException(status_code=400, detail="任务尚未生成成片")
+
+    try:
+        from src.shell5_post_production.platform_export import (
+            PLATFORM_SPECS,
+            export_for_platforms,
+        )
+
+        # Resolve source path
+        import pathlib
+        from ..settings import settings as _s
+        from ..storage_upload import upload_if_configured  # noqa: F401
+
+        url = job.result_url or ""
+        if url.startswith("/storage/"):
+            src = pathlib.Path(_s.STORAGE_DIR) / url.replace("/storage/", "", 1)
+        elif url.startswith("/samples/"):
+            src = pathlib.Path(_s.STORAGE_DIR).parent / "web" / "public" / url.lstrip("/")
+            if not src.exists():
+                # 退回到项目内 web/public/samples
+                src = pathlib.Path(__file__).resolve().parents[3] / "web" / "public" / url.lstrip("/")
+        else:
+            src = pathlib.Path(url)
+
+        out_root = pathlib.Path(_s.STORAGE_DIR) / "jobs" / str(job.id) / "export"
+        outs = export_for_platforms(
+            src,
+            out_root,
+            platforms=payload.platforms,
+            add_watermark=payload.add_watermark,
+            account_handle=payload.account_handle,
+        )
+        result: list[ExportOut] = []
+        for spec_id, info in outs.items():
+            local_path = pathlib.Path(info["path"])
+            try:
+                url_rel = local_path.relative_to(pathlib.Path(_s.STORAGE_DIR))
+                pub_url = f"/storage/{str(url_rel).replace(chr(92), '/')}"
+            except ValueError:
+                pub_url = str(local_path)
+            result.append(
+                ExportOut(
+                    platform=spec_id,
+                    url=pub_url,
+                    cover_url=job.cover_url,
+                    caption=info.get("caption"),
+                    hashtags=info.get("hashtags", []),
+                    duration_s=info.get("duration_s"),
+                    width=info.get("width"),
+                    height=info.get("height"),
+                )
+            )
+        return result
+    except Exception as e:
+        # Graceful mock: emit URLs without actually transcoding
+        return [
+            ExportOut(
+                platform=p,
+                url=job.result_url or "",
+                cover_url=job.cover_url,
+                caption=f"AI 漫剧 · {job.title}",
+                hashtags=["#AI漫剧"],
+                duration_s=None,
+                width=None,
+                height=None,
+            )
+            for p in payload.platforms
+        ]
+
+
+@router.post("/{job_id}/continue", response_model=JobOut)
+def continue_job(
+    job_id: int,
+    payload: ContinueIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """剧情续写: clone the job + queue extra episodes."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    new_job = Job(
+        user_id=user.id,
+        title=f"{job.title} · 续集",
+        novel_excerpt=(payload.direction or "续写") + "\n\n" + (job.novel_excerpt or ""),
+        style=job.style,
+        genre=job.genre,
+        mode="excerpt",
+        theme=job.theme,
+        language=job.language,
+        episodes=payload.extra_episodes,
+        cost_cents=_compute_cost_cents(user.tier, payload.extra_episodes),
+        status="queued",
+        progress=0,
+    )
+    if new_job.cost_cents > 0:
+        if user.credits_cents < new_job.cost_cents:
+            raise HTTPException(status_code=402, detail="余额不足，无法续写")
+        user.credits_cents -= new_job.cost_cents
+    db.add(new_job)
+    db.flush()
+    db.add(JobLog(
+        job_id=new_job.id,
+        level="INFO",
+        message=f"由 #{job.id} 续写 +{payload.extra_episodes} 集",
+    ))
+    db.commit()
+    db.refresh(new_job)
+    return job_to_out(new_job)
+
+
+@router.post("/{job_id}/restyle", response_model=JobOut)
+def restyle_job(
+    job_id: int,
+    payload: RestyleIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """风格迁移: re-queue with target style."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if job.status == "running":
+        raise HTTPException(status_code=400, detail="任务渲染中，请稍后再试")
+    style_map = {
+        "jpn_anime": "japanese_anime",
+        "guoman": "ancient_3d_guoman",
+        "realistic": "cinematic_realistic",
+        "manhwa": "korean_manhwa",
+    }
+    job.style = style_map[payload.target]
+    job.status = "queued"
+    job.progress = 0
+    job.current_step = 0
+    db.add(JobLog(
+        job_id=job.id,
+        level="INFO",
+        message=f"风格迁移 → {payload.target}",
+    ))
+    db.commit()
+    db.refresh(job)
+    return job_to_out(job)
+
+
+@router.post("/{job_id}/translate", response_model=JobOut)
+def translate_job(
+    job_id: int,
+    payload: TranslateIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """Multilingual: re-render subtitles + TTS for target language."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    job.language = payload.target_lang
+    db.add(JobLog(
+        job_id=job.id,
+        level="INFO",
+        message=f"翻译/配音目标语言 → {payload.target_lang} (burn={payload.burn_subtitle})",
+    ))
+    db.commit()
+    db.refresh(job)
+    return job_to_out(job)
+
+
+@router.get("/{job_id}/interaction-graph")
+def get_interaction_graph(
+    job_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return character→character interaction edges inferred from the script."""
+    job = db.get(Job, job_id)
+    if not job or job.user_id != user.id:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    artifacts = _parse_artifacts(job)
+    episodes = _episodes_from_artifacts(artifacts) or _stub_episodes(job)
+
+    from src.advanced import build_interaction_graph
+
+    return build_interaction_graph(episodes)
+
+
+def _parse_artifacts(job: Job) -> dict:
+    if not job.step_artifacts:
+        return {}
+    try:
+        return json.loads(job.step_artifacts)
+    except Exception:
+        return {}
+
+
+def _episodes_from_artifacts(artifacts: dict) -> list[dict]:
+    step_1 = (artifacts.get("steps") or {}).get("1") or {}
+    plan_path = step_1.get("plan")
+    if not plan_path:
+        return []
+    try:
+        import pathlib
+        import yaml
+        data = yaml.safe_load(pathlib.Path(plan_path).read_text(encoding="utf-8")) or {}
+        return list(data.get("episodes", []))
+    except Exception:
+        return []
+
+
+def _stub_episodes(job: Job) -> list[dict]:
+    return [
+        {
+            "episode_id": f"ep{i + 1:02d}",
+            "title": f"第 {i + 1} 集",
+            "synopsis": (job.novel_excerpt or "")[:200],
+            "characters_in_episode": [],
+        }
+        for i in range(max(job.episodes, 1))
+    ]

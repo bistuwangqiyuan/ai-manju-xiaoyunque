@@ -1,0 +1,73 @@
+# 现代题材模板（都市/职场/校园/家庭）
+
+id: modern
+name_zh: 现代
+name_en: Modern
+description: |
+  现代都市题材：职场、校园、家庭、爱情。强光影对比 + 写实感构图。
+  适合反转密集、节奏紧凑的短剧。
+
+style_id: modern_cinematic
+aspect_ratio: "9:16"
+default_episodes: 10
+default_duration_per_episode_s: 75
+preferred_resolution: "1080x1920"
+language: Chinese
+voice_pack: modern_zh
+bgm_mood: modern_pop
+platform_preset: [douyin, kuaishou, wechat_video, xiaohongshu]
+
+palette:
+  primary: ["#1A1F2E", "#FFFFFF", "#F23B5B"]   # 深蓝 白 玫红
+  secondary: ["#FFD166", "#06A77D"]             # 暖黄 翠绿
+
+character_archetypes:
+  - id: female_lead_office
+    name_zh: 女主-职场
+    traits: ["25 岁都市女性", "通勤套装", "干练气场", "精致妆容"]
+  - id: male_lead_ceo
+    name_zh: 男主-总裁
+    traits: ["30 岁 CEO", "高定西装", "冷峻气场", "霸气御姐杀手"]
+  - id: school_girl
+    name_zh: 校园女生
+    traits: ["17 岁高中生", "JK 校服", "马尾", "明亮"]
+  - id: best_friend
+    name_zh: 闺蜜/兄弟
+    traits: ["阳光", "亲和", "情感支柱"]
+
+scenes:
+  - id: office_skyscraper
+    name_zh: 摩天写字楼
+    keywords: [玻璃幕墙, 城市夜景, LED 灯带]
+  - id: cafe
+    name_zh: 咖啡馆
+    keywords: [手冲咖啡, 落地窗, 文艺]
+  - id: campus_corridor
+    name_zh: 校园走廊
+    keywords: [阳光, 公告栏, 储物柜]
+  - id: subway_car
+    name_zh: 地铁车厢
+    keywords: [扶手, 通勤, 车窗倒影]
+  - id: rooftop_night
+    name_zh: 天台夜
+    keywords: [城市星海, 围栏, 风衣]
+  - id: home_living_room
+    name_zh: 客厅
+    keywords: [沙发, 暖光, 电视]
+
+sample_themes:
+  - "顶级 CEO 隐婚三年，妻子是公司的实习生 — 反转密集都市恋爱。"
+  - "实习生闯进总裁办公室，一杯咖啡引发的命运纠葛。"
+  - "高中女主重生回到 17 岁，要改写她父母的婚姻。"
+
+style_lock_prompt: |
+  画风：现代电影级 3D 渲染，写实质感 + 电影 cinematic 调色（teal-orange）；
+  渲染：Unreal Engine 5 + 写实皮肤 SSS；
+  光影：玻璃反射、街灯霓虹、晨雾、办公室冷光；
+  色调：深蓝 + 白 + 玫红撞色，暖黄高光；
+  服化：现代都市风（西装、JK、通勤套装、连衣裙）；
+  禁忌：禁古装，禁奇幻元素，禁画面文字。
+
+negative_prompt: |
+  ancient chinese, fantasy, magic, traditional clothing, watermark, text on screen,
+  cartoon, anime, photo grainy, deformed hands

@@ -1,0 +1,246 @@
+[
+  {
+    "shot_id": 1,
+    "type": "wide",
+    "duration_seconds": 3.0,
+    "scene": "lanruosi",
+    "camera_motion": "缓慢俯冲 → 推近兰若寺破匾",
+    "action_desc": "黑夜，破匾「兰若寺」三字金漆剥落，匾额摇晃；瓦缝间蝙蝠惊起飞向月亮，一道白影从大殿掠过",
+    "audio_cues": [
+      "夜风",
+      "蝙蝠扑翅",
+      "破匾吱呀"
+    ],
+    "key_visual": "破匾 + 蝙蝠剪影 + 白影一闪"
+  },
+  {
+    "shot_id": 2,
+    "type": "medium",
+    "duration_seconds": 2.5,
+    "scene": "yeshi",
+    "camera_motion": "推近",
+    "action_desc": "宁采臣穿浅灰青长袍，背书箧，撑一柄破伞，从夜市走来；雨滴打在伞上，他低头数着钱袋里所剩的几个铜板，眉头紧锁",
+    "voiceover": "金华城北郊，三百年前曾是剑客修行之地，如今只剩一座破寺",
+    "audio_cues": [
+      "雨滴",
+      "脚步水声"
+    ],
+    "key_visual": "湿石板路 + 红灯笼倒影"
+  },
+  {
+    "shot_id": 3,
+    "type": "wide",
+    "duration_seconds": 3.0,
+    "scene": "lanruosi",
+    "camera_motion": "广角追随宁采臣进入山门",
+    "action_desc": "宁采臣推开兰若寺山门，吱呀长响；蓬蒿没膝，夜风穿藤蔓发出呜咽；他举伞看了一眼，转身向东侧回廊走去",
+    "audio_cues": [
+      "山门吱呀",
+      "夜风穿藤蔓呜咽"
+    ],
+    "key_visual": "破朱漆山门 + 月光照入"
+  },
+  {
+    "shot_id": 4,
+    "type": "medium",
+    "duration_seconds": 2.5,
+    "scene": "lanruosi",
+    "camera_motion": "平视",
+    "action_desc": "宁采臣走过南院小室，意外见扉键如新，疑惑停步；屋内有人翻书声",
+    "dialogue": "（宁）此处有人？",
+    "audio_cues": [
+      "翻书声"
+    ],
+    "key_visual": "南院小室 + 阶下巨池野藕"
+  },
+  {
+    "shot_id": 5,
+    "type": "medium",
+    "duration_seconds": 3.0,
+    "scene": "lanruosi",
+    "camera_motion": "侧拍",
+    "action_desc": "燕赤霞推门而出，38 岁剑客，深墨色道袍 + 暗红披风，腰间革囊 + 短剑，右眉骨斜疤可见；他打量宁，眼神锐利",
+    "dialogue": "（燕）夜深寺荒，公子何往？",
+    "audio_cues": [
+      "门轴吱呀"
+    ],
+    "key_visual": "燕赤霞首次出场，腰间革囊特写"
+  },
+  {
+    "shot_id": 6,
+    "type": "close-up",
+    "duration_seconds": 1.8,
+    "scene": "lanruosi",
+    "camera_motion": "特写宁面部",
+    "action_desc": "宁拱手，眼神憨厚带敬意",
+    "dialogue": "（宁）在下浙人宁采臣，雨夜路过借宿一晚",
+    "audio_cues": [
+      "蝉鸣远处"
+    ],
+    "key_visual": "宁丹凤眼 + 拱手礼"
+  },
+  {
+    "shot_id": 7,
+    "type": "wide",
+    "duration_seconds": 3.5,
+    "scene": "lanruosi",
+    "camera_motion": "拉远显示位置",
+    "action_desc": "二人共饮一壶清酒于燕赤霞房中；月光从破窗斜照入；远处北院有女子低吟声隐约传来",
+    "voiceover": "（旁白）那一夜，北院传出一段他从未听过的歌谣",
+    "audio_cues": [
+      "酒注入碗",
+      "远处女子低吟"
+    ],
+    "key_visual": "二人对酌 + 月光斜射"
+  },
+  {
+    "shot_id": 8,
+    "type": "close-up",
+    "duration_seconds": 2.2,
+    "scene": "lanruosi",
+    "camera_motion": "特写",
+    "action_desc": "燕赤霞神色一凛，警觉抬眼望向北院方向，握紧腰间革囊",
+    "audio_cues": [
+      "女子低吟更近"
+    ],
+    "key_visual": "燕赤霞警觉表情 + 革囊握紧手"
+  },
+  {
+    "shot_id": 9,
+    "type": "medium",
+    "duration_seconds": 2.5,
+    "scene": "lanruosi",
+    "camera_motion": "微抖手持",
+    "action_desc": "宁采臣回到东侧回廊借住处，案前点燃一支蜡烛，铺开纸张准备读书",
+    "audio_cues": [
+      "蜡烛点燃哔剥",
+      "纸张窸窣"
+    ],
+    "key_visual": "宁案前烛火 + 影子拉长"
+  },
+  {
+    "shot_id": 10,
+    "type": "close-up",
+    "duration_seconds": 1.8,
+    "scene": "lanruosi",
+    "camera_motion": "特写宁眼神",
+    "action_desc": "宁忽抬头，眼神聚焦——他瞥见东墙上有一道白色女郎影掠过！",
+    "audio_cues": [
+      "呼吸停滞 0.3s"
+    ],
+    "key_visual": "宁眼神放大 + 墙上白影"
+  },
+  {
+    "shot_id": 11,
+    "type": "wide",
+    "duration_seconds": 3.0,
+    "scene": "lanruosi",
+    "camera_motion": "俯拍 / 上帝视角",
+    "action_desc": "宁急起，烛火一晃，他推开门，月光下北院方向竹影摇曳——什么也没有",
+    "audio_cues": [
+      "脚步急切",
+      "竹叶沙沙"
+    ],
+    "key_visual": "月下竹影 + 空院"
+  },
+  {
+    "shot_id": 12,
+    "type": "close-up",
+    "duration_seconds": 2.5,
+    "scene": "lanruosi",
+    "camera_motion": "缓推",
+    "action_desc": "宁怅然回身走向东侧回廊，月光下一个白影正从北院方向飘出——纤瘦少女背影，及腰青丝披散",
+    "audio_cues": [
+      "夜风",
+      "纱布飘动"
+    ],
+    "key_visual": "白影背影 + 青丝披散"
+  },
+  {
+    "shot_id": 13,
+    "type": "medium",
+    "duration_seconds": 3.0,
+    "scene": "lanruosi",
+    "camera_motion": "推近",
+    "action_desc": "白影缓缓转身——绝美少女正面：18 岁，眉间一点朱砂痣（特写），杏眼浅蓝灰带幽光，黛眉微颦，白色襦裙浅粉缎带；她望着宁，浅浅一笑",
+    "audio_cues": [
+      "心跳一拍"
+    ],
+    "key_visual": "★ 聂小倩首次正面出场，眉间朱砂痣特写"
+  },
+  {
+    "shot_id": 14,
+    "type": "medium",
+    "duration_seconds": 2.5,
+    "scene": "lanruosi",
+    "camera_motion": "正反打",
+    "action_desc": "宁愣住，下意识扶住廊柱；少女后退一步，似要离去",
+    "dialogue": "（宁，颤抖）姑娘......",
+    "audio_cues": [
+      "扶柱声"
+    ],
+    "key_visual": "宁惊愕表情 + 小倩半步退却"
+  },
+  {
+    "shot_id": 15,
+    "type": "close-up",
+    "duration_seconds": 2.0,
+    "scene": "lanruosi",
+    "camera_motion": "特写小倩",
+    "action_desc": "小倩抬眸望宁，眼神带着一丝试探，左手微抬欲招手——左手腕白玉镯半透质感可见，左肩袖口下隐约一缕鬼气环绕",
+    "audio_cues": [
+      "夜风轻"
+    ],
+    "key_visual": "白玉镯半透 + 鬼气环绕（visibility 0.3）"
+  },
+  {
+    "shot_id": 16,
+    "type": "medium",
+    "duration_seconds": 2.5,
+    "scene": "lanruosi",
+    "camera_motion": "侧拍小倩",
+    "action_desc": "小倩走到墙角一张古铜镜前，伸手抚镜——镜中却空无人影，只有月色背景",
+    "audio_cues": [
+      "铜镜微响"
+    ],
+    "key_visual": "★ 铜镜无人影（核心 cliffhanger 钩子）"
+  },
+  {
+    "shot_id": 17,
+    "type": "close-up",
+    "duration_seconds": 1.8,
+    "scene": "lanruosi",
+    "camera_motion": "特写宁",
+    "action_desc": "宁瞳孔猛缩，扶柱的手收紧，喉结颤动",
+    "audio_cues": [
+      "呼吸紊乱"
+    ],
+    "key_visual": "宁惊恐瞳孔 + 喉结特写"
+  },
+  {
+    "shot_id": 18,
+    "type": "wide",
+    "duration_seconds": 3.0,
+    "scene": "lanruosi",
+    "camera_motion": "俯冲",
+    "action_desc": "小倩转身飘然没入月色，案前蜡烛\"嗤\"一声灭了；月光透过破窗在地上洒下一片苍白",
+    "voiceover": "（旁白）从这一夜起，宁采臣的命运彻底改变了",
+    "audio_cues": [
+      "蜡烛灭",
+      "夜风骤起"
+    ],
+    "key_visual": "蜡烛灭 + 月光铺地"
+  },
+  {
+    "shot_id": 19,
+    "type": "close-up",
+    "duration_seconds": 2.0,
+    "scene": "lanruosi",
+    "camera_motion": "特写小倩留下的位置",
+    "action_desc": "镜面渐近，月光在镜面缓缓晕开",
+    "audio_cues": [
+      "心跳 + 远处更鼓三声"
+    ],
+    "key_visual": "古铜镜中月光晕染 = 悬念结尾"
+  }
+]

@@ -1,10 +1,25 @@
-# AI 漫剧产线 v5 终极方案 — 聊斋·聂小倩
+# 小云雀 · AI 漫剧产线 v7 — 世界级多题材 SaaS · 聂小倩旗舰案例
 
-> 世界最高水平 AI 漫剧产线：10 集 × 75-90s · 9:16 竖屏 · 古风 3D 国漫
-> 架构：小云雀 Agent 2.0（有参考接口）为核心 + 海外旗舰精修
-> 单集 ¥56-72 · 10 集 ¥866 · 7-10 天落地 · 跨集 ArcFace ≥ 0.80
+> **世界最高水平 AI 漫剧产线 + SaaS 化对外服务**
+> 多题材：古风 / 现代 / 甜宠 / 悬疑 / 玄幻；旗舰案例：聊斋·聂小倩（10 集 × 75-90s · 9:16 · 古风 3D 国漫）
+> 架构：小云雀 Agent 2.0（有参考接口）+ 海外旗舰精修（Veo 3.1 / Sora 2 Pro / Runway Aleph / FLUX Kontext）
+> 单集 ¥56-72 · 10 集 ¥866 · 7-10 天落地 · 跨集 ArcFace ≥ 0.80 · 每镜 7 维 VLM 评分 + 闭环自修复
 
-完整方案：[final-plan.md](final-plan.md) · 选型调研：[research-2026-05.md](research-2026-05.md) · 内容调研：[content_report.md](content_report.md)
+完整方案：[final-plan.md](final-plan.md) · 部署指南：[DEPLOY.md](DEPLOY.md) · 选型调研：[research-2026-05.md](research-2026-05.md)
+
+## v7 世界级升级（2026-05）
+
+- **6 步流水线 v2**（`src/pipeline/orchestrator_v2.py`）：剧本分析 → 资产包 → 分镜 → 抽卡 → 粗剪 → 精剪审核，Shell4 + Shell5 全链路集成
+- **7 维 VLM 每镜评分 + 闭环自修复**（`src/shell4_qa_repair/seven_dim_scorer.py`、`repair_router.repair_until_pass`）
+- **多题材模板**（`config/genres/*.yaml`）：5 大题材随选随用
+- **主题→小说自动生成**（Claude Opus 4.7 / DeepSeek V4-Pro），版权 LLM novelty check（10 大 IP 指纹库）
+- **资产库**：6 表情、6 动作、6 服饰、可复用场景库 + 自动近/中/远景
+- **批量转绘子系统**（`src/transcribe/`）：多文件上传 + 7 维 loop + zip 导出
+- **多平台导出**：抖音 / 快手 / 视频号 / 小红书 / B站 / YouTube Shorts，自动水印 + AIGC 标识 + 营销文案
+- **高级智能**：剧情续写、风格迁移（日系/国漫/写实/二次元）、角色互动图
+- **多语言**：ElevenLabs Multilingual v3 + 双语字幕 + 前端 zh-CN/en
+- **版本中心**：每次渲染快照 + 一键回滚 + 对比
+- **24 项 mock-mode 测试** + GitHub Actions CI 全部绿
 
 ---
 

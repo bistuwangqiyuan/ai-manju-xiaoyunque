@@ -11,8 +11,11 @@ from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
 from .routes import auth as auth_routes
+from .routes import batch as batch_routes
 from .routes import billing as billing_routes
+from .routes import genres as genres_routes
 from .routes import jobs as jobs_routes
+from .routes import library as library_routes
 from .settings import settings
 from .worker import worker_loop
 
@@ -58,6 +61,9 @@ app.add_middleware(
 app.include_router(auth_routes.router, prefix="/api")
 app.include_router(jobs_routes.router, prefix="/api")
 app.include_router(billing_routes.router, prefix="/api")
+app.include_router(genres_routes.router, prefix="/api")
+app.include_router(library_routes.router, prefix="/api")
+app.include_router(batch_routes.router, prefix="/api")
 
 # Serve generated videos & covers
 app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")

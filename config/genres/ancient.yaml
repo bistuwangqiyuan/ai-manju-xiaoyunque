@@ -1,0 +1,78 @@
+# 古风题材模板
+# 旗舰案例：聊斋·聂小倩 (10 集 90s 9:16)
+
+id: ancient
+name_zh: 古风
+name_en: Ancient Chinese
+description: |
+  古代中国题材，包括仙侠/古言/历史/志怪等。以《白蛇缘起》+《狐妖小红娘》+《雾山五行》的
+  60/30/10 复合风格为基准，强调"仙气>阴森"的现代审美。
+
+style_id: ancient_3d_guoman
+aspect_ratio: "9:16"
+default_episodes: 10
+default_duration_per_episode_s: 80
+preferred_resolution: "1080x1920"
+language: Chinese
+voice_pack: ancient_zh
+bgm_mood: ancient_orchestral
+platform_preset: [douyin, kuaishou, wechat_video, bilibili]
+
+palette:
+  primary: ["#1F3A4E", "#E8E4D4", "#C5283D"]   # 冷青 月白 朱砂
+  secondary: ["#2A4034", "#D9A867"]             # 妖物墨绿 烛火橘
+
+character_archetypes:
+  - id: female_lead_ghost
+    name_zh: 女主-鬼魅型
+    traits: ["18-22 岁少女", "白色襦裙", "薄纱披帛", "杏眼黛眉", "古典青丝"]
+  - id: male_lead_scholar
+    name_zh: 男主-书生型
+    traits: ["20-25 岁书生", "玉冠长袍", "执扇执剑", "温润儒雅"]
+  - id: side_swordsman
+    name_zh: 配角-剑客
+    traits: ["30+ 岁剑客", "粗布大袍", "斩妖剑", "眉间正气"]
+  - id: villain_yaowu
+    name_zh: 反派-妖物
+    traits: ["黑藤束缚", "墨绿瞳光", "形体扭曲", "嗜杀贪欲"]
+
+scenes:
+  - id: lanruo_temple
+    name_zh: 兰若寺/荒寺
+    keywords: [月夜, 藤蔓覆瓦, 烛火]
+  - id: bedchamber
+    name_zh: 闺房
+    keywords: [雕花床, 烛台, 罗帐, 妆奁]
+  - id: courtyard_night
+    name_zh: 庭院夜
+    keywords: [灯笼, 青砖, 池塘, 竹影]
+  - id: imperial_court
+    name_zh: 朝堂
+    keywords: [龙柱, 玉阶, 龙椅, 百官跪伏]
+  - id: jianghu_inn
+    name_zh: 江湖客栈
+    keywords: [酒香, 火盆, 木阶, 江湖客]
+  - id: wedding_hall
+    name_zh: 喜堂
+    keywords: [红绸, 龙凤烛, 朱红, 鸳鸯被]
+
+signature_marks:  # 项目独创锁定符号示例
+  - "眉间一点朱砂痣"
+  - "肩头黑色藤纹"
+  - "革囊中苍白手"
+
+sample_themes:
+  - "山雨欲来，少女在月夜邂逅书生，揭开千年前一桩悬案。"
+  - "妖王重生重塑山河，凡人女子误入仙侠局中。"
+  - "聊斋·聂小倩 — 兰若寺月夜的女鬼救赎之路。"
+
+style_lock_prompt: |
+  画风：古风 3D 国漫，《白蛇：缘起》+《狐妖小红娘·月红篇》+《雾山五行》60/30/10 复合；
+  渲染：Unreal Engine 5 路径追踪 + cel-shading 卡通描边；
+  色调：冷青 + 月白 + 朱砂；
+  服化：宋明衣饰，襦裙、广袖、革带、玉佩；
+  禁忌：禁日系大眼，禁迪士尼大眼，禁写实电影感，禁画面文字。
+
+negative_prompt: |
+  日系动漫 anime, Disney 3D, Pixar style, photo-realistic, blurry, watermark,
+  text on screen, modern clothing, deformed hands, extra fingers

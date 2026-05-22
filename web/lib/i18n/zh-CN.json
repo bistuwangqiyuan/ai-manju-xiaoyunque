@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "studio": "工作台",
+    "templates": "模板库",
+    "library": "资产库",
+    "batch": "批量转绘",
+    "export": "多平台导出",
+    "versions": "版本中心",
+    "docs": "文档",
+    "showcase": "案例",
+    "pricing": "价格",
+    "login": "登录",
+    "signup": "注册",
+    "logout": "退出"
+  },
+  "common": {
+    "loading": "加载中…",
+    "save": "保存",
+    "cancel": "取消",
+    "retry": "重试",
+    "submit": "提交",
+    "delete": "删除",
+    "export": "导出",
+    "download": "下载",
+    "version": "版本",
+    "score": "评分",
+    "passed": "通过",
+    "failed": "未通过",
+    "running": "进行中",
+    "queued": "排队中",
+    "succeeded": "已完成"
+  },
+  "dashboard": {
+    "title": "AI 漫剧工作台",
+    "new": "做一集漫剧",
+    "no_jobs": "暂无作品。",
+    "go_create": "立即开始创作"
+  },
+  "new_job": {
+    "title": "做一集漫剧",
+    "subtitle": "选择题材，输入小说或主题，AI 自动生成成片。",
+    "tab_excerpt": "粘贴片段",
+    "tab_novel": "上传小说",
+    "tab_theme": "主题生成",
+    "field_title": "作品标题",
+    "field_excerpt": "小说片段 / 大纲",
+    "field_theme": "故事主题",
+    "field_genre": "题材",
+    "field_style": "风格",
+    "field_episodes": "集数",
+    "field_language": "语言",
+    "btn_submit": "✨ 开始做漫剧",
+    "btn_loading": "正在做，请等一下…"
+  },
+  "job_detail": {
+    "step": "步骤",
+    "shots": "镜头",
+    "versions": "版本",
+    "scores": "7 维评分",
+    "logs": "日志",
+    "marketing": "营销文案",
+    "approve": "人工确认放行",
+    "reroll": "一键重绘",
+    "repair": "局部修复",
+    "translate": "翻译",
+    "continue": "续写",
+    "restyle": "风格迁移"
+  },
+  "library": {
+    "title": "资产库",
+    "characters": "角色",
+    "scenes": "场景",
+    "expressions": "表情",
+    "actions": "动作",
+    "wardrobe": "服饰"
+  },
+  "batch": {
+    "title": "批量转绘",
+    "upload": "上传文件",
+    "create_batch": "创建批次",
+    "run": "运行",
+    "redraw_item": "重绘",
+    "export_zip": "打包下载"
+  },
+  "export": {
+    "title": "多平台导出",
+    "douyin": "抖音",
+    "kuaishou": "快手",
+    "wechat_video": "视频号",
+    "xiaohongshu": "小红书",
+    "bilibili": "B 站",
+    "youtube_shorts": "YouTube Shorts",
+    "watermark": "AI 水印 + 账号水印"
+  }
+}

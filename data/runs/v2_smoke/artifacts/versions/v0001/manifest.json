@@ -1,0 +1,119 @@
+{
+  "version_no": 1,
+  "created_at": "2026-05-21T16:52:37.718791+00:00",
+  "notes": "mock: 使用内置分集模板\ncover extract failed: [WinError 2] 系统找不到指定的文件。",
+  "scores": {
+    "overall": 90,
+    "scores_7d": {
+      "structure": 9.37,
+      "style": 7.69,
+      "detail": 8.19,
+      "clarity": 7.8,
+      "color": 9.44,
+      "no_deform": 8.37,
+      "intent": 8.93
+    },
+    "breakdown": {
+      "tech": 38.0,
+      "visual": 24.84,
+      "narrative": 18.3,
+      "genre": 8.37,
+      "arcface": 8.37,
+      "clip_align": 8.93,
+      "aesthetic": 7.69,
+      "hsv_color": 9.44,
+      "motion": 9.37
+    }
+  },
+  "params": {
+    "job_id": 1,
+    "style": "ancient_3d_guoman",
+    "genre": "ancient",
+    "episodes": 1,
+    "mode": "excerpt",
+    "language": "Chinese"
+  },
+  "artifacts": {
+    "01_script/plan.yaml": {
+      "key": "01_script/plan.yaml",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\01_script\\plan.yaml",
+      "sha256": "8afaafb8f4462bd936d2cf6164851c9fd6d8a99d074c16eb08d51cc494bffbb7",
+      "size_bytes": 8988,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "02_assets/nie_xiaoqian.json": {
+      "key": "02_assets/nie_xiaoqian.json",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\02_assets\\nie_xiaoqian.json",
+      "sha256": "727427918a37985202911546f07283ffcf07833166aace8507e2759f05df4804",
+      "size_bytes": 190,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "02_assets/ningcaichen.json": {
+      "key": "02_assets/ningcaichen.json",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\02_assets\\ningcaichen.json",
+      "sha256": "6db93c5aa34e2448cae371d7ca058f6ec3addd02ce318f5fa92a596762fd2451",
+      "size_bytes": 188,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "02_assets/yan_chixia.json": {
+      "key": "02_assets/yan_chixia.json",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\02_assets\\yan_chixia.json",
+      "sha256": "fd5003ab5a871eff7a8961bfa059be171cdfb3b7b706d75d1e803fb906d70a6e",
+      "size_bytes": 186,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "03_storyboard/ep01_prompt.txt": {
+      "key": "03_storyboard/ep01_prompt.txt",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\03_storyboard\\ep01_prompt.txt",
+      "sha256": "8ae5a2e448fd08431a6b238b96fc1891e3f4c989900ecd94d8f9542c3a6c5288",
+      "size_bytes": 458,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "04_raw/ep01.mp4": {
+      "key": "04_raw/ep01.mp4",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\04_raw\\ep01.mp4",
+      "sha256": "5cd534544f7da638569143b1b0f90db4f83dfc9d1dd2322354f5a5c3ccc8e914",
+      "size_bytes": 1565750,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "05_rough/rough.mp4": {
+      "key": "05_rough/rough.mp4",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\05_rough\\rough.mp4",
+      "sha256": "5cd534544f7da638569143b1b0f90db4f83dfc9d1dd2322354f5a5c3ccc8e914",
+      "size_bytes": 1565750,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "06_final/master.mp4": {
+      "key": "06_final/master.mp4",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\06_final\\master.mp4",
+      "sha256": "5cd534544f7da638569143b1b0f90db4f83dfc9d1dd2322354f5a5c3ccc8e914",
+      "size_bytes": 1565750,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    },
+    "06_final/subtitle.ass": {
+      "key": "06_final/subtitle.ass",
+      "local_path": "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\runs\\v2_smoke\\artifacts\\06_final\\subtitle.ass",
+      "sha256": "236ea97ee047226dc4652fa659061ae991a5cab0c9335936a2009184ba9003e4",
+      "size_bytes": 946,
+      "remote_url": null,
+      "mime": "application/octet-stream",
+      "meta": {}
+    }
+  }
+}

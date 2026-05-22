@@ -1,0 +1,267 @@
+chunk_strategy:
+  affects_episodes_targeting_75_80s:
+  - 1
+  - 2
+  - 3
+  - 5
+  - 6
+  - 7
+  - 10
+  affects_episodes_targeting_90s:
+  - 4
+  - 8
+  - 9
+  crossfade_seconds: 0.25
+  threshold_seconds: 60
+enable_watermark: false
+episodes:
+- characters_in_episode:
+  - ningcaichen
+  - yan_chixia
+  - nie_xiaoqian
+  chunk_split:
+    chunk_a_duration: 40～60s
+    chunk_b_duration: ～30s
+  chunked: true
+  cliffhanger: 白影瞬间消失，案上烛火忽地灭了
+  duration_seconds: 80
+  episode_id: ep01
+  hook_3s: 黑夜，兰若寺破匾摇晃，蝙蝠惊起，一道白影从大殿飞过
+  music_emotion_arc: neutral->mystery->awe->tension->lingering
+  premium_tier: standard
+  scenes_in_episode:
+  - yeshi
+  - lanruosi
+  shots:
+  - action_desc: 黑夜，破匾「兰若寺」三字金漆剥落，匾额摇晃；瓦缝间蝙蝠惊起飞向月亮，一道白影从大殿掠过
+    audio_cues:
+    - 夜风
+    - 蝙蝠扑翅
+    - 破匾吱呀
+    camera_motion: 缓慢俯冲 → 推近兰若寺破匾
+    duration_seconds: 3.0
+    key_visual: 破匾 + 蝙蝠剪影 + 白影一闪
+    scene: lanruosi
+    shot_id: 1
+    type: wide
+  - action_desc: 宁采臣穿浅灰青长袍，背书箧，撑一柄破伞，从夜市走来；雨滴打在伞上，他低头数着钱袋里所剩的几个铜板，眉头紧锁
+    audio_cues:
+    - 雨滴
+    - 脚步水声
+    camera_motion: 推近
+    duration_seconds: 2.5
+    key_visual: 湿石板路 + 红灯笼倒影
+    scene: yeshi
+    shot_id: 2
+    type: medium
+    voiceover: 金华城北郊，三百年前曾是剑客修行之地，如今只剩一座破寺
+  - action_desc: 宁采臣推开兰若寺山门，吱呀长响；蓬蒿没膝，夜风穿藤蔓发出呜咽；他举伞看了一眼，转身向东侧回廊走去
+    audio_cues:
+    - 山门吱呀
+    - 夜风穿藤蔓呜咽
+    camera_motion: 广角追随宁采臣进入山门
+    duration_seconds: 3.0
+    key_visual: 破朱漆山门 + 月光照入
+    scene: lanruosi
+    shot_id: 3
+    type: wide
+  - action_desc: 宁采臣走过南院小室，意外见扉键如新，疑惑停步；屋内有人翻书声
+    audio_cues:
+    - 翻书声
+    camera_motion: 平视
+    dialogue: （宁）此处有人？
+    duration_seconds: 2.5
+    key_visual: 南院小室 + 阶下巨池野藕
+    scene: lanruosi
+    shot_id: 4
+    type: medium
+  - action_desc: 燕赤霞推门而出，38 岁剑客，深墨色道袍 + 暗红披风，腰间革囊 + 短剑，右眉骨斜疤可见；他打量宁，眼神锐利
+    audio_cues:
+    - 门轴吱呀
+    camera_motion: 侧拍
+    dialogue: （燕）夜深寺荒，公子何往？
+    duration_seconds: 3.0
+    key_visual: 燕赤霞首次出场，腰间革囊特写
+    scene: lanruosi
+    shot_id: 5
+    type: medium
+  - action_desc: 宁拱手，眼神憨厚带敬意
+    audio_cues:
+    - 蝉鸣远处
+    camera_motion: 特写宁面部
+    dialogue: （宁）在下浙人宁采臣，雨夜路过借宿一晚
+    duration_seconds: 1.8
+    key_visual: 宁丹凤眼 + 拱手礼
+    scene: lanruosi
+    shot_id: 6
+    type: close-up
+  - action_desc: 二人共饮一壶清酒于燕赤霞房中；月光从破窗斜照入；远处北院有女子低吟声隐约传来
+    audio_cues:
+    - 酒注入碗
+    - 远处女子低吟
+    camera_motion: 拉远显示位置
+    duration_seconds: 3.5
+    key_visual: 二人对酌 + 月光斜射
+    scene: lanruosi
+    shot_id: 7
+    type: wide
+    voiceover: （旁白）那一夜，北院传出一段他从未听过的歌谣
+  - action_desc: 燕赤霞神色一凛，警觉抬眼望向北院方向，握紧腰间革囊
+    audio_cues:
+    - 女子低吟更近
+    camera_motion: 特写
+    duration_seconds: 2.2
+    key_visual: 燕赤霞警觉表情 + 革囊握紧手
+    scene: lanruosi
+    shot_id: 8
+    type: close-up
+  - action_desc: 宁采臣回到东侧回廊借住处，案前点燃一支蜡烛，铺开纸张准备读书
+    audio_cues:
+    - 蜡烛点燃哔剥
+    - 纸张窸窣
+    camera_motion: 微抖手持
+    duration_seconds: 2.5
+    key_visual: 宁案前烛火 + 影子拉长
+    scene: lanruosi
+    shot_id: 9
+    type: medium
+  - action_desc: 宁忽抬头，眼神聚焦——他瞥见东墙上有一道白色女郎影掠过！
+    audio_cues:
+    - 呼吸停滞 0.3s
+    camera_motion: 特写宁眼神
+    duration_seconds: 1.8
+    key_visual: 宁眼神放大 + 墙上白影
+    scene: lanruosi
+    shot_id: 10
+    type: close-up
+  - action_desc: 宁急起，烛火一晃，他推开门，月光下北院方向竹影摇曳——什么也没有
+    audio_cues:
+    - 脚步急切
+    - 竹叶沙沙
+    camera_motion: 俯拍 / 上帝视角
+    duration_seconds: 3.0
+    key_visual: 月下竹影 + 空院
+    scene: lanruosi
+    shot_id: 11
+    type: wide
+  - action_desc: 宁怅然回身走向东侧回廊，月光下一个白影正从北院方向飘出——纤瘦少女背影，及腰青丝披散
+    audio_cues:
+    - 夜风
+    - 纱布飘动
+    camera_motion: 缓推
+    duration_seconds: 2.5
+    key_visual: 白影背影 + 青丝披散
+    scene: lanruosi
+    shot_id: 12
+    type: close-up
+  - action_desc: 白影缓缓转身——绝美少女正面：18 岁，眉间一点朱砂痣（特写），杏眼浅蓝灰带幽光，黛眉微颦，白色襦裙浅粉缎带；她望着宁，浅浅一笑
+    audio_cues:
+    - 心跳一拍
+    camera_motion: 推近
+    duration_seconds: 3.0
+    key_visual: ★ 聂小倩首次正面出场，眉间朱砂痣特写
+    scene: lanruosi
+    shot_id: 13
+    type: medium
+  - action_desc: 宁愣住，下意识扶住廊柱；少女后退一步，似要离去
+    audio_cues:
+    - 扶柱声
+    camera_motion: 正反打
+    dialogue: （宁，颤抖）姑娘......
+    duration_seconds: 2.5
+    key_visual: 宁惊愕表情 + 小倩半步退却
+    scene: lanruosi
+    shot_id: 14
+    type: medium
+  - action_desc: 小倩抬眸望宁，眼神带着一丝试探，左手微抬欲招手——左手腕白玉镯半透质感可见，左肩袖口下隐约一缕鬼气环绕
+    audio_cues:
+    - 夜风轻
+    camera_motion: 特写小倩
+    duration_seconds: 2.0
+    key_visual: 白玉镯半透 + 鬼气环绕（visibility 0.3）
+    scene: lanruosi
+    shot_id: 15
+    type: close-up
+  - action_desc: 小倩走到墙角一张古铜镜前，伸手抚镜——镜中却空无人影，只有月色背景
+    audio_cues:
+    - 铜镜微响
+    camera_motion: 侧拍小倩
+    duration_seconds: 2.5
+    key_visual: ★ 铜镜无人影（核心 cliffhanger 钩子）
+    scene: lanruosi
+    shot_id: 16
+    type: medium
+  - action_desc: 宁瞳孔猛缩，扶柱的手收紧，喉结颤动
+    audio_cues:
+    - 呼吸紊乱
+    camera_motion: 特写宁
+    duration_seconds: 1.8
+    key_visual: 宁惊恐瞳孔 + 喉结特写
+    scene: lanruosi
+    shot_id: 17
+    type: close-up
+  - action_desc: 小倩转身飘然没入月色，案前蜡烛"嗤"一声灭了；月光透过破窗在地上洒下一片苍白
+    audio_cues:
+    - 蜡烛灭
+    - 夜风骤起
+    camera_motion: 俯冲
+    duration_seconds: 3.0
+    key_visual: 蜡烛灭 + 月光铺地
+    scene: lanruosi
+    shot_id: 18
+    type: wide
+    voiceover: （旁白）从这一夜起，宁采臣的命运彻底改变了
+  - action_desc: 镜面渐近，月光在镜面缓缓晕开
+    audio_cues:
+    - 心跳 + 远处更鼓三声
+    camera_motion: 特写小倩留下的位置
+    duration_seconds: 2.0
+    key_visual: 古铜镜中月光晕染 = 悬念结尾
+    scene: lanruosi
+    shot_id: 19
+    type: close-up
+  signatures_check:
+    black_vine_visibility: 0.0
+    ghost_aura: 0.3
+    white_hand_appears: false
+    zhusha_visible: true
+  skylark_duration: 40～60s
+  subtitle_lines:
+  - end_s: 3.0
+    start_s: 0.0
+    text: 金华城北 一座荒寺
+  - end_s: 9.0
+    start_s: 6.5
+    text: 他不知道 今夜见到的是什么
+  - end_s: 17.0
+    start_s: 14.0
+    text: （燕）夜深寺荒 公子何往
+  - end_s: 20.0
+    start_s: 17.5
+    text: （宁）在下浙人 宁采臣
+  - end_s: 30.0
+    start_s: 27.0
+    text: （旁白）那一夜 北院传出一段他从未听过的歌谣
+  - end_s: 53.0
+    start_s: 50.0
+    text: （宁）姑娘...
+  - end_s: 75.0
+    start_s: 70.0
+    text: （旁白）从这一夜起 他的命运彻底改变
+  synopsis: '宁采臣穷困投宿兰若寺，雨夜从夜市归来。
+
+    巧遇南舍燕赤霞，相约定交。
+
+    夜半月下，宁独坐案前忽窥见女郎影于壁际。
+
+    推门望去，月色下绝美少女回头望他。
+
+    '
+  title: 荒寺月夜
+  twist_1: 宁鼓起勇气走近，女子转身——铜镜里竟无人影
+  twist_2: ''
+language: Chinese
+project: 聊斋·聂小倩
+ratio: '9:16'
+style_profile: ancient_3d_guoman_xiaoqian
+total_episodes: 10
