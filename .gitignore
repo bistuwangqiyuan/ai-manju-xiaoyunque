@@ -4,6 +4,9 @@
 .env
 .env.local
 .env.bak*
+.env.simple
+deploy/cn-serverless/.env
+deploy/cn-serverless/.env.simple
 *.pem
 *.key
 
@@ -56,7 +59,9 @@ logs/
 
 # ===== IDE =====
 .claude/
-.cursor/
+# .cursor/ 下大部分忽略, 但 mcp.json 入库 (配置全队共享; 不含密钥)
+.cursor/*
+!.cursor/mcp.json
 .vscode/
 .idea/
 *.swp
