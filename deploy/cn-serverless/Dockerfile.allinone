@@ -1,0 +1,94 @@
+# =============================================================================
+# 小云雀 AI 漫剧 · 单容器 All-in-One (最简部署)
+#
+# 一个容器内同时跑:
+#   - Caddy        (:8080 反向代理, /api/* + /storage/* → backend, /* → web)
+#   - FastAPI      (:8000 内部, uvicorn + embedded worker)
+#   - Next.js      (:3000 内部, standalone)
+#   - SQLite       (/data/xyq.db 持久化, 挂载 CFS 或 临时盘)
+#
+# 不需要: PostgreSQL / COS / EdgeOne / SCF
+# 部署目标: 腾讯云 CloudBase 云托管 (单服务, 单端口 8080)
+#
+# 镜像约 1.2GB; 冷启动 ~8-15s; 满足 PoC + 千 DAU
+# =============================================================================
+ARG NODE_IMAGE=node:22-alpine
+
+# -------- 1) build web (Next.js standalone) --------
+FROM ${NODE_IMAGE} AS web-builder
+WORKDIR /web
+COPY web/package.json web/package-lock.json* ./
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm install --no-audit --no-fund
+COPY web/ ./
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_OUTPUT_STANDALONE=1
+RUN npx next build
+
+# -------- 2) runtime (python + node + caddy) --------
+FROM python:3.11-slim AS runtime
+
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app \
+    NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    DATABASE_URL=sqlite:////data/xyq.db \
+    STORAGE_DIR=/data/storage \
+    EMBEDDED_WORKER=1 \
+    PORT=8080
+
+# Apt: ffmpeg (for cinematic master) + cjk fonts + node 22 + caddy
+RUN sed -i "s|deb.debian.org|$APT_MIRROR|g; s|security.debian.org|$APT_MIRROR|g" \
+        /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i "s|deb.debian.org|$APT_MIRROR|g; s|security.debian.org|$APT_MIRROR|g" \
+        /etc/apt/sources.list 2>/dev/null || true && \
+    apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg libpq5 fonts-noto-cjk fonts-noto-color-emoji \
+      curl ca-certificates gnupg debian-keyring debian-archive-keyring apt-transport-https \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && curl -fsSL 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -fsSL 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y --no-install-recommends caddy \
+    && fc-cache -fv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python deps
+RUN pip config set global.index-url "$PIP_INDEX_URL"
+WORKDIR /app
+COPY backend/requirements.txt ./backend-requirements.txt
+COPY requirements.txt ./pipeline-requirements.txt
+RUN pip install -r backend-requirements.txt \
+    && pip install -r pipeline-requirements.txt
+
+# Backend app code
+COPY backend/app ./app
+COPY src ./src
+COPY prompts ./prompts
+COPY config ./config
+COPY tools ./tools
+COPY compliance ./compliance
+
+# Pre-built Next.js standalone (server.js + .next/static + public)
+COPY --from=web-builder /web/.next/standalone /webapp
+COPY --from=web-builder /web/.next/static /webapp/.next/static
+COPY --from=web-builder /web/public /webapp/public
+
+# Caddy + startup
+COPY deploy/cn-serverless/Caddyfile.allinone /etc/caddy/Caddyfile
+COPY deploy/cn-serverless/startup.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh
+
+# Persistent volume mount point (CloudBase 云托管 挂载 CFS 至 /data)
+# 若未挂 CFS 则使用容器内 /data (重启会丢)
+RUN mkdir -p /data/storage
+
+EXPOSE 8080
+
+CMD ["/usr/local/bin/startup.sh"]

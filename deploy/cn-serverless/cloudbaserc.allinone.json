@@ -1,0 +1,50 @@
+{
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "envId": "${ENV_ID}",
+  "version": "2.0",
+  "$comment": "All-in-one 单容器部署 — 内置 SQLite, 单端口 8080, 内置 worker, 无需 Postgres / SCF / COS / EdgeOne",
+  "framework": {
+    "name": "xiaoyunque-allinone",
+    "plugins": {
+      "allinone": {
+        "use": "@cloudbase/framework-plugin-container",
+        "inputs": {
+          "serviceName": "xyq",
+          "servicePath": "/",
+          "containerPort": 8080,
+          "dockerfilePath": "./deploy/cn-serverless/Dockerfile.allinone",
+          "buildDir": ".",
+          "cpu": 1,
+          "mem": 2,
+          "minNum": 0,
+          "maxNum": 5,
+          "policyType": "cpu",
+          "policyThreshold": 60,
+          "envParams": {
+            "JWT_SECRET": "${JWT_SECRET}",
+            "INTERNAL_API_SECRET": "${INTERNAL_API_SECRET}",
+            "DATABASE_URL": "sqlite:////data/xyq.db",
+            "STORAGE_DIR": "/data/storage",
+            "EMBEDDED_WORKER": "1",
+            "CORS_ORIGINS": "*",
+            "SITE_URL": "${SITE_URL}",
+            "PORT": "8080",
+            "TZ": "Asia/Shanghai",
+            "LOG_LEVEL": "INFO",
+            "WORKER_CONCURRENCY": "2",
+            "MOCK_MODE": "${MOCK_MODE}",
+            "VOLC_ARK_API_KEY": "${VOLC_ARK_API_KEY}",
+            "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+            "ANTHROPIC_MODEL": "claude-opus-4-7-20260413",
+            "DEEPSEEK_API_KEY": "${DEEPSEEK_API_KEY}",
+            "DOUBAO_API_KEY": "${DOUBAO_API_KEY}",
+            "FORCE_MOCK_WAN_ANIMATE": "1",
+            "FORCE_MOCK_TTS_MINIMAX": "1",
+            "USE_REAL_COVER": "1",
+            "USE_REAL_UPSCALER": "0"
+          }
+        }
+      }
+    }
+  }
+}

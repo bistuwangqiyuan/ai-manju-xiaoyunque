@@ -1,0 +1,45 @@
+# All-in-One 内部反代 (Caddy 监听 :8080, CloudBase 云托管把外部 HTTPS 转过来)
+#
+# 路由:
+#   /api/*       → 127.0.0.1:8000 (FastAPI)
+#   /storage/*   → 127.0.0.1:8000 (FastAPI 静态出 mp4/封面/字幕)
+#   /docs        → 127.0.0.1:8000 (FastAPI Swagger)
+#   /openapi.json → 127.0.0.1:8000
+#   /*           → 127.0.0.1:3000 (Next.js standalone)
+
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	encode zstd gzip
+
+	@backend path /api/* /storage/* /docs /openapi.json /redoc
+	handle @backend {
+		reverse_proxy 127.0.0.1:8000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}
