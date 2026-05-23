@@ -1,0 +1,61 @@
+{
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "envId": "${ENV_ID}",
+  "version": "2.0",
+  "$comment": "腾讯云 CloudBase 项目根配置 — 由 `tcb` CLI 读取",
+  "framework": {
+    "name": "xiaoyunque-serverless",
+    "plugins": {
+      "backend": {
+        "use": "@cloudbase/framework-plugin-container",
+        "inputs": {
+          "serviceName": "xyq-backend",
+          "servicePath": "/",
+          "containerPort": 8000,
+          "dockerfilePath": "./deploy/cn-serverless/Dockerfile.serverless",
+          "buildDir": ".",
+          "cpu": 0.5,
+          "mem": 1,
+          "minNum": 0,
+          "maxNum": 10,
+          "policyType": "cpu",
+          "policyThreshold": 60,
+          "envParams": {
+            "EMBEDDED_WORKER": "0",
+            "DATABASE_URL": "${DATABASE_URL}",
+            "JWT_SECRET": "${JWT_SECRET}",
+            "INTERNAL_API_SECRET": "${INTERNAL_API_SECRET}",
+            "CORS_ORIGINS": "${CORS_ORIGINS}",
+            "SITE_URL": "${SITE_URL}",
+            "STORAGE_DIR": "/tmp/storage",
+            "PORT": "8000",
+            "TZ": "Asia/Shanghai",
+            "MOCK_MODE": "${MOCK_MODE}",
+            "VOLC_ARK_API_KEY": "${VOLC_ARK_API_KEY}",
+            "VOLC_ACCESS_KEY": "${VOLC_ACCESS_KEY}",
+            "VOLC_SECRET_KEY": "${VOLC_SECRET_KEY}",
+            "DOUBAO_API_KEY": "${DOUBAO_API_KEY}",
+            "DOUBAO_TTS_APPID": "${DOUBAO_TTS_APPID}",
+            "DOUBAO_TTS_TOKEN": "${DOUBAO_TTS_TOKEN}",
+            "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+            "ANTHROPIC_MODEL": "${ANTHROPIC_MODEL}",
+            "DEEPSEEK_API_KEY": "${DEEPSEEK_API_KEY}",
+            "DASHSCOPE_API_KEY": "${DASHSCOPE_API_KEY}",
+            "MINIMAX_API_KEY": "${MINIMAX_API_KEY}",
+            "S3_ENDPOINT": "${COS_ENDPOINT}",
+            "S3_REGION": "${COS_REGION}",
+            "S3_BUCKET": "${COS_BUCKET}",
+            "S3_ACCESS_KEY": "${COS_SECRET_ID}",
+            "S3_SECRET_KEY": "${COS_SECRET_KEY}",
+            "S3_PUBLIC_BASE_URL": "${COS_PUBLIC_BASE_URL}",
+            "FORCE_MOCK_WAN_ANIMATE": "1",
+            "FORCE_MOCK_TTS_MINIMAX": "1",
+            "USE_REAL_COVER": "1",
+            "USE_REAL_UPSCALER": "0",
+            "LOG_LEVEL": "INFO"
+          }
+        }
+      }
+    }
+  }
+}

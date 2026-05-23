@@ -476,4 +476,56 @@ async def worker_loop() -> None:
         raise
 
 
-__all__ = ["worker_loop"]
+async def tick_once(max_jobs: int = 1, max_seconds: float = 60.0) -> dict:
+    """
+    Serverless-friendly single-tick.
+
+    Process up to `max_jobs` queued jobs, or until `max_seconds` budget is exhausted,
+    whichever comes first. Designed to be called by:
+      - SCF / 函数计算 定时触发 (every 30-60s)
+      - HTTP wake endpoint /api/internal/worker/tick
+      - CLI: `python -m backend.app.worker tick`
+
+    Returns: {"processed": int, "remaining_queued": int, "elapsed_sec": float}
+    """
+    import time
+    start = time.time()
+    _recover_orphaned_jobs()
+    processed = 0
+    for _ in range(max_jobs):
+        if time.time() - start >= max_seconds:
+            break
+        job_id = await _claim_one()
+        if job_id is None:
+            break
+        try:
+            await _process_one(job_id)
+            processed += 1
+        except Exception:
+            logger.exception("tick_once: job %s crashed", job_id)
+    # report remaining queue depth so caller can decide to fire next tick sooner
+    db = SessionLocal()
+    try:
+        remaining = db.query(Job).filter(Job.status == "queued").count()
+    finally:
+        db.close()
+    return {
+        "processed": processed,
+        "remaining_queued": remaining,
+        "elapsed_sec": round(time.time() - start, 2),
+    }
+
+
+__all__ = ["worker_loop", "tick_once"]
+
+
+if __name__ == "__main__":
+    # CLI convenience: `python -m backend.app.worker tick`
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "tick":
+        max_jobs = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+        result = asyncio.run(tick_once(max_jobs=max_jobs))
+        print(json.dumps(result, ensure_ascii=False))
+    else:
+        print("Usage: python -m backend.app.worker tick [max_jobs=1]")
+        sys.exit(1)

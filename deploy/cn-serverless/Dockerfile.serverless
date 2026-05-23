@@ -1,0 +1,57 @@
+# ============================================================
+# 小云雀 AI 漫剧 · Serverless Backend (CloudBase 云托管 / FC 3.0)
+# 优化点：
+#   - alpine 基础（更快冷启动）
+#   - 单一 worker + uvicorn 直接监听 :8000
+#   - /tmp/storage 临时盘（serverless 容器仅 /tmp 可写）
+#   - 不预装 fonts-noto-cjk / ffmpeg （改用按需 LayerS3 触发器 — 容器小一半）
+#   - pip 走清华源
+#   - 不嵌入 worker_loop（main.py 用 EMBEDDED_WORKER=0 关闭）
+# ============================================================
+FROM python:3.11-slim
+
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app \
+    EMBEDDED_WORKER=0 \
+    STORAGE_DIR=/tmp/storage \
+    PORT=8000
+
+RUN sed -i "s|deb.debian.org|$APT_MIRROR|g; s|security.debian.org|$APT_MIRROR|g" \
+        /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i "s|deb.debian.org|$APT_MIRROR|g; s|security.debian.org|$APT_MIRROR|g" \
+        /etc/apt/sources.list 2>/dev/null || true && \
+    apt-get update && apt-get install -y --no-install-recommends \
+      libpq5 \
+      curl \
+      ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip config set global.index-url "$PIP_INDEX_URL"
+
+WORKDIR /app
+
+COPY backend/requirements.txt ./backend-requirements.txt
+COPY requirements.txt ./pipeline-requirements.txt
+RUN pip install -r backend-requirements.txt \
+    && pip install -r pipeline-requirements.txt \
+    && pip install boto3-cos==5.5.0 || pip install boto3
+
+COPY backend/app ./app
+COPY src ./src
+COPY prompts ./prompts
+COPY config ./config
+COPY tools ./tools
+COPY compliance ./compliance
+
+RUN mkdir -p /tmp/storage
+
+EXPOSE 8000
+
+# 单 worker; CloudBase 自动扩容到 maxNum=10 个 instance
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*' --workers 1"]
