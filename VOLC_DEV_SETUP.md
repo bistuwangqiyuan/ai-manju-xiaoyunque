@@ -224,3 +224,46 @@ mcp_server_domain_service → 域名
 - ve CLI: https://www.volcengine.com/docs/83927
 - tosutil: https://www.volcengine.com/docs/6349/152742
 - MCP 广场: https://www.volcengine.com/mcp-marketplace
+
+---
+
+## 🔀 附：Multi-LLM 后备链（Phase 2）
+
+为防止单一 LLM 故障阻塞 24x7 漫剧流水线，已实装 **10 个 provider 自动后备**：
+
+```
+默认顺序: anthropic → deepseek → glm → tongyi → moonshot
+        → mistral → groq → xai → spark → doubao → openai
+```
+
+- 任一 401/402/429/超时 → 立即切下一个，**不阻塞工作流**
+- 健康事件写 `data/api_health.log`；严重错误打印用户警告
+- 顺序自定义：`LLM_PROVIDER_CHAIN=groq,glm,deepseek`
+- 强制 mock：`FORCE_MOCK_LLM_CHAIN=1`
+
+**实测可用性**（中国大陆 IP 直连，2026-05）：
+| Provider | 状态 | 备注 |
+|---|---|---|
+| GLM (智谱) | ✅ 0.5s | 推荐主链首发 |
+| Tongyi (通义) | ✅ 0.6s | 阿里云 |
+| Mistral | ✅ 1.2s | 欧洲, 多样性后备 |
+| DeepSeek | 🔑 余额 | key 有效, 需充值 |
+| Moonshot | 🔑 quota | key 有效, 需充值 |
+| Anthropic | 🔑 缺 key | 推荐第三方代理 |
+| Groq / xAI | 🌐 区域 | 需海外代理才能连通 |
+| Spark (讯飞) | ⚠️ 格式 | 旧 `id:secret` 不支持, 需新建"API Password" |
+
+**3 个可用 = 已足够维持产线 24x7 不中断**。
+
+代码入口：
+```python
+from src.common.multi_provider_llm import chat
+text = chat(system="你是编剧", user="写 30 字开场白", max_tokens=200)
+# 自动走整链，三个里随便哪个回就 OK
+```
+
+快速验证哪些 key 可用：
+```powershell
+python scripts/verify_llm_chain.py
+```
+

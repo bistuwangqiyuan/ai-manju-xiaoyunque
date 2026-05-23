@@ -41,24 +41,66 @@ def theme_to_novel(
 ) -> str:
     """Return a freshly generated novel draft.
 
-    Raises ``RuntimeError`` when no backend is available.
+    Default backend is the **Phase-2 multi-provider fallback chain**
+    (Anthropic → DeepSeek → GLM → Tongyi → Moonshot → Mistral → Groq → xAI
+    → Spark → Doubao → OpenAI). Any provider failure auto-switches to the
+    next; failures are logged to ``data/api_health.log``.
+
+    Pass ``backend="anthropic"`` / ``"deepseek"`` to force the legacy single-
+    provider paths; pass ``backend="mock"`` (or set ``FORCE_MOCK_THEME=1``)
+    for deterministic offline output.
     """
     backend = backend or _pick_backend()
+    if backend == "mock":
+        return _mock(theme, genre, length_words, language)
     if backend == "anthropic":
         return _via_anthropic(theme, genre, length_words, language)
     if backend == "deepseek":
         return _via_deepseek(theme, genre, length_words, language)
+    if backend == "chain":
+        return _via_chain(theme, genre, length_words, language)
     return _mock(theme, genre, length_words, language)
 
 
 def _pick_backend() -> str:
     if os.environ.get("FORCE_MOCK_THEME") == "1":
         return "mock"
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        return "anthropic"
-    if os.environ.get("DEEPSEEK_API_KEY"):
-        return "deepseek"
+    # Phase 2: prefer the multi-provider chain when any key is configured
+    chain_keys = (
+        "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "DEEPSEEK_API_KEY",
+        "GLM_API_KEY", "TONGYI_API_KEY", "DASHSCOPE_API_KEY",
+        "MOONSHOT_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY",
+        "XAI_API_KEY", "SPARK_API_KEY", "VOLC_ARK_API_KEY",
+        "OPENAI_API_KEY",
+    )
+    if any(os.environ.get(k, "").strip() for k in chain_keys):
+        return "chain"
     return "mock"
+
+
+def _via_chain(theme: str, genre: str, length_words: int, language: str) -> str:
+    """Phase 2 multi-provider fallback. Returns mock on total failure."""
+    try:
+        from src.common.multi_provider_llm import llm_complete_with_fallback
+    except Exception:  # pragma: no cover — import safety net
+        _log.exception("multi_provider_llm import failed; falling back to mock")
+        return _mock(theme, genre, length_words, language)
+
+    system = _DEFAULT_SYSTEM.format(length_words=length_words)
+    user = (
+        f"题材：{genre}\n"
+        f"主题：{theme}\n"
+        f"目标语言：{language}\n"
+        "请按短剧改编结构写出小说草稿。"
+    )
+    text, provider = llm_complete_with_fallback(
+        system=system, user=user, max_tokens=8000, temperature=0.7,
+    )
+    if text:
+        _log.info("theme_to_novel: provider=%s, %d chars", provider, len(text))
+        return text
+    _log.warning("theme_to_novel: ALL providers failed, returning mock")
+    return _mock(theme, genre, length_words, language)
 
 
 def _via_anthropic(theme: str, genre: str, length_words: int, language: str) -> str:

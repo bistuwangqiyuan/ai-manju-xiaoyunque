@@ -46,6 +46,41 @@ class EventExtractor:
         self.model = model
 
     def extract(self, novel_text: str) -> Sequence[Event]:
+        """Primary: DeepSeek native; on failure (401/429/timeout) auto-fall back
+        through the Phase-2 multi-LLM chain (GLM → Tongyi → Moonshot → ...).
+        """
+        content: str | None = None
+        try:
+            content = self._call_deepseek_native(novel_text)
+        except Exception as primary_err:  # noqa: BLE001
+            _log.warning(
+                "DeepSeek primary failed (%s); falling back to multi-LLM chain",
+                primary_err,
+            )
+            content = self._call_chain_fallback(novel_text)
+        if not content:
+            raise RuntimeError(
+                "extract_events: all providers failed; set FORCE_MOCK_THEME=1"
+                " for offline run, or check data/api_health.log"
+            )
+
+        parsed = json.loads(content)
+        items = parsed.get("events") if isinstance(parsed, dict) else parsed
+        events = [
+            Event(
+                id=str(item["id"]),
+                name=item["name"],
+                summary=item["summary"],
+                hook_score=int(item["hook_score"]),
+                visual_keywords=list(item.get("visual_keywords", [])),
+                act=item["act"],
+            )
+            for item in items
+        ]
+        _log.info("extracted %d events", len(events))
+        return events
+
+    def _call_deepseek_native(self, novel_text: str) -> str:
         payload = {
             "model": self.model,
             "messages": [
@@ -68,19 +103,26 @@ class EventExtractor:
         )
         with urllib.request.urlopen(req, timeout=180) as resp:
             raw = json.loads(resp.read())
-        content = raw["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
-        items = parsed.get("events") if isinstance(parsed, dict) else parsed
-        events = [
-            Event(
-                id=str(item["id"]),
-                name=item["name"],
-                summary=item["summary"],
-                hook_score=int(item["hook_score"]),
-                visual_keywords=list(item.get("visual_keywords", [])),
-                act=item["act"],
-            )
-            for item in items
-        ]
-        _log.info("extracted %d events", len(events))
-        return events
+        return raw["choices"][0]["message"]["content"]
+
+    def _call_chain_fallback(self, novel_text: str) -> str | None:
+        try:
+            from src.common.multi_provider_llm import llm_complete_with_fallback
+        except Exception:  # pragma: no cover
+            return None
+        # Force the chain to SKIP deepseek (it just failed) — try the rest
+        skip_chain = [n for n in (
+            "anthropic", "glm", "tongyi", "moonshot", "mistral",
+            "groq", "xai", "spark", "doubao", "openai",
+        ) if n != "deepseek"]
+        text, provider = llm_complete_with_fallback(
+            system=_SYSTEM_PROMPT,
+            user=novel_text,
+            json_mode=True,
+            max_tokens=16000,
+            temperature=0.3,
+            chain_override=skip_chain,
+        )
+        if text:
+            _log.info("extract_events: fallback provider=%s succeeded", provider)
+        return text
