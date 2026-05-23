@@ -27,6 +27,14 @@ env/
 data/storage/
 data/episodes/
 data/_debug/
+data/runs/
+data/smoke*
+data/filing/
+data/test_storage/
+data/test_backend.db
+data/test.db
+*.sqlite
+*.sqlite3
 # 含 .bak_/_FINAL_/_R*_ 等所有变体
 data/pilot_short_skylark*
 # 源小说原文+衍生 storyboard（不入版权材料）

@@ -68,7 +68,7 @@ def _via_anthropic(title: str, synopsis: str, genre: str, language: str) -> dict
         "风格：钩子前置，制造好奇，避免敏感词"
     )
     body = {
-        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-5-20250929"),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7-20260413"),
         "max_tokens": 600,
         "temperature": 0.7,
         "system": system,

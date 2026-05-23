@@ -1,0 +1,138 @@
+name: Deploy (Railway + Vercel + post-deploy smoke)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  ci-gate:
+    name: CI gate (must be green before deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MOCK_MODE: "1"
+      FORCE_MOCK_SCORER: "1"
+      FORCE_MOCK_THEME: "1"
+      FORCE_MOCK_NOVELTY: "1"
+      FORCE_MOCK_MARKETING: "1"
+      FORCE_MOCK_CONTINUATION: "1"
+      FORCE_MOCK_RESTYLE: "1"
+      FORCE_MOCK_TRANSLATE: "1"
+      FORCE_MOCK_REDRAW: "1"
+      FORCE_MOCK_WAN_ANIMATE: "1"
+      FORCE_MOCK_TTS_MINIMAX: "1"
+      SKIP_CINEMATIC_MASTER: "1"
+      JWT_SECRET: ci-secret-for-tests-only
+      DATABASE_URL: sqlite:///./data/ci.db
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
+          pip install pytest httpx pytest-asyncio bcrypt
+      - name: Pytest v8 mock-mode suite
+        run: |
+          pytest -q \
+            tests/test_orchestrator_v2.py \
+            tests/test_repair_loop.py \
+            tests/test_genre_templates.py \
+            tests/test_batch_redraw.py \
+            tests/test_platform_export.py \
+            tests/test_theme_to_novel.py \
+            tests/test_backend_api.py \
+            tests/test_api_contracts.py \
+            tests/test_v8_gap_closures.py
+
+  deploy-railway:
+    name: Railway (backend + worker)
+    needs: [ci-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Skip if token missing
+        if: env.RAILWAY_TOKEN == ''
+        run: echo "::notice::RAILWAY_TOKEN secret not set — skipping Railway deploy."
+      - uses: actions/checkout@v4
+        if: env.RAILWAY_TOKEN != ''
+      - name: Install Railway CLI
+        if: env.RAILWAY_TOKEN != ''
+        run: npm install -g @railway/cli@latest
+      - name: Railway up
+        if: env.RAILWAY_TOKEN != ''
+        run: railway up --service backend --ci
+
+  deploy-vercel:
+    name: Vercel (web frontend)
+    needs: [ci-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Skip if token missing
+        if: env.VERCEL_TOKEN == ''
+        run: echo "::notice::VERCEL_TOKEN secret not set — skipping Vercel deploy."
+      - uses: actions/checkout@v4
+        if: env.VERCEL_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.VERCEL_TOKEN != ''
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Install Vercel CLI
+        if: env.VERCEL_TOKEN != ''
+        run: npm install -g vercel@latest
+      - name: Pull Vercel env (production)
+        if: env.VERCEL_TOKEN != ''
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+      - name: Build & deploy
+        if: env.VERCEL_TOKEN != ''
+        run: |
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
+  post-deploy-smoke:
+    name: Post-deploy smoke
+    needs: [deploy-railway, deploy-vercel]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: always()
+    env:
+      BACKEND_URL: ${{ secrets.BACKEND_URL }}
+    steps:
+      - name: Skip if no live backend
+        if: env.BACKEND_URL == ''
+        run: echo "::notice::BACKEND_URL secret not set — skipping post-deploy smoke."
+      - uses: actions/checkout@v4
+        if: env.BACKEND_URL != ''
+      - uses: actions/setup-python@v5
+        if: env.BACKEND_URL != ''
+        with: { python-version: "3.12" }
+      - name: Wait 30s for warm-up
+        if: env.BACKEND_URL != ''
+        run: sleep 30
+      - name: Run smoke
+        if: env.BACKEND_URL != ''
+        run: python scripts/deploy_smoke.py --backend-url "$BACKEND_URL"

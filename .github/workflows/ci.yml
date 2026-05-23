@@ -26,6 +26,8 @@ jobs:
       FORCE_MOCK_RESTYLE: "1"
       FORCE_MOCK_TRANSLATE: "1"
       FORCE_MOCK_REDRAW: "1"
+      FORCE_MOCK_WAN_ANIMATE: "1"
+      FORCE_MOCK_TTS_MINIMAX: "1"
       SKIP_CINEMATIC_MASTER: "1"
       JWT_SECRET: ci-secret-for-tests-only-do-not-use
       DATABASE_URL: sqlite:///./data/ci.db
@@ -49,7 +51,7 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest httpx pytest-asyncio bcrypt
 
-      - name: Pytest (orchestrator_v2 + repair + genres + batch + platform + backend)
+      - name: Pytest (mock-mode end-to-end suite, v8)
         run: |
           pytest -q \
             tests/test_orchestrator_v2.py \
@@ -58,7 +60,9 @@ jobs:
             tests/test_batch_redraw.py \
             tests/test_platform_export.py \
             tests/test_theme_to_novel.py \
-            tests/test_backend_api.py
+            tests/test_backend_api.py \
+            tests/test_api_contracts.py \
+            tests/test_v8_gap_closures.py
 
   frontend:
     name: web (typecheck + next build)

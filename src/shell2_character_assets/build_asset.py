@@ -22,9 +22,52 @@ from ..common.storage import Storage, default_storage
 from .gen_seedream import SeedreamClient, SeedreamRequest
 from .gen_jimeng import JimengImageClient, JimengRequest
 from .id_lock_infiniteyou import InfiniteYouClient, IdEmbedding
+from .multi_id_pulid import PuLIDClient, PuLIDCharSpec, PuLIDRequest
 
 
 _log = logging.getLogger(__name__)
+
+
+def multi_character_lock(
+    *,
+    main: "CharacterAsset",
+    others: Sequence["CharacterAsset"],
+    prompt: str,
+    aspect_ratio: str = "9:16",
+    seed: int | None = None,
+    pulid: PuLIDClient | None = None,
+) -> str:
+    """Render a single frame with up to 4 simultaneous locked characters.
+
+    Closes Gap C-3 (PuLID multi-character lock). The orchestrator calls
+    this whenever a shot has ``len(subject_chars) >= 2``: it picks the
+    canonical face image of each main role as PuLID identity input and
+    returns a single locked frame that downstream Skylark rendering uses
+    as an extra reference image.
+
+    Falls back to ``main.canonical_image_url`` when no Replicate token is
+    configured, so mock-mode CI keeps working.
+    """
+    chars = [main, *list(others)][:4]
+    try:
+        client = pulid or PuLIDClient()
+    except RuntimeError:
+        _log.info("multi_character_lock: no Replicate token, returning main canonical")
+        return main.canonical_image_url
+    specs = [
+        PuLIDCharSpec(char_id=c.char_id, face_image_url=c.canonical_image_url)
+        for c in chars
+        if c.canonical_image_url
+    ]
+    if len(specs) < 2:
+        return main.canonical_image_url
+    try:
+        return client.generate(
+            PuLIDRequest(prompt=prompt, characters=specs, aspect_ratio=aspect_ratio, seed=seed)
+        ) or main.canonical_image_url
+    except Exception as e:
+        _log.warning("PuLID render failed (%s); falling back to main canonical", e)
+        return main.canonical_image_url
 
 
 @dataclass

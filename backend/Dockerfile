@@ -13,8 +13,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg \
+      libpq5 \
+      fonts-noto-cjk \
+      fonts-noto-cjk-extra \
+      fonts-noto-color-emoji \
       curl \
       ca-certificates \
+    && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

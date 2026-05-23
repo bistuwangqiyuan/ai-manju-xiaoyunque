@@ -85,7 +85,7 @@ def _via_anthropic(
         "约束：episode_id 必须以 ep 开头数字递增；时长 60-90s；钩子前置；保留角色锁定符号"
     )
     body = {
-        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-5-20250929"),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7-20260413"),
         "max_tokens": 4000,
         "temperature": 0.7,
         "system": system,

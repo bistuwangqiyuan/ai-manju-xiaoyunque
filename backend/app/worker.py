@@ -214,6 +214,27 @@ async def _run_mock(db: Session, job: Job) -> None:
     else:
         _log(db, job, "WARN", f"⚠ 重试 {attempt} 次后最终评分 {score}/100 仍未达 {pass_threshold}，已交付当前最优版本")
 
+    # v8: even in mock mode, snapshot a JobVersion row so the UI version
+    # center page is non-empty and deploy_smoke can confirm wiring.
+    existing = (
+        db.query(JobVersion)
+        .filter(JobVersion.job_id == job.id)
+        .count()
+    )
+    db.add(JobVersion(
+        job_id=job.id,
+        version_no=existing + 1,
+        params_json=json.dumps(
+            {"style": job.style, "episodes": job.episodes, "mock": True},
+            ensure_ascii=False,
+        ),
+        scores_7d_json=job.scores_7d,
+        quality_score=score,
+        result_url=job.result_url,
+        cover_url=job.cover_url,
+        notes="mock-worker snapshot",
+    ))
+
     _set_progress(db, job, 100, status="succeeded")
 
 

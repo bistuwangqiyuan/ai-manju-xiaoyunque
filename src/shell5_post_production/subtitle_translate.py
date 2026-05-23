@@ -116,7 +116,7 @@ def _via_anthropic(texts: list[str], target_name: str) -> list[str]:
     sep = "<<<SEP>>>"
     system = f"Translate Chinese subtitles into {target_name}. One line per input. Separator: {sep}. Only output translations."
     body = {
-        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-5-20250929"),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7-20260413"),
         "max_tokens": 4000,
         "temperature": 0.2,
         "system": system,

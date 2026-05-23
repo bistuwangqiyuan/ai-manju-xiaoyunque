@@ -129,7 +129,7 @@ def _via_anthropic(text: str) -> NoveltyReport:
         f"已知 IP 库：{library_json}"
     )
     body = {
-        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-5-20250929"),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7-20260413"),
         "max_tokens": 800,
         "temperature": 0.0,
         "system": system,

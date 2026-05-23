@@ -31,40 +31,43 @@ _log = logging.getLogger(__name__)
 def _build_default_router() -> RepairRouter:
     """Best-effort registration of all known repair routes.
 
-    In mock mode we register no-op repairs so the loop short-circuits to
-    "diagnose only" — useful in CI without API keys.
+    Each handler is constructed lazily so that missing API keys (e.g. no
+    REPLICATE_API_TOKEN in mock CI) skip that route gracefully without
+    breaking the whole router. Class names are pinned to the actual
+    implementations in this package — see docs/api-contracts-2026-05.md
+    section "Drift summary" row B-1 for the historic name mismatch fixed
+    in v8.
     """
     router = RepairRouter()
-    # Try to wire optional handlers. Each one is best-effort.
-    handlers = {}
+    handlers: dict[str, object] = {}
     try:
         from .repair_wan_flf import WanFlfRepair
         handlers["face_drift"] = WanFlfRepair()
     except Exception:
         pass
     try:
-        from .repair_hedra import HedraLipsyncRepair  # type: ignore
-        handlers["closeup_lipsync"] = HedraLipsyncRepair()
+        from .repair_hedra import HedraRepair
+        handlers["closeup_lipsync"] = HedraRepair()
     except Exception:
         pass
     try:
-        from .repair_flux_kontext import FluxKontextRepair  # type: ignore
-        handlers["costume_drift"] = FluxKontextRepair()
+        from .repair_flux_kontext import FluxKontextShotRepair
+        handlers["costume_drift"] = FluxKontextShotRepair()
     except Exception:
         pass
     try:
-        from .repair_aleph import AlephStyleRepair  # type: ignore
-        handlers["cross_show_style"] = AlephStyleRepair()
+        from .repair_aleph import AlephRepair
+        handlers["cross_show_style"] = AlephRepair()
     except Exception:
         pass
     try:
-        from .repair_veo31 import Veo31ClimaxRepair  # type: ignore
-        handlers["climax_enhance"] = Veo31ClimaxRepair()
+        from .repair_veo31 import Veo31Repair
+        handlers["climax_enhance"] = Veo31Repair()
     except Exception:
         pass
     try:
-        from .repair_sora2 import Sora2GodTierRepair  # type: ignore
-        handlers["god_tier"] = Sora2GodTierRepair()
+        from .repair_sora2 import Sora2ProRepair
+        handlers["god_tier"] = Sora2ProRepair()
     except Exception:
         pass
 

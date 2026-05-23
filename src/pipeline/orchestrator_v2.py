@@ -262,6 +262,36 @@ class PipelineOrchestratorV2:
         )
         emit(6, 96, f"Step6: 评分 {score}/100 已达成", artifacts["steps"]["6"])
 
+        # Gap C-9: 广电备案 auto-fill (always emitted; warns on missing fields).
+        try:
+            from src.compliance import autofill as filing_autofill
+
+            ep0 = ep_list[0] if ep_list else {"title": "未命名", "episode_id": "ep01"}
+            filing = filing_autofill(
+                job_id=job_id,
+                title=ep0.get("title", "未命名"),
+                genre=self.genre,
+                episodes=episodes,
+                cost_cny=int(72 * episodes * 10000) // 100,  # ¥0.72/集 token amortised
+                synopsis_excerpt="\n".join(
+                    (ep.get("synopsis") or ep.get("hook_3s") or "")[:400] for ep in ep_list
+                ),
+                c2pa_sidecar=artifacts["steps"]["6"].get("c2pa_sidecar", ""),
+                ai_systems=[
+                    "skylark-agent-2.0", "doubao-seed-1.6-vision",
+                    "claude-opus-4-7", "elevenlabs-multilingual-v3",
+                ],
+                ai_engine_records=[
+                    {"name": "Skylark Agent 2.0", "vendor": "Volcengine", "filing_no": ""},
+                    {"name": "Doubao Seed 1.6 Vision", "vendor": "Volcengine", "filing_no": ""},
+                    {"name": "Claude Opus 4.7", "vendor": "Anthropic", "filing_no": "海外引擎仅精修，<15%"},
+                ],
+                out_dir=self.work_root / "07_filing",
+            )
+            artifacts["filing"] = filing
+        except Exception as e:
+            notes.append(f"filing autofill skipped: {e}")
+
         # Snapshot this version
         snapshot = self.store.snapshot(
             version_no,
@@ -561,6 +591,16 @@ class PipelineOrchestratorV2:
             # In mock mode we register the whole episode as one virtual shot list,
             # so the 7-dim scorer has stable targets.
             for shot in shot_plan.get(eid, []):
+                route = "skylark"
+                # Gap C-1: fight shots are routed via Wan 2.2-Animate; we
+                # only annotate the route here so the worker / inspector
+                # can confirm. Actual call sits behind ``USE_REAL_WAN_ANIMATE=1``
+                # because Wan-Animate is a per-shot render, not per-episode.
+                if shot.get("shot_type") == "fight":
+                    route = "wan_2_2_animate"
+                # Gap C-2: ≥ 3 主角 trigger Seedance multi-char fallback route.
+                elif len(shot.get("subject_chars", [])) >= 3:
+                    route = "seedance_multi_char"
                 all_shots.append(
                     {
                         "shot_id": len(all_shots) + 1,
@@ -569,8 +609,28 @@ class PipelineOrchestratorV2:
                         "duration_s": shot.get("duration_s", 3.0),
                         "description": shot.get("description", ""),
                         "shot_type": shot.get("shot_type", "medium"),
+                        "subject_chars": shot.get("subject_chars", []),
+                        "route": route,
                     }
                 )
+                if (
+                    route == "wan_2_2_animate"
+                    and os.environ.get("USE_REAL_WAN_ANIMATE") == "1"
+                ):
+                    try:
+                        from src.shell3_skylark_engine.wan_animate import render_fight_shot
+                        action_url = shot.get("action_video_url", "")
+                        char_url = shot.get("character_image_url", "")
+                        if action_url and char_url:
+                            url = render_fight_shot(
+                                character_image_url=char_url,
+                                action_video_url=action_url,
+                                prompt=shot.get("description", ""),
+                                duration_seconds=min(10, int(shot.get("duration_s", 6))),
+                            )
+                            all_shots[-1]["wan_animate_url"] = url
+                    except Exception as e:
+                        notes.append(f"wan-animate fight shot skipped: {e}")
 
         # Persist to artifact store
         for ep_path in rendered:
@@ -615,6 +675,14 @@ class PipelineOrchestratorV2:
         In mock mode we skip the heavy steps (cinematic_master needs ffmpeg
         font detection that may fail on Linux/Vercel; cover_seedream needs Seedream
         API). We still produce a 'master.mp4' so the downstream UX works.
+
+        v8 — closes gaps C-5, C-6, C-8, C-9, C-10:
+        - Veo 3.1 Upscaler for top-tier episodes (ep01/04/09) when
+          ``USE_REAL_UPSCALER=1``
+        - Seedream 4.0 cover when ``USE_REAL_COVER=1`` (else ffmpeg frame)
+        - C2PA sidecar JSON always written (see ``aigc_sidecar``)
+        - 广电备案 auto-fill always written (mock-friendly)
+        - Bilingual subtitle translation when ``language != "Chinese"``
         """
         final_dir = self.work_root / "06_final"
         final_dir.mkdir(parents=True, exist_ok=True)
@@ -641,17 +709,48 @@ class PipelineOrchestratorV2:
             shutil.copy2(rough, master)
             post_artifacts["cinematic_master"] = {"skipped": True}
 
-        # Cover poster
-        try:
-            self._extract_cover(master, cover)
-            post_artifacts["cover"] = {"path": str(cover), "method": "ffmpeg_frame"}
-        except Exception as e:
-            cover_path = None
-            notes.append(f"cover extract failed: {e}")
+        # Gap C-5: Veo 3.1 Upscaler for top-tier episodes.
+        if (
+            os.environ.get("USE_REAL_UPSCALER") == "1"
+            and ep_list
+            and ep_list[0].get("episode_id") in {"ep01", "ep04", "ep09"}
+        ):
+            try:
+                from src.shell5_post_production.upscale_veo31 import Veo31Upscaler
+                up = Veo31Upscaler()
+                up_url = up.upscale(str(master), target_resolution="2160x3840")
+                post_artifacts["upscaler"] = {"url": up_url, "model": "veo-3.1-upscaler"}
+            except Exception as e:
+                notes.append(f"upscaler skipped: {e}")
+                post_artifacts["upscaler"] = {"skipped": True, "error": str(e)}
         else:
-            cover_path = cover
+            post_artifacts["upscaler"] = {"skipped": True}
 
-        # ASS subtitle (best-effort)
+        # Gap C-6: Cover via Seedream 4.0 (real) or ffmpeg frame grab (mock).
+        cover_path: pathlib.Path | None = None
+        if os.environ.get("USE_REAL_COVER") == "1":
+            try:
+                from src.shell5_post_production.cover_seedream import build_cover
+                ep0 = ep_list[0] if ep_list else {"title": "未命名", "episode_id": "ep01"}
+                build_cover(
+                    title_zh=ep0.get("title", "未命名"),
+                    subtitle_zh=ep0.get("hook_3s", "")[:30],
+                    episode_no=int(str(ep0.get("episode_id", "ep01"))[2:] or 1),
+                    output_path=str(cover),
+                )
+                cover_path = cover
+                post_artifacts["cover"] = {"path": str(cover), "method": "seedream_4_0"}
+            except Exception as e:
+                notes.append(f"seedream cover failed: {e}")
+        if cover_path is None:
+            try:
+                self._extract_cover(master, cover)
+                post_artifacts["cover"] = {"path": str(cover), "method": "ffmpeg_frame"}
+                cover_path = cover
+            except Exception as e:
+                notes.append(f"cover extract failed: {e}")
+
+        # Gap C-10: Bilingual subtitle when language != Chinese.
         try:
             from src.shell5_post_production.ass_subtitle import AssLine, render_ass
 
@@ -664,6 +763,14 @@ class PipelineOrchestratorV2:
                     AssLine(start_seconds=t, end_seconds=t + 3.0, text=synopsis[:60])
                 )
                 t += ep.get("duration_seconds", 75) or 75
+            target_lang = self._normalize_subtitle_lang(language)
+            if target_lang and target_lang != "zh":
+                try:
+                    from src.shell5_post_production.subtitle_translate import translate_lines
+                    lines = translate_lines(lines, target_lang=target_lang, bilingual=True)
+                    post_artifacts["subtitle_bilingual"] = target_lang
+                except Exception as e:
+                    notes.append(f"bilingual subtitle skipped: {e}")
             ass_path = final_dir / "subtitle.ass"
             render_ass(lines, ass_path)
             post_artifacts["subtitle"] = str(ass_path)
@@ -671,7 +778,40 @@ class PipelineOrchestratorV2:
         except Exception as e:
             notes.append(f"ass render skipped: {e}")
 
+        # Gap C-8: AIGC C2PA sidecar JSON (always written).
+        try:
+            from src.shell5_post_production.aigc_sidecar import write_sidecar
+            sidecar_path = write_sidecar(
+                master,
+                job_id=ep_list[0].get("episode_id", "ep01") if ep_list else "ep01",
+                ai_systems=[
+                    "skylark-agent-2.0",
+                    "doubao-seed-1.6-vision",
+                    "claude-opus-4-7",
+                ],
+            )
+            post_artifacts["c2pa_sidecar"] = str(sidecar_path)
+            self.store.put("06_final/c2pa.json", sidecar_path)
+        except Exception as e:
+            notes.append(f"c2pa sidecar skipped: {e}")
+
         return master, cover_path, post_artifacts
+
+    @staticmethod
+    def _normalize_subtitle_lang(language: str) -> str:
+        """Map orchestrator language ("Chinese","English",...) → ISO ("zh","en")."""
+        lang = (language or "").strip().lower()
+        if not lang:
+            return "zh"
+        return {
+            "chinese": "zh", "zh": "zh", "zh-cn": "zh", "zh_cn": "zh",
+            "english": "en", "en": "en", "en-us": "en",
+            "japanese": "ja", "ja": "ja",
+            "korean": "ko", "ko": "ko",
+            "spanish": "es", "es": "es",
+            "french": "fr", "fr": "fr",
+            "german": "de", "de": "de",
+        }.get(lang, lang)
 
     # ------------------------------------------------------------------
 

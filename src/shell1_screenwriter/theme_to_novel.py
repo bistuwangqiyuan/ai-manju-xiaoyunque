@@ -65,7 +65,7 @@ def _via_anthropic(theme: str, genre: str, length_words: int, language: str) -> 
     key = os.environ["ANTHROPIC_API_KEY"]
     system = _DEFAULT_SYSTEM.format(length_words=length_words)
     body = {
-        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-5-20250929"),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7-20260413"),
         "max_tokens": 8000,
         "system": system,
         "messages": [
