@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.cursor.com/schemas/mcp.json",
-  "$comment": "项目级火山引擎 MCP — 用 `pwsh scripts/setup_volc_mcp.ps1` 一键填入 AKSK，或手动把下方 env.{VOLCENGINE_ACCESS_KEY,VOLCENGINE_SECRET_KEY,...} 改为真实值",
+  "$comment": "项目级 火山引擎 + 阿里云 MCP — 用 setup_volc_mcp.ps1 / setup_aliyun_mcp.ps1 一键填入 AKSK; 或手动改 env 字段",
   "mcpServers": {
     "volc-tos": {
       "$comment": "TOS 对象存储 — 操作视频/封面/字幕等媒体资源 (S3 兼容)",
@@ -82,6 +82,61 @@
       "env": {
         "ARK_API_KEY": "",
         "JIMENG_OUTPUT_DIR": "./data/mcp-out/jimeng"
+      }
+    },
+    "aliyun-ops": {
+      "$comment": "★ 阿里云 CloudOps (官方旗舰) — 全栈管理 ECS/OSS/VPC/RDS/CloudMonitor/OOS",
+      "command": "uvx",
+      "args": [
+        "alibaba-cloud-ops-mcp-server@latest"
+      ],
+      "timeout": 600,
+      "env": {
+        "ALIBABA_CLOUD_ACCESS_KEY_ID": "",
+        "ALIBABA_CLOUD_ACCESS_KEY_SECRET": ""
+      }
+    },
+    "aliyun-rds": {
+      "$comment": "阿里云 RDS OpenAPI — 关系型数据库 MySQL/PG/SQLServer 管理",
+      "command": "uvx",
+      "args": [
+        "alibabacloud-rds-openapi-mcp-server@latest"
+      ],
+      "env": {
+        "ALIBABA_CLOUD_ACCESS_KEY_ID": "",
+        "ALIBABA_CLOUD_ACCESS_KEY_SECRET": ""
+      }
+    },
+    "aliyun-fc": {
+      "$comment": "阿里云函数计算 FC3.0 — serverless 函数 + 触发器, 国内对标 AWS Lambda",
+      "command": "uvx",
+      "args": [
+        "alibabacloud-fc-mcp-server@latest"
+      ],
+      "env": {
+        "ALIBABA_CLOUD_ACCESS_KEY_ID": "",
+        "ALIBABA_CLOUD_ACCESS_KEY_SECRET": "",
+        "ALIBABA_CLOUD_REGION": "cn-hangzhou"
+      }
+    },
+    "aliyun-observability": {
+      "$comment": "阿里云可观测 — SLS 日志服务 + CMS 云监控, 排查线上问题",
+      "command": "uvx",
+      "args": [
+        "alibabacloud-observability-mcp-server@latest"
+      ],
+      "env": {
+        "ALIBABA_CLOUD_ACCESS_KEY_ID": "",
+        "ALIBABA_CLOUD_ACCESS_KEY_SECRET": "",
+        "ALIBABA_CLOUD_REGION": "cn-hangzhou"
+      }
+    },
+    "aliyun-bailian-websearch": {
+      "$comment": "百炼联网搜索 — 托管 streamable-http; 仅需 DashScope API Key (sk-xxx); 帮 AI 实时联网",
+      "type": "streamable-http",
+      "url": "https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/mcp",
+      "headers": {
+        "Authorization": "Bearer DASHSCOPE_API_KEY_PLACEHOLDER"
       }
     }
   }

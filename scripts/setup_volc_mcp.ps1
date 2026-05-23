@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # 火山引擎开发环境 一键配置 (Windows PowerShell)
 #
 # 做 5 件事:
@@ -107,7 +107,13 @@ Green "  TOS    = $TosBucket"
 # ---------- 3) 写 .cursor/mcp.json ----------
 HR; Blue "[3/5] 写入 .cursor/mcp.json env..."
 $McpPath = "$RootDir\.cursor\mcp.json"
-$mcp = Get-Content $McpPath -Raw | ConvertFrom-Json -Depth 10
+$McpExample = "$RootDir\.cursor\mcp.json.example"
+# 首次运行: 从模板复制 (mcp.json 在 .gitignore 里, 不会被入库)
+if (-not (Test-Path $McpPath) -and (Test-Path $McpExample)) {
+    Copy-Item $McpExample $McpPath
+    Green "  从 mcp.json.example 复制初始模板"
+}
+$mcp = (Get-Content $McpPath -Raw -Encoding UTF8) | ConvertFrom-Json
 
 function SetIf ($obj, $key, $val) {
     if (-not $val) { return }
@@ -138,7 +144,8 @@ if ($ArkKey) {
 }
 
 # 写回
-$mcp | ConvertTo-Json -Depth 10 | Out-File $McpPath -Encoding utf8
+$json = $mcp | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($McpPath, $json, [System.Text.UTF8Encoding]::new($false))
 Green "  $McpPath 已更新"
 
 # ---------- 4) ve CLI 配置 ----------

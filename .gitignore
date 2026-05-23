@@ -59,9 +59,9 @@ logs/
 
 # ===== IDE =====
 .claude/
-# .cursor/ 下大部分忽略, 但 mcp.json 入库 (配置全队共享; 不含密钥)
+# .cursor/ 下大部分忽略, 但 mcp.json.example 入库 (实际 mcp.json 由 setup 脚本生成, 含真实密钥)
 .cursor/*
-!.cursor/mcp.json
+!.cursor/mcp.json.example
 .vscode/
 .idea/
 *.swp

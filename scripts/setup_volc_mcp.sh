@@ -70,6 +70,9 @@ green "  TOS    = $TOS_BUCKET"
 # ---------- 3) 写 .cursor/mcp.json ----------
 hr; blue "[3/5] 更新 .cursor/mcp.json env..."
 MCP="$ROOT_DIR/.cursor/mcp.json"
+MCP_EX="$ROOT_DIR/.cursor/mcp.json.example"
+# 首次运行: 从模板复制 (mcp.json 在 .gitignore 里, 不会被入库)
+[ -f "$MCP" ] || { [ -f "$MCP_EX" ] && cp "$MCP_EX" "$MCP" && green "  从 mcp.json.example 复制初始模板"; }
 
 if [ -n "$AK" ]; then
   jq --arg ak "$AK" --arg sk "$SK" --arg ark "$ARK_KEY" --arg bucket "$TOS_BUCKET" '
