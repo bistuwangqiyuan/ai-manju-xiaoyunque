@@ -1,0 +1,54 @@
+# =============================================================================
+# 小云雀 AI 漫剧 · Caddy 反向代理 + 自动 HTTPS
+#
+# 路由：
+#   /api/*       → backend:8000   （FastAPI 后端）
+#   /storage/*   → backend:8000   （静态产物 mp4 / 字幕 / 封面，由后端直出）
+#   /*           → web:3000       （Next.js standalone）
+#
+# 行为：
+#   - DOMAIN 是域名（如 manju.example.com）→ 自动签发 Let's Encrypt 证书，HTTPS
+#   - DOMAIN 是 :80（默认）→ 退化为 HTTP，适合直接 IP 访问 / 暂未备案场景
+# =============================================================================
+{
+	# 这里只声明全局选项；具体站点配置在下方
+	email {$EMAIL}
+	# 不启用 admin 接口，省内存
+	admin off
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# 后端 API 全部走反代
+	@api path /api/* /storage/*
+	handle @api {
+		reverse_proxy backend:8000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# Next.js standalone
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# 安全头部
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "interest-cohort=()"
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

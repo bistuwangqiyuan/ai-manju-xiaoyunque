@@ -1,0 +1,169 @@
+# =============================================================================
+# 小云雀 AI 漫剧 · 国内一键部署套件 (Docker Compose)
+#
+# 适配环境：腾讯云 / 阿里云 / 华为云 轻量应用服务器（1C2G+ 起步）
+# 部署方式：在服务器上执行 `docker compose -f deploy/cn/docker-compose.yml up -d`
+#
+# 包含 4 个服务：
+#   1. postgres   — 数据库（数据卷持久化）
+#   2. backend    — FastAPI + worker（用国内 pip/apt 镜像加速构建）
+#   3. web        — Next.js 15 standalone（用国内 npm 镜像加速构建）
+#   4. caddy      — 反向代理 + 自动 HTTPS（Let's Encrypt 或免证书原 IP HTTP）
+#
+# 数据持久化卷：
+#   - postgres-data   (¥0.35/GB/月 CFS 兼容)
+#   - storage-data    (生成的 mp4 / 字幕 / 封面)
+#   - caddy-data      (Let's Encrypt 证书缓存)
+# =============================================================================
+name: xyq
+
+networks:
+  xyq:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  storage-data:
+  caddy-data:
+  caddy-config:
+
+services:
+  # -------------------------------------------------------------------------
+  # 1. Postgres 16 — 主数据库
+  # -------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: xyq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xyq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?need POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: xyq
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xyq -d xyq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [xyq]
+
+  # -------------------------------------------------------------------------
+  # 2. Backend — FastAPI + 内嵌 worker (uvicorn + background tasks)
+  # -------------------------------------------------------------------------
+  backend:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      args:
+        APT_MIRROR: mirrors.tuna.tsinghua.edu.cn
+        PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+    container_name: xyq-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://xyq:${POSTGRES_PASSWORD}@postgres:5432/xyq
+      JWT_SECRET: ${JWT_SECRET:?need JWT_SECRET in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SITE_URL: ${SITE_URL:-http://localhost}
+      STORAGE_DIR: /app/storage
+      PORT: "8000"
+      TZ: Asia/Shanghai
+      # ---- AI keys（按需填写；缺失走 mock）----
+      MOCK_MODE: ${MOCK_MODE:-0}
+      VOLC_ACCESS_KEY: ${VOLC_ACCESS_KEY:-}
+      VOLC_SECRET_KEY: ${VOLC_SECRET_KEY:-}
+      VOLC_ARK_API_KEY: ${VOLC_ARK_API_KEY:-}
+      DOUBAO_API_KEY: ${DOUBAO_API_KEY:-}
+      DOUBAO_TTS_APPID: ${DOUBAO_TTS_APPID:-}
+      DOUBAO_TTS_TOKEN: ${DOUBAO_TTS_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-4-7-20260413}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      FAL_API_KEY: ${FAL_API_KEY:-}
+      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
+      RUNWAY_API_KEY: ${RUNWAY_API_KEY:-}
+      HEDRA_API_KEY: ${HEDRA_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      SUNO_API_KEY: ${SUNO_API_KEY:-}
+      KLING_API_KEY: ${KLING_API_KEY:-}
+      NETEASE_TIANYIN_API_KEY: ${NETEASE_TIANYIN_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GOOGLE_ACCESS_TOKEN: ${GOOGLE_ACCESS_TOKEN:-}
+      # ---- Mock flags（生产可关，开发期保留兜底）----
+      FORCE_MOCK_SCORER: ${FORCE_MOCK_SCORER:-0}
+      FORCE_MOCK_THEME: ${FORCE_MOCK_THEME:-0}
+      FORCE_MOCK_NOVELTY: ${FORCE_MOCK_NOVELTY:-0}
+      FORCE_MOCK_MARKETING: ${FORCE_MOCK_MARKETING:-0}
+      FORCE_MOCK_CONTINUATION: ${FORCE_MOCK_CONTINUATION:-0}
+      FORCE_MOCK_TRANSLATE: ${FORCE_MOCK_TRANSLATE:-0}
+      FORCE_MOCK_WAN_ANIMATE: ${FORCE_MOCK_WAN_ANIMATE:-1}
+      FORCE_MOCK_TTS_MINIMAX: ${FORCE_MOCK_TTS_MINIMAX:-1}
+      USE_REAL_COVER: ${USE_REAL_COVER:-1}
+      USE_REAL_UPSCALER: ${USE_REAL_UPSCALER:-0}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+    volumes:
+      - storage-data:/app/storage
+    networks: [xyq]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  # -------------------------------------------------------------------------
+  # 3. Web — Next.js 15 standalone (CN npm mirror for fast build)
+  # -------------------------------------------------------------------------
+  web:
+    build:
+      context: ../../web
+      dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: https://registry.npmmirror.com
+    container_name: xyq-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # 容器内通过 caddy 反代访问后端，浏览器请求走同源 /api/...
+      NEXT_PUBLIC_BACKEND_URL: ${PUBLIC_URL:-http://localhost}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-zh-CN}
+      TZ: Asia/Shanghai
+    networks: [xyq]
+
+  # -------------------------------------------------------------------------
+  # 4. Caddy — 反向代理 + 自动 HTTPS
+  #    - 设置了 DOMAIN 环境变量 → 自动申请 Let's Encrypt 证书 (HTTPS)
+  #    - 没设置（仅 IP 直接访问）→ 退化为 HTTP :80
+  # -------------------------------------------------------------------------
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: xyq-caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-:80}
+      EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - storage-data:/srv/storage:ro
+    networks: [xyq]

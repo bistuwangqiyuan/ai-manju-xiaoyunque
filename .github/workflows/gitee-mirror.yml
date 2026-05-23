@@ -1,0 +1,49 @@
+name: Gitee Mirror
+
+# 自动把 GitHub main 同步到 Gitee 镜像，让国内服务器 install.sh 拉代码秒级
+# 需要 Repo Settings → Secrets 加：
+#   GITEE_USERNAME   你的 Gitee 用户名（如 bistuwangqiyuan）
+#   GITEE_PASSWORD   Gitee 私人令牌 (https://gitee.com/profile/personal_access_tokens)
+#   GITEE_REPO       目标 repo URL（如 https://gitee.com/bistuwangqiyuan/ai-manju-xiaoyunque.git）
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+concurrency:
+  group: gitee-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip if Gitee secrets not configured
+        id: check
+        env:
+          GITEE_PASSWORD: ${{ secrets.GITEE_PASSWORD }}
+        run: |
+          if [ -z "$GITEE_PASSWORD" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "Gitee secrets not configured — skipping mirror"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.configured == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Push to Gitee
+        if: steps.check.outputs.configured == 'true'
+        env:
+          GITEE_USERNAME: ${{ secrets.GITEE_USERNAME }}
+          GITEE_PASSWORD: ${{ secrets.GITEE_PASSWORD }}
+          GITEE_REPO: ${{ secrets.GITEE_REPO }}
+        run: |
+          REPO_URL="${GITEE_REPO/https:\/\//https://$GITEE_USERNAME:$GITEE_PASSWORD@}"
+          git remote add gitee "$REPO_URL"
+          git push --force gitee main
+          echo "Pushed to Gitee successfully"
