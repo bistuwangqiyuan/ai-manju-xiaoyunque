@@ -51,7 +51,7 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest httpx pytest-asyncio bcrypt
 
-      - name: Pytest (mock-mode end-to-end suite, v8)
+      - name: Pytest (mock-mode end-to-end suite, v8 + serverless)
         run: |
           pytest -q \
             tests/test_orchestrator_v2.py \
@@ -62,7 +62,8 @@ jobs:
             tests/test_theme_to_novel.py \
             tests/test_backend_api.py \
             tests/test_api_contracts.py \
-            tests/test_v8_gap_closures.py
+            tests/test_v8_gap_closures.py \
+            tests/test_serverless_tick.py
 
   frontend:
     name: web (typecheck + next build)

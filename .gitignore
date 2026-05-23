@@ -28,6 +28,8 @@ data/storage/
 data/episodes/
 data/_debug/
 data/runs/
+data/test_*.db
+data/test_*_storage/
 data/smoke*
 data/filing/
 data/test_storage/

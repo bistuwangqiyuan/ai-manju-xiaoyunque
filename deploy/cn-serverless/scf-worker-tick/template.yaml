@@ -1,0 +1,31 @@
+# 腾讯云 SCF · Serverless Application Model 模板
+# 用 `scf deploy --template-file template.yaml` 部署
+#
+# 触发: 定时 (cron) 每 60s 调用 main_handler
+
+AWSTemplateFormatVersion: '2010-09-09-tencent'
+Transform: TencentServerlessTransform
+
+Resources:
+  xyqWorkerTick:
+    Type: TencentCloud::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Runtime: Python3.11
+      Description: 唤醒 CloudBase 云托管处理排队任务
+      Timeout: 60
+      MemorySize: 128
+      Handler: index.main_handler
+      Environment:
+        Variables:
+          BACKEND_URL: '${BACKEND_URL}'
+          INTERNAL_API_SECRET: '${INTERNAL_API_SECRET}'
+          MAX_JOBS: '3'
+          MAX_SECONDS: '50'
+          WAKE_ON_EMPTY: '1'
+      Events:
+        cronTick:
+          Type: Timer
+          Properties:
+            CronExpression: '0 */1 * * * * *'   # 每 60s 触发一次
+            Enable: true

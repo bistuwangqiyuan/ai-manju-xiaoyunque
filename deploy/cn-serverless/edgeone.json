@@ -1,0 +1,29 @@
+{
+  "$comment": "腾讯云 EdgeOne Pages 项目配置 — 在 EdgeOne 控制台导入 GitHub 后会自动识别",
+  "framework": "next",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "rootDirectory": "web",
+  "envVars": [
+    {
+      "key": "NEXT_PUBLIC_BACKEND_URL",
+      "description": "CloudBase 云托管的服务 URL，如 https://xyq-backend-xxxxx-1300000000.ap-shanghai.run.tcloudbase.com",
+      "required": true
+    },
+    {
+      "key": "NEXT_PUBLIC_DEFAULT_LOCALE",
+      "default": "zh-CN"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ],
+  "regions": ["ap-shanghai", "ap-guangzhou", "ap-beijing"]
+}
