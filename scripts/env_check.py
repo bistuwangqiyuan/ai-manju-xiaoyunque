@@ -77,6 +77,25 @@ OPTIONAL_KEYS: dict[str, tuple[str, str]] = {
 }
 
 
+def _domestic_mode() -> bool:
+    return os.environ.get("CN_DOMESTIC_MODE", "").strip() in ("1", "true", "yes")
+
+
+def _effective_required_keys() -> dict[str, str]:
+    """CN_DOMESTIC_MODE=1: 国产 Key 替代海外必填项."""
+    keys = dict(REQUIRED_KEYS)
+    if not _domestic_mode():
+        return keys
+    # 编剧: multi-LLM chain (DeepSeek/GLM/通义) 替代 Anthropic
+    keys.pop("ANTHROPIC_API_KEY", None)
+    # 配音: 豆包 TTS 替代 ElevenLabs
+    keys.pop("ELEVENLABS_API_KEY", None)
+    # 图像: Seedream/即梦(VOLC) 替代 FAL + Replicate PuLID
+    keys.pop("FAL_API_KEY", None)
+    keys.pop("REPLICATE_API_TOKEN", None)
+    return keys
+
+
 KNOWN_MOCK_FLAGS = {
     "MOCK_MODE",
     "FORCE_MOCK_SCORER",
@@ -104,6 +123,13 @@ KNOWN_MOCK_FLAGS = {
     "LOG_LEVEL",
     "WORKER_POLL_INTERVAL",
     "SKYLARK_REQ_KEY_CACHE",
+    "FORCE_MOCK_TTS_ELEVENLABS",
+    "CN_DOMESTIC_MODE",
+    "LLM_PROVIDER_CHAIN",
+    "SCHEMA_VALIDATOR",
+    "TTS_PRIMARY",
+    "IMAGE_GEN_PRIMARY",
+    "DOUBAO_TTS_CLUSTER",
     "PYTHONPATH",
     "PATH",
     "PORT",
@@ -126,7 +152,8 @@ class CheckReport:
 
     @property
     def configured_percent(self) -> int:
-        denom = len(REQUIRED_KEYS) + len(OPTIONAL_KEYS)
+        req_total = len(self.required_present) + len(self.required_missing)
+        denom = req_total + len(OPTIONAL_KEYS)
         num = len(self.required_present) + len(self.optional_present)
         return round(100 * num / denom) if denom else 0
 
@@ -141,7 +168,8 @@ def run_check(*, env: dict[str, str] | None = None) -> CheckReport:
         os.environ.update(env)
 
     report = CheckReport()
-    for key, why in REQUIRED_KEYS.items():
+    required = _effective_required_keys()
+    for key, why in required.items():
         if _has(key):
             report.required_present.append(key)
         else:
@@ -177,7 +205,9 @@ def _emoji(present: bool) -> str:
 def _print_human(report: CheckReport) -> None:
     print("AI 漫剧 v8 — env_check report")
     print("=" * 56)
-    print(f"REQUIRED keys: {len(report.required_present)}/{len(REQUIRED_KEYS)}")
+    req_total = len(report.required_present) + len(report.required_missing)
+    print(f"REQUIRED keys: {len(report.required_present)}/{req_total}"
+          + (" (CN_DOMESTIC_MODE)" if _domestic_mode() else ""))
     for key in report.required_present:
         print(f"  ✅ {key}")
     for key, why in report.required_missing:

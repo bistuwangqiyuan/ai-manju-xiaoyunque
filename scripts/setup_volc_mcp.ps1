@@ -151,7 +151,7 @@ Green "  $McpPath 已更新"
 # ---------- 4) ve CLI 配置 ----------
 HR; Blue "[4/5] 配置 ve CLI..."
 if ($AK -and $SK) {
-    & ve configure set --profile default --ak $AK --sk $SK --region cn-beijing 2>&1 | Out-Null
+    & ve configure set --profile default --access-key $AK --secret-key $SK --region cn-beijing 2>&1 | Out-Null
     & ve configure list 2>&1 | Select-Object -First 8
     Green "  ve 已配置 (profile=default, region=cn-beijing)"
 } else {

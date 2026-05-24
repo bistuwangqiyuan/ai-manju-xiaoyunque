@@ -167,9 +167,11 @@ if ($AK -and $SK) {
 # ---------- 5) ossutil 配置 ----------
 HR; Blue "[5/5] 配置 ossutil..."
 if ($AK -and $SK) {
-    # ossutil 2.x: 用 config 子命令
-    & ossutil config -e $OssEndpoint -i $AK -k $SK -r $OssRegion -L CH 2>&1 | Out-Null
-    Green "  ossutil 已配置 (endpoint=$OssEndpoint, region=$OssRegion)"
+    # ossutil 2.x: config set (1.x 的 -e -i -k -r 已废弃)
+    & ossutil config set accessKeyID $AK --profile default 2>&1 | Out-Null
+    & ossutil config set accessKeySecret $SK --profile default 2>&1 | Out-Null
+    & ossutil config set region $OssRegion --profile default 2>&1 | Out-Null
+    Green "  ossutil 已配置 (profile=default, region=$OssRegion)"
 } else {
     Yellow "  跳过 (无 AKSK)"
 }

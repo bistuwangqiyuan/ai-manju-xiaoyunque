@@ -98,14 +98,32 @@ class SchemaValidator:
                  api_key: str | None = None,
                  base_url: str = "https://generativelanguage.googleapis.com/v1beta",
                  model: str = "gemini-2.5-pro"):
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
-        if not self.api_key:
-            raise RuntimeError("Missing GEMINI_API_KEY")
-        self.base_url = base_url.rstrip("/")
-        self.model = model
+        self._backend = os.environ.get("SCHEMA_VALIDATOR", "").strip().lower()
+        if self._backend == "dashscope" or (
+            os.environ.get("CN_DOMESTIC_MODE", "").strip() in ("1", "true", "yes")
+            and not os.environ.get("GEMINI_API_KEY", "").strip()
+        ):
+            self._backend = "dashscope"
+        if self._backend == "dashscope":
+            self.api_key = api_key or os.environ.get("DASHSCOPE_API_KEY", "")
+            if not self.api_key:
+                raise RuntimeError("Missing DASHSCOPE_API_KEY for schema validation")
+            self.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            self.model = os.environ.get("DASHSCOPE_SCHEMA_MODEL", "qwen-max-latest")
+        else:
+            self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
+            if not self.api_key:
+                raise RuntimeError("Missing GEMINI_API_KEY")
+            self.base_url = base_url.rstrip("/")
+            self.model = model
 
     def validate_and_repair(self, episodes: Iterable[Episode]) -> list[Episode]:
         raw_list = [e.raw for e in episodes]
+        if self._backend == "dashscope":
+            return self._validate_dashscope(raw_list)
+        return self._validate_gemini(raw_list)
+
+    def _validate_gemini(self, raw_list: list[dict]) -> list[Episode]:
         request_body = {
             "contents": [{
                 "role": "user",
@@ -131,3 +149,35 @@ class SchemaValidator:
         text = payload["candidates"][0]["content"]["parts"][0]["text"]
         parsed = json.loads(text)
         return [Episode(raw=item) for item in parsed["episodes"]]
+
+    def _validate_dashscope(self, raw_list: list[dict]) -> list[Episode]:
+        """通义千问 JSON mode — 国产替代 Gemini schema 校验."""
+        request_body = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps({"episodes": raw_list}, ensure_ascii=False)},
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.0,
+            "max_tokens": 32000,
+        }
+        url = f"{self.base_url}/chat/completions"
+        body = json.dumps(request_body, ensure_ascii=False).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            payload = json.loads(resp.read())
+        text = payload["choices"][0]["message"]["content"]
+        parsed = json.loads(text)
+        eps = parsed.get("episodes", parsed if isinstance(parsed, list) else [])
+        if isinstance(eps, dict):
+            eps = eps.get("episodes", [])
+        return [Episode(raw=item) for item in eps]

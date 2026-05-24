@@ -108,8 +108,10 @@ fi
 # ---------- 5) ossutil ----------
 hr; blue "[5/5] 配置 ossutil..."
 if [ -n "$AK" ] && [ -n "$SK" ]; then
-  ossutil config -e "$OSS_ENDPOINT" -i "$AK" -k "$SK" -r "$OSS_REGION" -L CH >/dev/null 2>&1
-  green "  ossutil 已配置"
+  ossutil config set accessKeyID "$AK" --profile default >/dev/null 2>&1
+  ossutil config set accessKeySecret "$SK" --profile default >/dev/null 2>&1
+  ossutil config set region "$OSS_REGION" --profile default >/dev/null 2>&1
+  green "  ossutil 已配置 (profile=default, region=$OSS_REGION)"
 else
   yellow "  跳过 (无 AKSK)"
 fi
