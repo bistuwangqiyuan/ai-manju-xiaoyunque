@@ -41,7 +41,7 @@ jobs:
   build-and-deploy:
     name: Build → Push CR → Deploy veFaaS
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90      # 镜像 ~1.5GB 跨境上传到 cn-beijing CR 约 20-40 min
 
     env:
       # 部署器自身用的
@@ -167,11 +167,13 @@ jobs:
           file: deploy/cn-volc-vefaas/Dockerfile.vefaas
           platforms: linux/amd64
           push: ${{ github.event.inputs.dry_run != 'true' }}
+          provenance: false   # 关闭 SBOM 节省 ~30s 上传
           tags: |
             ${{ steps.tag.outputs.image }}
             ${{ env.VOLC_CR_REGISTRY_HOST }}/${{ env.VOLC_CR_NAMESPACE }}/${{ env.VOLC_CR_REPO }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # 用 Volc CR 自身做缓存; 跨境上传只算一次, 后续 build 增量
+          cache-from: type=registry,ref=${{ env.VOLC_CR_REGISTRY_HOST }}/${{ env.VOLC_CR_NAMESPACE }}/${{ env.VOLC_CR_REPO }}:buildcache
+          cache-to: type=registry,ref=${{ env.VOLC_CR_REGISTRY_HOST }}/${{ env.VOLC_CR_NAMESPACE }}/${{ env.VOLC_CR_REPO }}:buildcache,mode=max,ignore-error=true
 
       - name: Set up Python
         uses: actions/setup-python@v5
