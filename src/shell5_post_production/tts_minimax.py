@@ -95,6 +95,51 @@ class MinimaxTtsClient:
         return str(out)
 
 
+def _is_doubao_appid_numeric(appid: str) -> bool:
+    """豆包 OpenSpeech 要求 numeric AppID (11 digits). API key 名字不可用."""
+    appid = (appid or "").strip()
+    if not appid:
+        return False
+    if appid.startswith("api-key-"):
+        return False
+    return appid.isdigit()
+
+
+def _try_doubao_seed_tts(
+    text: str,
+    emotion: str,
+    output_path: str | pathlib.Path,
+    voice_id: str,
+) -> str | None:
+    """Best-effort Doubao Seed-TTS 2.0; return path on success else None."""
+    appid = os.environ.get("DOUBAO_TTS_APPID", "").strip()
+    token = os.environ.get("DOUBAO_TTS_TOKEN", "").strip()
+    if not appid or not token:
+        return None
+    if not _is_doubao_appid_numeric(appid):
+        _log.warning(
+            "DOUBAO_TTS_APPID=%r is not numeric (expect 11-digit AppID, "
+            "not 'api-key-...' string); skipping Doubao TTS, falling back",
+            appid,
+        )
+        return None
+    try:
+        from .tts_doubao_icl import DoubaoIclClient, TTSRequest
+
+        client = DoubaoIclClient(appid=appid, access_token=token)
+        return client.synth(
+            TTSRequest(
+                text=text,
+                voice_type=voice_id or "BV001_streaming",
+                emotion=emotion if emotion != "fearful" else "fear",
+            ),
+            output_path,
+        )
+    except Exception as e:  # noqa: BLE001
+        _log.warning("Doubao Seed-TTS failed (%s); will fallback to MiniMax", e)
+        return None
+
+
 def synth_high_emotion(
     *,
     text: str,
@@ -105,22 +150,44 @@ def synth_high_emotion(
 ) -> str:
     """Top-level helper. Returns the on-disk audio path.
 
+    Routing (in order):
+      1. ``TTS_PRIMARY=doubao`` + DOUBAO_TTS_APPID/TOKEN present
+         → 豆包 Seed-TTS 2.0 (国产, 国内推荐)
+      2. fall back to MiniMax Speech 2.5 HD (海外)
+      3. mock mode (no creds / explicit ``FORCE_MOCK_TTS_MINIMAX=1``)
+
     Mock mode writes a tiny near-silent MP3 fragment so downstream concat
     keeps working without spending API budget.
     """
+    tts_primary = (os.environ.get("TTS_PRIMARY", "") or "").strip().lower()
+
+    # Route 1: 豆包优先 (国产)
+    if tts_primary == "doubao":
+        out = _try_doubao_seed_tts(text, emotion, output_path, voice_id)
+        if out:
+            return out
+
+    # Mock check (only kicks in after we've tried Doubao)
     if mock is None:
         mock = (
             os.environ.get("FORCE_MOCK_TTS_MINIMAX") == "1"
             or not os.environ.get("MINIMAX_API_KEY")
         )
+    if mock and tts_primary != "doubao":
+        # If user explicitly wants doubao but didn't set keys, try one more
+        # time to see if doubao keys came through env reload; else mock.
+        out = _try_doubao_seed_tts(text, emotion, output_path, voice_id)
+        if out:
+            return out
     if mock:
         out = pathlib.Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
-        # 80-byte ID3 stub + minimal MP3 frame — readable by ffmpeg.
         out.write_bytes(
             b"ID3\x03\x00\x00\x00\x00\x00\x00" + b"\xff\xfb\x90\x44" * 32
         )
         return str(out)
+
+    # Route 2: MiniMax fallback (海外)
     client = MinimaxTtsClient()
     return client.synth(
         MinimaxTtsRequest(text=text, emotion=emotion, voice_id=voice_id),

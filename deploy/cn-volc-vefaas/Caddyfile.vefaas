@@ -1,0 +1,58 @@
+# veFaaS 单容器内部反代 (Caddy 监听 :8000, veFaaS API Gateway 把外部 HTTPS 转过来)
+#
+# 路由:
+#   /api/*         → 127.0.0.1:8001 (FastAPI)
+#   /storage/*     → 127.0.0.1:8001 (FastAPI 静态出 mp4/封面/字幕)
+#   /docs          → 127.0.0.1:8001 (FastAPI Swagger)
+#   /openapi.json  → 127.0.0.1:8001
+#   /redoc         → 127.0.0.1:8001
+#   /healthz       → 内置 200 (veFaaS health probe)
+#   /*             → 127.0.0.1:3000 (Next.js standalone)
+
+{
+	admin off
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:8000 {
+	encode zstd gzip
+
+	# veFaaS 健康探针快路径 (避免转发到 FastAPI 增加冷启动延迟)
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	@backend path /api/* /storage/* /docs /openapi.json /redoc /static/*
+	handle @backend {
+		reverse_proxy 127.0.0.1:8001 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy        "strict-origin-when-cross-origin"
+		X-Frame-Options        "SAMEORIGIN"
+		# veFaaS 已经做了 HSTS, 这里不重复
+	}
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}

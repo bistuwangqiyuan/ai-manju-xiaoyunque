@@ -1,0 +1,46 @@
+# =============================================================================
+# veFaaS 部署配置 (拷贝为 config.yaml 并填写真实值; 不要提交到 git)
+#
+# 优先级: CLI 参数 > 环境变量 > 本文件 > 内置默认
+# =============================================================================
+
+volcengine:
+  # 火山引擎 IAM AccessKey
+  # 如果已经跑过 scripts/sync_keys_to_windows.ps1, 注释掉这两行让其从 env 取
+  access_key: ""        # ${VOLC_ACCESS_KEY}
+  secret_key: ""        # ${VOLC_SECRET_KEY}
+  region: "cn-beijing"
+
+vefaas:
+  app_name: "xyq-manju"               # 函数名 (不能含下划线!)
+  image_repo: "cr-cn-beijing.volces.com/xyq/manju"
+  image_tag: "v9.0.0"
+  cpu: 1.0                            # vCore
+  memory_mb: 2048                     # MB (2GB 推荐, ffmpeg + 三进程)
+  timeout_secs: 900                   # 同步 max 15 min
+
+  # 持久化挂载 (二选一或都不挂; TOS 是主存储)
+  nas_mounts:
+    - nas_id: ""                      # 从控制台 https://console.volcengine.com/nas 创建后填
+      mount: "/mnt/nas"
+      remote: "/"
+  tos_mounts:
+    - bucket: ""                      # 自动从 TOS_BUCKET 环境变量取
+      mount: "/mnt/tos"
+      prefix: "vefaas/"
+
+  # 额外环境变量 (将与系统已注入的 25 keys 合并; 这里的会覆盖)
+  envs:
+    # 业务开关
+    CN_DOMESTIC_MODE: "1"
+    MANJU_AGENT_MODE: "0"             # 等 P3 PDF 实装后改 1
+    STORAGE_BACKEND: "tos"
+    EMBEDDED_WORKER: "1"
+    LOG_LEVEL: "INFO"
+    TZ: "Asia/Shanghai"
+
+# API 网关 (可选; 留空则不创建路由, 函数仅内网可达)
+veapig:
+  instance_name: ""                   # 从 https://console.volcengine.com/veapig 取
+  service_name: ""
+  upstream_name: ""

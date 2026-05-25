@@ -51,7 +51,7 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest httpx pytest-asyncio bcrypt
 
-      - name: Pytest (mock-mode end-to-end suite, v8 + serverless)
+      - name: Pytest (mock-mode end-to-end suite, v8 + serverless + v9 manju)
         run: |
           pytest -q \
             tests/test_orchestrator_v2.py \
@@ -63,7 +63,56 @@ jobs:
             tests/test_backend_api.py \
             tests/test_api_contracts.py \
             tests/test_v8_gap_closures.py \
-            tests/test_serverless_tick.py
+            tests/test_serverless_tick.py \
+            tests/test_manju_agent_client.py \
+            tests/test_tos_storage.py \
+            tests/test_vefaas_deploy.py
+
+  vefaas-dry-run:
+    name: veFaaS deploy dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: backend
+
+    env:
+      # Dummy values so deploy.py passes credential resolution without
+      # hitting the real Volc OpenAPI endpoint.
+      VOLC_ACCESS_KEY: AKLTciDryRunFakeAccessKey0000
+      VOLC_SECRET_KEY: dryRunFakeSecretKey00000000000000000000000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate deploy.py + Dockerfile present
+        run: |
+          test -f deploy/cn-volc-vefaas/Dockerfile.vefaas
+          test -f deploy/cn-volc-vefaas/run.sh
+          test -f deploy/cn-volc-vefaas/deploy.py
+          test -f deploy/cn-volc-vefaas/Caddyfile.vefaas
+          test -f deploy/cn-volc-vefaas/VEFAAS_RUNBOOK.md
+
+      - name: deploy.py --help
+        run: python deploy/cn-volc-vefaas/deploy.py --help
+
+      - name: deploy.py --dry-run
+        run: |
+          python deploy/cn-volc-vefaas/deploy.py \
+            --image-tag ci-dry-run-${{ github.run_id }} \
+            --app-name xyq-manju-ci \
+            --image-repo cr-cn-beijing.volces.com/xyq/manju \
+            --dry-run
+
+      - name: Lint Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: deploy/cn-volc-vefaas/Dockerfile.vefaas
+          failure-threshold: error
+        continue-on-error: true
 
   frontend:
     name: web (typecheck + next build)

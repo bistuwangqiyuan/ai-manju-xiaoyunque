@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+# =============================================================================
+# 同步项目 .env 中已验证 API Key 到用户全局存储 (macOS / Linux / Git-Bash)
+#
+# 写入路径:
+#   ~/.config/api-keys/xyq.env         (chmod 600, 跨项目 source)
+#   macOS: 同时写 Keychain (security add-generic-password)
+#   Linux: 同时写 libsecret (secret-tool, 如果可用)
+#
+# 用法:
+#   ./scripts/sync_keys_to_windows.sh
+#   ./scripts/sync_keys_to_windows.sh --dry-run
+#   ./scripts/sync_keys_to_windows.sh --env-file deploy/cn-serverless/.env
+# =============================================================================
+set -euo pipefail
+
+DRY_RUN=0
+ENV_FILE=""
+SKIP_KEYCHAIN=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1; shift ;;
+    --env-file) ENV_FILE="$2"; shift 2 ;;
+    --no-keychain) SKIP_KEYCHAIN=1; shift ;;
+    -h|--help)
+      sed -n '2,15p' "$0"
+      exit 0 ;;
+    *) echo "unknown arg: $1" >&2; exit 1 ;;
+  esac
+done
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+# Tier 1 / 2 / 3 配置
+WHITELIST_KEYS=(
+  # tier 1 - volc
+  "VOLC_ACCESS_KEY"        "VOLC_SECRET_KEY"        "VOLC_ARK_API_KEY"
+  "ARK_API_KEY"            "DOUBAO_API_KEY"         "DOUBAO_ENDPOINT_ID"
+  "DOUBAO_MODEL"           "DOUBAO_TTS_APPID"       "DOUBAO_TTS_TOKEN"
+  "DOUBAO_TTS_CLUSTER"     "ARK_BASE_URL"           "VOLC_ARK_ENDPOINT"
+  "VOLC_ARK_ENDPOINT_ID"   "VOLC_REGION"
+  "TOS_BUCKET"             "TOS_ENDPOINT"
+  "S3_ACCESS_KEY"          "S3_SECRET_KEY"          "S3_BUCKET"
+  "S3_ENDPOINT"            "S3_REGION"
+
+  # tier 1 - aliyun
+  "ALIYUN_ACCESS_KEY_ID"               "ALIYUN_ACCESS_KEY_SECRET"
+  "ALIBABA_CLOUD_ACCESS_KEY_ID"        "ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+  "DASHSCOPE_API_KEY"      "TONGYI_API_KEY"
+  "OSS_REGION"             "OSS_ENDPOINT"
+  "DASHSCOPE_MODEL"        "TONGYI_MODEL"
+
+  # tier 1 - llm-chain
+  "DEEPSEEK_API_KEY"       "DEEPSEEK_MODEL"
+  "GLM_API_KEY"            "GLM_MODEL"
+  "MOONSHOT_API_KEY"       "MOONSHOT_MODEL"
+  "MISTRAL_API_KEY"        "MISTRAL_MODEL"
+  "GROQ_API_KEY"           "GROQ_MODEL"
+  "XAI_API_KEY"            "XAI_MODEL"
+  "SPARK_API_KEY"          "SPARK_MODEL"
+
+  # tier 2 - overseas
+  "ANTHROPIC_API_KEY"      "ANTHROPIC_MODEL"        "ANTHROPIC_BASE_URL"
+  "GEMINI_API_KEY"
+
+  # tier 1 - tencent
+  "TENCENT_SECRET_ID"      "TENCENT_SECRET_KEY"     "TENCENT_REGION"
+)
+
+# 高敏感子集 (将进 Keychain / libsecret)
+SENSITIVE_KEYS=(
+  "VOLC_ACCESS_KEY"        "VOLC_SECRET_KEY"        "VOLC_ARK_API_KEY"
+  "ARK_API_KEY"            "DOUBAO_API_KEY"         "DOUBAO_TTS_APPID"
+  "DOUBAO_TTS_TOKEN"       "S3_ACCESS_KEY"          "S3_SECRET_KEY"
+  "ALIYUN_ACCESS_KEY_ID"   "ALIYUN_ACCESS_KEY_SECRET"
+  "ALIBABA_CLOUD_ACCESS_KEY_ID" "ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+  "DASHSCOPE_API_KEY"      "TONGYI_API_KEY"
+  "DEEPSEEK_API_KEY"       "GLM_API_KEY"            "MOONSHOT_API_KEY"
+  "MISTRAL_API_KEY"        "GROQ_API_KEY"           "XAI_API_KEY"
+  "SPARK_API_KEY"          "ANTHROPIC_API_KEY"      "GEMINI_API_KEY"
+  "TENCENT_SECRET_ID"      "TENCENT_SECRET_KEY"
+)
+
+is_sensitive() {
+  local k="$1"
+  for s in "${SENSITIVE_KEYS[@]}"; do [[ "$s" == "$k" ]] && return 0; done
+  return 1
+}
+
+# 解析 .env 文件
+read_dotenv() {
+  local f="$1"
+  [[ -f "$f" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    local key="${line%%=*}"
+    local val="${line#*=}"
+    key="$(echo "$key" | xargs)"
+    val="${val%%#*}"  # strip inline comment (after any whitespace)
+    val="$(echo "$val" | xargs)"
+    # strip quotes
+    [[ "$val" =~ ^\".*\"$ ]] && val="${val:1:-1}"
+    [[ "$val" =~ ^\'.*\'$ ]] && val="${val:1:-1}"
+    [[ -n "$key" && -n "$val" ]] && printf '%s=%s\n' "$key" "$val"
+  done < "$f"
+}
+
+# 合并多个 .env (优先级: 后者覆盖前者)
+declare -A ENV_VALUES
+if [[ -n "$ENV_FILE" ]]; then
+  while IFS='=' read -r k v; do ENV_VALUES["$k"]="$v"; done < <(read_dotenv "$ENV_FILE")
+else
+  for f in "backend/.env" "deploy/cn-serverless/.env" ".env"; do
+    [[ -f "$f" ]] || continue
+    while IFS='=' read -r k v; do ENV_VALUES["$k"]="$v"; done < <(read_dotenv "$f")
+  done
+fi
+
+echo
+echo "=========================================================="
+echo "  AI 漫剧 全局 Key 同步工具 (Unix)"
+echo "=========================================================="
+echo "REPO_ROOT: $REPO_ROOT"
+echo "DRY_RUN:   $DRY_RUN"
+echo "读到 ${#ENV_VALUES[@]} 个变量, 白名单 ${#WHITELIST_KEYS[@]} 个 keys"
+echo
+
+# 输出目录
+OUT_DIR="$HOME/.config/api-keys"
+OUT_FILE="$OUT_DIR/xyq.env"
+mkdir -p "$OUT_DIR"
+chmod 700 "$OUT_DIR"
+
+REPORT_FILE="data/windows_keys_synced.json"
+mkdir -p data
+TMP_ENV="$(mktemp)"
+
+written_count=0
+keychain_count=0
+skipped_count=0
+failed_count=0
+report_items=()
+
+# 检测可用的 keychain
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  KEYCHAIN_BACKEND="macos"
+elif command -v secret-tool >/dev/null 2>&1; then
+  KEYCHAIN_BACKEND="linux-libsecret"
+else
+  KEYCHAIN_BACKEND="none"
+fi
+[[ "$SKIP_KEYCHAIN" == "1" ]] && KEYCHAIN_BACKEND="none"
+echo "Keychain backend: $KEYCHAIN_BACKEND"
+echo
+
+echo "# Generated by sync_keys_to_windows.sh at $(date -u +%FT%TZ)" > "$TMP_ENV"
+
+for key in "${WHITELIST_KEYS[@]}"; do
+  val="${ENV_VALUES[$key]:-}"
+  if [[ -z "$val" ]]; then
+    skipped_count=$((skipped_count+1))
+    continue
+  fi
+  if [[ "$val" =~ ^(REPLACE_ME|YOUR_|\$\{|xxxx|placeholder) || ${#val} -lt 4 ]]; then
+    skipped_count=$((skipped_count+1))
+    continue
+  fi
+
+  sha8="$(printf '%s' "$val" | shasum -a 256 2>/dev/null | head -c 8 || echo "------")"
+  printf "  %-32s [len=%d sha=%s]\n" "$key" "${#val}" "$sha8"
+
+  if [[ "$DRY_RUN" == "0" ]]; then
+    printf '%s=%s\n' "$key" "$val" >> "$TMP_ENV"
+    written_count=$((written_count+1))
+
+    if is_sensitive "$key"; then
+      case "$KEYCHAIN_BACKEND" in
+        macos)
+          security delete-generic-password -a apikey -s "XYQ_$key" >/dev/null 2>&1 || true
+          if security add-generic-password -a apikey -s "XYQ_$key" -w "$val" -U 2>/dev/null; then
+            keychain_count=$((keychain_count+1))
+          fi
+          ;;
+        linux-libsecret)
+          if echo -n "$val" | secret-tool store --label="XYQ_$key" service xyq account "$key" 2>/dev/null; then
+            keychain_count=$((keychain_count+1))
+          fi
+          ;;
+      esac
+    fi
+  fi
+
+  report_items+=("{\"name\":\"$key\",\"length\":${#val},\"sha256_8\":\"$sha8\"}")
+done
+
+if [[ "$DRY_RUN" == "0" ]]; then
+  mv "$TMP_ENV" "$OUT_FILE"
+  chmod 600 "$OUT_FILE"
+fi
+
+# JSON 报告
+{
+  echo "{"
+  echo "  \"timestamp\": \"$(date -u +%FT%TZ)\","
+  echo "  \"platform\": \"$(uname -s)\","
+  echo "  \"keychain_backend\": \"$KEYCHAIN_BACKEND\","
+  echo "  \"out_file\": \"$OUT_FILE\","
+  echo "  \"summary\": {"
+  echo "    \"written\": $written_count,"
+  echo "    \"keychain\": $keychain_count,"
+  echo "    \"skipped\": $skipped_count,"
+  echo "    \"failed\": $failed_count"
+  echo "  },"
+  echo "  \"items\": ["
+  for i in "${!report_items[@]}"; do
+    sep=","
+    [[ "$i" == "$((${#report_items[@]}-1))" ]] && sep=""
+    echo "    ${report_items[$i]}$sep"
+  done
+  echo "  ]"
+  echo "}"
+} > "$REPORT_FILE"
+
+echo
+echo "=========================================================="
+echo "  同步完成"
+echo "=========================================================="
+echo "  写入文件:   $written_count -> $OUT_FILE"
+echo "  Keychain:   $keychain_count"
+echo "  跳过:       $skipped_count"
+echo "  报告:       $REPORT_FILE"
+echo
+echo "在其他项目复用:"
+echo "  echo 'set -a; source ~/.config/api-keys/xyq.env; set +a' >> ~/.bashrc"
+echo "  # 或临时:"
+echo "  set -a; source ~/.config/api-keys/xyq.env; set +a"
+echo

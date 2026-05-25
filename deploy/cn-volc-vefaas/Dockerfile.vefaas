@@ -1,0 +1,105 @@
+# =============================================================================
+# 小云雀 AI 漫剧 · 火山引擎 veFaaS 单容器镜像 (all-in-one)
+#
+# 与 deploy/cn-serverless/Dockerfile.allinone 同源, 但针对 veFaaS 做了 4 处适配:
+#   1. EXPOSE 8000           - veFaaS 默认 8000 (CloudBase 是 8080)
+#   2. CMD ["./run.sh"]      - veFaaS 文档约定 (CloudBase 是 absolute path)
+#   3. 写 NAS 挂载路径        - /mnt/nas/xyq 用于 SQLite + storage backup
+#   4. STORAGE_BACKEND=tos    - 默认走 TOS 对象存储 (NAS 仅做 SQLite)
+#
+# 容器内进程:
+#   - Caddy        :8000  反向代理 (veFaaS 唯一对外端口)
+#   - FastAPI      :8001  uvicorn + embedded worker
+#   - Next.js      :3000  standalone
+#   - SQLite       /mnt/nas/xyq/xyq.db (NAS 挂载持久化)
+#   - TOS          xyq-prod 桶 (视频/封面/素材主存储)
+#
+# 镜像约 1.2GB, 冷启动 8-15s, 满足千 DAU
+# =============================================================================
+ARG NODE_IMAGE=node:22-alpine
+
+# -------- 1) web-builder (Next.js standalone) --------
+FROM ${NODE_IMAGE} AS web-builder
+WORKDIR /web
+COPY web/package.json web/package-lock.json* ./
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm install --no-audit --no-fund
+COPY web/ ./
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_OUTPUT_STANDALONE=1
+RUN npx next build
+
+# -------- 2) runtime (python + node + caddy) --------
+FROM python:3.11-slim AS runtime
+
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app \
+    NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    DATABASE_URL=sqlite:////mnt/nas/xyq/xyq.db \
+    STORAGE_ROOT=/mnt/nas/xyq/storage \
+    STORAGE_BACKEND=tos \
+    EMBEDDED_WORKER=1 \
+    PORT=8000
+
+# apt: ffmpeg + 中日韩字体 + node 22 + caddy
+RUN sed -i "s|deb.debian.org|$APT_MIRROR|g; s|security.debian.org|$APT_MIRROR|g" \
+        /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i "s|deb.debian.org|$APT_MIRROR|g; s|security.debian.org|$APT_MIRROR|g" \
+        /etc/apt/sources.list 2>/dev/null || true && \
+    apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg libpq5 fonts-noto-cjk fonts-noto-color-emoji \
+      curl ca-certificates gnupg debian-keyring debian-archive-keyring apt-transport-https \
+      tini \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && curl -fsSL 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -fsSL 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y --no-install-recommends caddy \
+    && fc-cache -fv \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip config set global.index-url "$PIP_INDEX_URL"
+WORKDIR /app
+
+COPY backend/requirements.txt ./backend-requirements.txt
+COPY requirements.txt ./pipeline-requirements.txt
+RUN pip install -r backend-requirements.txt \
+    && pip install -r pipeline-requirements.txt
+
+# Backend app code (含 TOS storage 实现)
+COPY backend/app ./app
+COPY src ./src
+COPY prompts ./prompts
+COPY config ./config
+COPY tools ./tools
+COPY compliance ./compliance
+
+# Pre-built Next.js standalone
+COPY --from=web-builder /web/.next/standalone /webapp
+COPY --from=web-builder /web/.next/static /webapp/.next/static
+COPY --from=web-builder /web/public /webapp/public
+
+# Caddy + startup
+COPY deploy/cn-volc-vefaas/Caddyfile.vefaas /etc/caddy/Caddyfile
+COPY deploy/cn-volc-vefaas/run.sh /app/run.sh
+RUN chmod +x /app/run.sh
+
+# 持久化挂载点 (veFaaS NAS 挂载到 /mnt/nas; 若未挂载则用容器临时盘)
+RUN mkdir -p /mnt/nas/xyq /mnt/nas/xyq/storage
+
+# 健康检查 (veFaaS 探针)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/api/health || exit 1
+
+EXPOSE 8000
+
+# tini 收尸 + run.sh
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/app/run.sh"]

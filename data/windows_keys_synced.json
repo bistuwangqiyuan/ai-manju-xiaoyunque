@@ -1,0 +1,544 @@
+{
+    "env_files_used":  [
+                           "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\.env",
+                           "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\deploy\\cn-serverless\\.env",
+                           "D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\backend\\.env"
+                       ],
+    "timestamp":  "2026-05-24T21:07:26.1070348+08:00",
+    "failed":  [
+
+               ],
+    "summary":  {
+                    "skipped":  0,
+                    "cm_ok":  26,
+                    "total":  52,
+                    "setx_failed":  0,
+                    "setx_ok":  52,
+                    "cm_failed":  0
+                },
+    "skipped":  [
+
+                ],
+    "written":  [
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  47,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "fc175a35",
+                        "setx":  "ok",
+                        "name":  "VOLC_ACCESS_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  60,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "571c8994",
+                        "setx":  "ok",
+                        "name":  "VOLC_SECRET_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  36,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "ca3ab603",
+                        "setx":  "ok",
+                        "name":  "VOLC_ARK_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  36,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "ca3ab603",
+                        "setx":  "ok",
+                        "name":  "ARK_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  36,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "ca3ab603",
+                        "setx":  "ok",
+                        "name":  "DOUBAO_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  23,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "6b9159f3",
+                        "setx":  "ok",
+                        "name":  "DOUBAO_ENDPOINT_ID"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  22,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "aef835a1",
+                        "setx":  "ok",
+                        "name":  "DOUBAO_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  22,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "828e9549",
+                        "setx":  "ok",
+                        "name":  "DOUBAO_TTS_APPID"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  36,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "7a9a22a8",
+                        "setx":  "ok",
+                        "name":  "DOUBAO_TTS_TOKEN"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  11,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "2639cf41",
+                        "setx":  "ok",
+                        "name":  "DOUBAO_TTS_CLUSTER"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  40,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "cf241555",
+                        "setx":  "ok",
+                        "name":  "ARK_BASE_URL"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  40,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "cf241555",
+                        "setx":  "ok",
+                        "name":  "VOLC_ARK_ENDPOINT"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  23,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "6b9159f3",
+                        "setx":  "ok",
+                        "name":  "VOLC_ARK_ENDPOINT_ID"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  10,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "8114580d",
+                        "setx":  "ok",
+                        "name":  "VOLC_REGION"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  19,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "fd6ee522",
+                        "setx":  "ok",
+                        "name":  "TOS_BUCKET"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  33,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "7397290d",
+                        "setx":  "ok",
+                        "name":  "TOS_ENDPOINT"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  47,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "fc175a35",
+                        "setx":  "ok",
+                        "name":  "S3_ACCESS_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  60,
+                        "tier":  1,
+                        "category":  "volc",
+                        "sha256_8":  "571c8994",
+                        "setx":  "ok",
+                        "name":  "S3_SECRET_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  19,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "fd6ee522",
+                        "setx":  "ok",
+                        "name":  "S3_BUCKET"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  33,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "7397290d",
+                        "setx":  "ok",
+                        "name":  "S3_ENDPOINT"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  4,
+                        "tier":  3,
+                        "category":  "volc",
+                        "sha256_8":  "929260ad",
+                        "setx":  "ok",
+                        "name":  "S3_REGION"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  24,
+                        "tier":  1,
+                        "category":  "aliyun",
+                        "sha256_8":  "8e6ca02a",
+                        "setx":  "ok",
+                        "name":  "ALIYUN_ACCESS_KEY_ID"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  30,
+                        "tier":  1,
+                        "category":  "aliyun",
+                        "sha256_8":  "48584aec",
+                        "setx":  "ok",
+                        "name":  "ALIYUN_ACCESS_KEY_SECRET"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  24,
+                        "tier":  1,
+                        "category":  "aliyun",
+                        "sha256_8":  "8e6ca02a",
+                        "setx":  "ok",
+                        "name":  "ALIBABA_CLOUD_ACCESS_KEY_ID"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  30,
+                        "tier":  1,
+                        "category":  "aliyun",
+                        "sha256_8":  "48584aec",
+                        "setx":  "ok",
+                        "name":  "ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  35,
+                        "tier":  1,
+                        "category":  "aliyun",
+                        "sha256_8":  "7cdc0b52",
+                        "setx":  "ok",
+                        "name":  "DASHSCOPE_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  35,
+                        "tier":  1,
+                        "category":  "aliyun",
+                        "sha256_8":  "ec93d214",
+                        "setx":  "ok",
+                        "name":  "TONGYI_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  11,
+                        "tier":  3,
+                        "category":  "aliyun",
+                        "sha256_8":  "db962699",
+                        "setx":  "ok",
+                        "name":  "OSS_REGION"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  36,
+                        "tier":  3,
+                        "category":  "aliyun",
+                        "sha256_8":  "697e9771",
+                        "setx":  "ok",
+                        "name":  "OSS_ENDPOINT"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  9,
+                        "tier":  3,
+                        "category":  "aliyun",
+                        "sha256_8":  "83a2f822",
+                        "setx":  "ok",
+                        "name":  "DASHSCOPE_MODEL"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  15,
+                        "tier":  3,
+                        "category":  "aliyun",
+                        "sha256_8":  "7051050a",
+                        "setx":  "ok",
+                        "name":  "TONGYI_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  35,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "7e9ed246",
+                        "setx":  "ok",
+                        "name":  "DEEPSEEK_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  13,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "b45bfc6e",
+                        "setx":  "ok",
+                        "name":  "DEEPSEEK_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  49,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "edc9dce7",
+                        "setx":  "ok",
+                        "name":  "GLM_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  10,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "b5e2478b",
+                        "setx":  "ok",
+                        "name":  "GLM_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  51,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "556043ce",
+                        "setx":  "ok",
+                        "name":  "MOONSHOT_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  16,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "97c727c0",
+                        "setx":  "ok",
+                        "name":  "MOONSHOT_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  32,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "d6936843",
+                        "setx":  "ok",
+                        "name":  "MISTRAL_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  20,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "63b15784",
+                        "setx":  "ok",
+                        "name":  "MISTRAL_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  56,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "55277aed",
+                        "setx":  "ok",
+                        "name":  "GROQ_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  23,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "3d066009",
+                        "setx":  "ok",
+                        "name":  "GROQ_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  84,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "06c326b9",
+                        "setx":  "ok",
+                        "name":  "XAI_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  13,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "cb7b4c8e",
+                        "setx":  "ok",
+                        "name":  "XAI_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  41,
+                        "tier":  1,
+                        "category":  "llm-chain",
+                        "sha256_8":  "a51c4831",
+                        "setx":  "ok",
+                        "name":  "SPARK_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  8,
+                        "tier":  3,
+                        "category":  "llm-chain",
+                        "sha256_8":  "002ac7e3",
+                        "setx":  "ok",
+                        "name":  "SPARK_MODEL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  108,
+                        "tier":  2,
+                        "category":  "overseas",
+                        "sha256_8":  "a374dd4e",
+                        "setx":  "ok",
+                        "name":  "ANTHROPIC_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  24,
+                        "tier":  3,
+                        "category":  "overseas",
+                        "sha256_8":  "652a5e91",
+                        "setx":  "ok",
+                        "name":  "ANTHROPIC_MODEL"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  23,
+                        "tier":  3,
+                        "category":  "overseas",
+                        "sha256_8":  "c100b936",
+                        "setx":  "ok",
+                        "name":  "ANTHROPIC_BASE_URL"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  20,
+                        "tier":  2,
+                        "category":  "overseas",
+                        "sha256_8":  "c2af4a12",
+                        "setx":  "ok",
+                        "name":  "GEMINI_API_KEY"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  10,
+                        "tier":  1,
+                        "category":  "tencent",
+                        "sha256_8":  "40b1abc5",
+                        "setx":  "ok",
+                        "name":  "TENCENT_SECRET_ID"
+                    },
+                    {
+                        "credential_manager":  "ok",
+                        "sensitive":  true,
+                        "length":  36,
+                        "tier":  1,
+                        "category":  "tencent",
+                        "sha256_8":  "02391435",
+                        "setx":  "ok",
+                        "name":  "TENCENT_SECRET_KEY"
+                    },
+                    {
+                        "credential_manager":  "not_required",
+                        "sensitive":  false,
+                        "length":  11,
+                        "tier":  3,
+                        "category":  "tencent",
+                        "sha256_8":  "bff5d0c5",
+                        "setx":  "ok",
+                        "name":  "TENCENT_REGION"
+                    }
+                ]
+}

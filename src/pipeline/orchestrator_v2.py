@@ -203,22 +203,47 @@ class PipelineOrchestratorV2:
         # ============================================================
         # Step 4 — 抽卡生视频
         # ============================================================
-        rendered, task_ids, all_shots = self._step4_render(
-            job_id, ep_list, prompts, shot_plan, emit, notes
-        )
-        artifacts["steps"]["4"] = {
-            "episodes_rendered": [str(p) for p in rendered],
-            "task_ids": task_ids,
-            "shot_count": len(all_shots),
-        }
+        manju_mode = self._is_manju_agent_mode()
+        if manju_mode:
+            rendered, task_ids, all_shots, manju_master = self._step4_render_manju(
+                job_id, ep_list, novel_excerpt, style, emit, notes
+            )
+            artifacts["steps"]["4"] = {
+                "episodes_rendered": [str(p) for p in rendered],
+                "task_ids": task_ids,
+                "shot_count": len(all_shots),
+                "engine": "manju_agent",
+                "manju_master": str(manju_master) if manju_master else None,
+            }
+        else:
+            rendered, task_ids, all_shots = self._step4_render(
+                job_id, ep_list, prompts, shot_plan, emit, notes
+            )
+            manju_master = None
+            artifacts["steps"]["4"] = {
+                "episodes_rendered": [str(p) for p in rendered],
+                "task_ids": task_ids,
+                "shot_count": len(all_shots),
+                "engine": "pippit_iv2v_v20",
+            }
 
         # ============================================================
-        # Step 5 — 初期粗剪
+        # Step 5 — 初期粗剪 (Manju Agent 模式下跳过, Agent 已自带剪辑)
         # ============================================================
-        rough = self._step5_rough_cut(rendered, emit, notes)
-        artifacts["steps"]["5"] = {"rough_cut": str(rough)}
-        self.store.put("05_rough/rough.mp4", rough)
-        emit(5, 70, "Step5: 粗剪完成", artifacts["steps"]["5"])
+        if manju_mode and manju_master is not None and manju_master.exists():
+            rough = manju_master
+            emit(5, 70, "Step5: 漫剧 Agent 自带剪辑, 跳过粗剪",
+                 {"rough_cut": str(rough), "skipped": "manju_agent_mode"})
+            artifacts["steps"]["5"] = {
+                "rough_cut": str(rough),
+                "skipped": "manju_agent_mode",
+            }
+            self.store.put("05_rough/rough.mp4", rough)
+        else:
+            rough = self._step5_rough_cut(rendered, emit, notes)
+            artifacts["steps"]["5"] = {"rough_cut": str(rough)}
+            self.store.put("05_rough/rough.mp4", rough)
+            emit(5, 70, "Step5: 粗剪完成", artifacts["steps"]["5"])
 
         # ============================================================
         # Step 6 — 精剪审核 (cinematic master + 7-d QA + auto-repair)
@@ -545,6 +570,122 @@ class PipelineOrchestratorV2:
         ]
 
     # ------------------------------------------------------------------
+
+    def _is_manju_agent_mode(self) -> bool:
+        """漫剧 Agent 模式开关 — env ``MANJU_AGENT_MODE=1`` 启用."""
+        try:
+            from src.shell3_skylark_engine.manju_agent_client import (
+                is_manju_agent_enabled,
+            )
+            return is_manju_agent_enabled()
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _step4_render_manju(
+        self,
+        job_id: int,
+        ep_list: list[dict],
+        novel_excerpt: str,
+        style: str,
+        emit: Callable[..., None],
+        notes: list[str],
+    ) -> tuple[list[pathlib.Path], list[str], list[dict], pathlib.Path | None]:
+        """Step 4 — 漫剧 Agent 一体化抽卡 (PDF 实装后字段映射会更精确).
+
+        漫剧 Agent 一次性产出: 每集 mp4 + 字幕 + 配音 + 封面.
+        这里把每集 mp4 转存到 ``04_raw/``, 同时 ``manju_master`` 指向 Agent 自带
+        的总片 (若 Agent 同时返回拼接后的总片).
+        """
+        from src.shell3_skylark_engine.manju_agent_client import ManjuAgentClient
+
+        raw_dir = self.work_root / "04_raw"
+        raw_dir.mkdir(parents=True, exist_ok=True)
+
+        ratio_default = "9:16"
+        style_map = {
+            "ancient_3d_guoman": "3d",
+            "modern_3d": "3d",
+            "ancient_2d": "2d",
+            "modern_2d": "2d",
+            "real": "real",
+        }
+        manju_style = style_map.get(style, "real")
+
+        client = ManjuAgentClient()
+        emit(4, 32, f"Step4: 漫剧 Agent 提交剧本 (style={manju_style})")
+        try:
+            result = client.render_script(
+                novel_excerpt or "",
+                ep_id=f"job{job_id}",
+                style=manju_style,
+                ratio=ratio_default,
+                narration="auto",
+                episode_duration_sec=max(60, int(
+                    (ep_list[0].get("duration_seconds", 150) if ep_list else 150)
+                )),
+                episode_count=len(ep_list),
+            )
+        except Exception as e:  # noqa: BLE001
+            notes.append(f"manju agent failed → fallback to pippit: {e}")
+            # auto-fallback to pippit 7-step pipeline
+            from src.shell3_skylark_engine.manju_agent_client import (
+                MANJU_REQ_KEY_SEEDANCE_FAST_720P_DEFAULT as _,  # noqa: F401
+            )
+            # we don't have prompts/shot_plan here; build minimal
+            prompts = {ep.get("episode_id", f"ep{i:02d}"):
+                       self._default_prompt(ep, style)
+                       for i, ep in enumerate(ep_list, start=1)}
+            shot_plan = {ep.get("episode_id", f"ep{i:02d}"):
+                         self._fallback_shots(ep)
+                         for i, ep in enumerate(ep_list, start=1)}
+            rendered, task_ids, all_shots = self._step4_render(
+                job_id, ep_list, prompts, shot_plan, emit, notes
+            )
+            return rendered, task_ids, all_shots, None
+
+        rendered: list[pathlib.Path] = []
+        task_ids: list[str] = [result.task_id]
+        all_shots: list[dict] = []
+
+        for ep in result.episodes:
+            ep_id_short = (ep_list[ep.episode_no - 1].get("episode_id")
+                           if 0 < ep.episode_no <= len(ep_list)
+                           else f"ep{ep.episode_no:02d}")
+            out_mp4 = raw_dir / f"{ep_id_short}.mp4"
+            if ep.archived_path and pathlib.Path(ep.archived_path).exists():
+                shutil.copy2(ep.archived_path, out_mp4)
+            else:
+                try:
+                    self._download_url(ep.video_url, out_mp4)
+                except Exception as e:  # noqa: BLE001
+                    notes.append(f"manju ep#{ep.episode_no} download failed: {e}")
+                    continue
+            rendered.append(out_mp4)
+            all_shots.append({
+                "shot_id": ep.episode_no,
+                "ep_id": ep_id_short,
+                "path": str(out_mp4),
+                "duration_s": ep.duration_seconds or 0,
+                "description": "[manju-agent] 一体化分集",
+                "shot_type": "manju_episode",
+                "subject_chars": [],
+                "route": "manju_agent",
+            })
+            self.store.put(f"04_raw/{out_mp4.name}", out_mp4)
+
+        # Agent 通常不返回"总片", 这里返回 None; rough_cut 走默认 concat
+        emit(4, 55,
+             f"Step4: 漫剧 Agent 完成 ({len(rendered)}/{len(ep_list)} 集)",
+             {"task_id": result.task_id})
+        return rendered, task_ids, all_shots, None
+
+    def _download_url(self, url: str, dst: pathlib.Path) -> None:
+        import urllib.request
+
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        req = urllib.request.Request(url, headers={"User-Agent": "xyq/1.0"})
+        with urllib.request.urlopen(req, timeout=300) as resp, dst.open("wb") as fp:
+            shutil.copyfileobj(resp, fp)
 
     def _step4_render(
         self,

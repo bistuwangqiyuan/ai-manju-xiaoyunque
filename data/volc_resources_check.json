@@ -1,0 +1,16 @@
+{
+    "timestamp":  "2026-05-25T09:34:04.1412584+08:00",
+    "region":  "cn-beijing",
+    "checks":  {
+                   "bucket_exists":  false,
+                   "ve_cli":  true,
+                   "ak_present":  true,
+                   "nas_id":  "未创建",
+                   "tosutil":  true,
+                   "python":  true,
+                   "cr_namespace":  "cr-cn-beijing.volces.com/xyq/manju",
+                   "docker":  false,
+                   "vefaas_authed":  "需控制台手动确认",
+                   "apig_authed":  "需控制台手动确认"
+               }
+}
