@@ -1,0 +1,189 @@
+name: Deploy to Volcengine veFaaS
+
+# 触发：
+#   1. push 一个 v* tag → 全自动构建 → 推到 Volc CR → 更新 veFaaS 函数 → 输出公网域名
+#   2. workflow_dispatch 手动触发 (可选择 image_tag)
+#
+# 用户需要的 GitHub Secrets (Settings → Secrets and variables → Actions):
+#   - VOLC_ACCESS_KEY        (火山引擎 AK)
+#   - VOLC_SECRET_KEY        (火山引擎 SK)
+#   可选 (没有则用默认值):
+#   - VOLC_CR_NAMESPACE      (默认: manhuaju)
+#   - VOLC_CR_REPO           (默认: xyq-manju)
+#   - VOLC_CR_REGISTRY_HOST  (默认: manhuaju-cn-beijing.cr.volces.com)
+#   - VEFAAS_APP_NAME        (默认: xyq-manju)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag (default = github.ref_name when on a tag)"
+        required: false
+        default: "manual-latest"
+      dry_run:
+        description: "Dry-run only (no real push/deploy)"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+concurrency:
+  group: vefaas-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Build → Push CR → Deploy veFaaS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # 部署器自身用的
+      VOLC_ACCESS_KEY:       ${{ secrets.VOLC_ACCESS_KEY }}
+      VOLC_SECRET_KEY:       ${{ secrets.VOLC_SECRET_KEY }}
+      VOLC_CR_REGISTRY_HOST: ${{ secrets.VOLC_CR_REGISTRY_HOST || 'manhuaju-cn-beijing.cr.volces.com' }}
+      VOLC_CR_NAMESPACE:     ${{ secrets.VOLC_CR_NAMESPACE     || 'manhuaju' }}
+      VOLC_CR_REPO:          ${{ secrets.VOLC_CR_REPO          || 'xyq-manju' }}
+      VEFAAS_APP_NAME:       ${{ secrets.VEFAAS_APP_NAME       || 'xyq-manju' }}
+      TOS_BUCKET:            ${{ secrets.TOS_BUCKET            || 'xyq-prod-cn-beijing' }}
+      TOS_ENDPOINT:          "https://tos-cn-beijing.volces.com"
+      TOS_REGION:            "cn-beijing"
+      STORAGE_BACKEND:       "tos"
+      # 注入到 veFaaS 容器 env (deploy.py 的 env_passthrough 自动拾取)
+      VOLC_ARK_API_KEY:      ${{ secrets.VOLC_ARK_API_KEY }}
+      ARK_API_KEY:           ${{ secrets.ARK_API_KEY }}
+      DOUBAO_API_KEY:        ${{ secrets.DOUBAO_API_KEY }}
+      DOUBAO_ENDPOINT_ID:    ${{ secrets.DOUBAO_ENDPOINT_ID }}
+      DOUBAO_MODEL:          ${{ secrets.DOUBAO_MODEL }}
+      DOUBAO_TTS_APPID:      ${{ secrets.DOUBAO_TTS_APPID }}
+      DOUBAO_TTS_TOKEN:      ${{ secrets.DOUBAO_TTS_TOKEN }}
+      DOUBAO_TTS_CLUSTER:    ${{ secrets.DOUBAO_TTS_CLUSTER }}
+      ALIYUN_ACCESS_KEY_ID:     ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
+      ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+      DASHSCOPE_API_KEY:     ${{ secrets.DASHSCOPE_API_KEY }}
+      TONGYI_API_KEY:        ${{ secrets.TONGYI_API_KEY }}
+      DEEPSEEK_API_KEY:      ${{ secrets.DEEPSEEK_API_KEY }}
+      GLM_API_KEY:           ${{ secrets.GLM_API_KEY }}
+      MOONSHOT_API_KEY:      ${{ secrets.MOONSHOT_API_KEY }}
+      MISTRAL_API_KEY:       ${{ secrets.MISTRAL_API_KEY }}
+      GROQ_API_KEY:          ${{ secrets.GROQ_API_KEY }}
+      XAI_API_KEY:           ${{ secrets.XAI_API_KEY }}
+      SPARK_API_KEY:         ${{ secrets.SPARK_API_KEY }}
+      ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
+      MINIMAX_API_KEY:       ${{ secrets.MINIMAX_API_KEY }}
+      JWT_SECRET:            ${{ secrets.JWT_SECRET }}
+      INTERNAL_API_SECRET:   ${{ secrets.INTERNAL_API_SECRET }}
+      CN_DOMESTIC_MODE:      ${{ secrets.CN_DOMESTIC_MODE      || '1' }}
+      LLM_PROVIDER_CHAIN:    ${{ secrets.LLM_PROVIDER_CHAIN    || 'deepseek,glm,moonshot,tongyi,spark,doubao' }}
+      TTS_PRIMARY:           ${{ secrets.TTS_PRIMARY           || 'doubao' }}
+      IMAGE_GEN_PRIMARY:     ${{ secrets.IMAGE_GEN_PRIMARY     || 'jimeng' }}
+      SCHEMA_VALIDATOR:      ${{ secrets.SCHEMA_VALIDATOR      || 'dashscope' }}
+      MANJU_AGENT_MODE:      ${{ secrets.MANJU_AGENT_MODE      || '0' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pre-flight check (secrets)
+        run: |
+          if [ -z "$VOLC_ACCESS_KEY" ] || [ -z "$VOLC_SECRET_KEY" ]; then
+            echo "::error::VOLC_ACCESS_KEY / VOLC_SECRET_KEY missing in GitHub Secrets"
+            exit 1
+          fi
+          echo "AK prefix: ${VOLC_ACCESS_KEY:0:8}..."
+          echo "Image:     $VOLC_CR_REGISTRY_HOST/$VOLC_CR_NAMESPACE/$VOLC_CR_REPO"
+          echo "Function:  $VEFAAS_APP_NAME (region cn-beijing)"
+          echo "TOS:       $TOS_BUCKET / $TOS_ENDPOINT"
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            T="${{ github.event.inputs.image_tag }}"
+            [ -z "$T" ] && T="manual-$(date +%Y%m%d%H%M%S)"
+          else
+            T="${GITHUB_REF_NAME#refs/tags/}"
+          fi
+          echo "tag=$T" >> $GITHUB_OUTPUT
+          echo "image=$VOLC_CR_REGISTRY_HOST/$VOLC_CR_NAMESPACE/$VOLC_CR_REPO:$T" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Volcengine Container Registry
+        if: github.event.inputs.dry_run != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.VOLC_CR_REGISTRY_HOST }}
+          username: ${{ secrets.VOLC_ACCESS_KEY }}
+          password: ${{ secrets.VOLC_SECRET_KEY }}
+
+      - name: Build (and push) image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/cn-volc-vefaas/Dockerfile.vefaas
+          platforms: linux/amd64
+          push: ${{ github.event.inputs.dry_run != 'true' }}
+          tags: |
+            ${{ steps.tag.outputs.image }}
+            ${{ env.VOLC_CR_REGISTRY_HOST }}/${{ env.VOLC_CR_NAMESPACE }}/${{ env.VOLC_CR_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deploy deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml boto3 botocore
+
+      - name: Deploy / Update veFaaS function
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          # let deploy.py pick up the same image we just pushed
+          MANJU_AGENT_MODE: "0"     # 默认走旧 pippit, 等 PDF 实装后切 1
+        run: |
+          python deploy/cn-volc-vefaas/deploy.py \
+            --app-name "$VEFAAS_APP_NAME" \
+            --image-repo "$VOLC_CR_REGISTRY_HOST/$VOLC_CR_NAMESPACE/$VOLC_CR_REPO" \
+            --image-tag "${{ steps.tag.outputs.tag }}" \
+            --region cn-beijing \
+            --verbose
+
+      - name: Dry-run deploy
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          python deploy/cn-volc-vefaas/deploy.py \
+            --app-name "$VEFAAS_APP_NAME" \
+            --image-repo "$VOLC_CR_REGISTRY_HOST/$VOLC_CR_NAMESPACE/$VOLC_CR_REPO" \
+            --image-tag "${{ steps.tag.outputs.tag }}" \
+            --region cn-beijing \
+            --dry-run \
+            --verbose
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## veFaaS Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`${{ steps.tag.outputs.image }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Function | \`$VEFAAS_APP_NAME\` (cn-beijing) |" >> $GITHUB_STEP_SUMMARY
+          echo "| TOS bucket | \`$TOS_BUCKET\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. 控制台 https://console.volcengine.com/vefaas 查看函数实例状态" >> $GITHUB_STEP_SUMMARY
+          echo "2. 若已配 API 网关, curl 公网域名 /api/health 应返回 200" >> $GITHUB_STEP_SUMMARY
+          echo "3. 拿到域名后, 回填 .env 的 SITE_URL / CORS_ORIGINS / BACKEND_URL" >> $GITHUB_STEP_SUMMARY

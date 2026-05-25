@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-05-25T16:17:23.249090+00:00",
+  "ak_prefix": "AKLTMzBl",
+  "region": "cn-beijing",
+  "results": [
+    {
+      "name": "veFaaS",
+      "status": "authorized",
+      "detail": "已授权; 当前 1 个函数",
+      "extra": {
+        "function_count": 1
+      },
+      "next_action": "可以直接跑 .\\deploy\\cn-volc-vefaas\\deploy.ps1"
+    },
+    {
+      "name": "API 网关 (apig)",
+      "status": "unknown",
+      "detail": "http 404: {\"ResponseMetadata\":{\"RequestId\":\"202605260017176B21E0A30788B5365B46\",\"Action\":\"ListGateways\",\"Version\":\"2022-11-12\",\"Service\":\"apig\",\"Region\":\"cn-beijing\",\"Error\":{\"CodeN\":100008,\"Code\":\"InvalidActio",
+      "extra": {},
+      "next_action": ""
+    },
+    {
+      "name": "TOS bucket",
+      "status": "unknown",
+      "detail": "An error occurred (400) when calling the HeadBucket operation: Bad Request",
+      "extra": {},
+      "next_action": ""
+    },
+    {
+      "name": "Doubao TTS AppID",
+      "status": "missing",
+      "detail": "当前值 ='api-key-20260516225257', 不是 11 位数字 ID; OpenAPI ListSpeechApps 也未返回可用 AppID",
+      "extra": {},
+      "next_action": "浏览器开 https://console.volcengine.com/speech/service/8 复制「语音合成大模型 ICL」应用的 11 位数字 AppID 给我"
+    }
+  ],
+  "summary": {
+    "ok": 1,
+    "need": 1,
+    "failed": 2
+  }
+}
