@@ -390,7 +390,9 @@ def build_create_function_payload(cfg: DeployConfig) -> dict:
         "SourceType": "image",
         "Command": "/app/run.sh",
         "Port": 8000,
-        "CpuStrategy": "guaranteed",
+        # CpuStrategy: "request" 按请求计费 (MinReplicas=0 时可缩到 0);
+        #              "always"  常驻 CPU (无冷启动但 24h 计费)
+        "CpuStrategy": "request",
         "MemoryMB": cfg.memory_mb,
         "RequestTimeout": cfg.timeout_secs,
         "InitializerSec": DEFAULT_INITIALIZER_SECS,
