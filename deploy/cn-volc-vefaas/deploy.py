@@ -9,8 +9,8 @@
 工作流:
   1. 读取环境变量 / config.yaml 拿 AKSK / region / 镜像 tag
   2. (可选) 调 ``docker build`` + ``docker push`` 推镜像到火山镜像仓库
-  3. 调火山 OpenAPI ``Action=CreateFunction`` 创建/更新函数
-  4. 调火山 OpenAPI ``Action=CreateRelease`` 发布版本
+  3. 调火山 OpenAPI ``Action=CreateFunction`` (或 UpdateFunction) 创建/更新函数
+  4. 调火山 OpenAPI ``Action=Release`` 发布新版本 (doc 6662/1327335)
   5. (可选) 创建 API 网关路由 (Action=CreateRoute)
   6. 输出最终公网 URL
 
@@ -432,11 +432,43 @@ def build_create_function_payload(cfg: DeployConfig) -> dict:
     }
 
 
+def _find_existing_function_id(client: VeApiClient, name: str) -> str | None:
+    """通过 ListFunctions 找已有同名函数的 ID; 找不到返回 None."""
+    try:
+        resp = client.call(
+            service=VEFAAS_SERVICE, action="ListFunctions",
+            version=VEFAAS_VERSION, body={"PageSize": 100, "PageNumber": 1},
+        )
+        items = (resp or {}).get("Result", {}).get("Items", []) or \
+                (resp or {}).get("Result", {}).get("List", []) or []
+        for item in items:
+            if isinstance(item, dict) and item.get("Name") == name:
+                fid = item.get("Id") or item.get("FunctionId")
+                if fid:
+                    print(f"[function] found existing function {name} -> id={fid}")
+                    return str(fid)
+    except Exception as e:  # noqa: BLE001
+        print(f"[function] ListFunctions probe failed (will fall back): {e}")
+    return None
+
+
 def step_create_or_update_function(client: VeApiClient, cfg: DeployConfig) -> str:
-    """优先 CreateFunction; 若 already exists 改 UpdateFunction."""
+    """先用 ListFunctions 探测; 存在则 UpdateFunction; 否则 CreateFunction."""
     payload = build_create_function_payload(cfg)
-    # 清理 None 字段, 让 OpenAPI 不收无效字段
     payload = {k: v for k, v in payload.items() if v is not None}
+
+    existing_fid = _find_existing_function_id(client, cfg.app_name)
+    if existing_fid:
+        upd_payload = dict(payload)
+        upd_payload["Id"] = existing_fid
+        # UpdateFunction 不接受 Name 字段 (Name 只在 Create 时设置, 之后只读)
+        upd_payload.pop("Name", None)
+        resp = client.call(
+            service=VEFAAS_SERVICE, action="UpdateFunction",
+            version=VEFAAS_VERSION, body=upd_payload,
+        )
+        print(f"[function] UpdateFunction OK id={existing_fid}")
+        return existing_fid
 
     try:
         resp = client.call(
@@ -449,27 +481,42 @@ def step_create_or_update_function(client: VeApiClient, cfg: DeployConfig) -> st
         return str(fid)
     except RuntimeError as e:
         msg = str(e)
-        if "AlreadyExists" in msg or "exists" in msg.lower() or "Duplicate" in msg:
-            print("[function] Already exists, calling UpdateFunction")
-            upd_payload = dict(payload)
-            upd_payload["Id"] = cfg.app_name  # veFaaS UpdateFunction by name/id
-            resp = client.call(
-                service=VEFAAS_SERVICE, action="UpdateFunction",
-                version=VEFAAS_VERSION, body=upd_payload,
-            )
-            return cfg.app_name
+        if any(tok in msg for tok in ("AlreadyExists", "Duplicate")) or "exists" in msg.lower():
+            # Race: created between probe & create. Re-probe.
+            existing_fid = _find_existing_function_id(client, cfg.app_name)
+            if existing_fid:
+                upd_payload = dict(payload)
+                upd_payload["Id"] = existing_fid
+                upd_payload.pop("Name", None)
+                client.call(
+                    service=VEFAAS_SERVICE, action="UpdateFunction",
+                    version=VEFAAS_VERSION, body=upd_payload,
+                )
+                return existing_fid
         raise
 
 
 def step_release_function(client: VeApiClient, fid: str) -> None:
-    """发布新版本."""
-    body = {"FunctionId": fid, "Description": f"deploy at {_utc_iso()}"}
+    """发布新版本.
+
+    doc: https://www.volcengine.com/docs/6662/1327335
+    Action=Release (NOT CreateRelease).
+    RevisionNumber=0 → 发布 Latest 并创建新版本.
+    """
+    body = {
+        "FunctionId": fid,
+        "RevisionNumber": 0,
+        "TargetTrafficWeight": 100,
+        "RollingStep": 100,
+        "Description": f"deploy at {_utc_iso()}",
+    }
     resp = client.call(
-        service=VEFAAS_SERVICE, action="CreateRelease",
+        service=VEFAAS_SERVICE, action="Release",
         version=VEFAAS_VERSION, body=body,
     )
-    rel_id = (resp or {}).get("Result", {}).get("Id", "?")
-    print(f"[release] CreateRelease OK release_id={rel_id}")
+    rel = (resp or {}).get("Result", {})
+    rel_id = rel.get("Id") or rel.get("ReleaseRecordId") or "?"
+    print(f"[release] Release OK release_id={rel_id} status={rel.get('Status', '?')}")
 
 
 def step_create_apig_route(client: VeApiClient, cfg: DeployConfig, fid: str) -> str | None:
