@@ -119,14 +119,17 @@ jobs:
       - name: Install volcengine-cli (ve)
         if: github.event.inputs.dry_run != 'true'
         run: |
-          # 官方 CLI: https://github.com/volcengine/volcengine-cli/releases
-          # 用 Go SDK 编译, 单二进制
-          curl -fsSL https://github.com/volcengine/volcengine-cli/releases/download/v1.0.40/ve_v1.0.40_linux_amd64.tar.gz \
-               -o /tmp/ve.tar.gz
-          tar -xzf /tmp/ve.tar.gz -C /tmp/
-          sudo mv /tmp/ve /usr/local/bin/ve
-          chmod +x /usr/local/bin/ve
-          ve --version || true
+          set -euo pipefail
+          # 用 gh API 拿最新 release 的 linux_amd64 zip 直链
+          VER=$(curl -fsSL https://api.github.com/repos/volcengine/volcengine-cli/releases/latest \
+                  | python -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))')
+          echo "ve CLI version: $VER"
+          curl -fsSL "https://github.com/volcengine/volcengine-cli/releases/download/v${VER}/volcengine-cli_${VER}_linux_amd64.zip" \
+               -o /tmp/ve.zip
+          (cd /tmp && unzip -o ve.zip)
+          # binary is named `ve` (linux/amd64) — confirm via zipinfo if needed
+          sudo install -m 0755 /tmp/ve /usr/local/bin/ve
+          ve --version 2>/dev/null || ve help | head -2 || true
 
       - name: Get Volcengine CR temporary token
         if: github.event.inputs.dry_run != 'true'
