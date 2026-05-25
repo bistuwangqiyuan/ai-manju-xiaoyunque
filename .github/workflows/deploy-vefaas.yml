@@ -116,64 +116,38 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Install volcengine-cli (ve)
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          # 官方 CLI: https://github.com/volcengine/volcengine-cli/releases
+          # 用 Go SDK 编译, 单二进制
+          curl -fsSL https://github.com/volcengine/volcengine-cli/releases/download/v1.0.40/ve_v1.0.40_linux_amd64.tar.gz \
+               -o /tmp/ve.tar.gz
+          tar -xzf /tmp/ve.tar.gz -C /tmp/
+          sudo mv /tmp/ve /usr/local/bin/ve
+          chmod +x /usr/local/bin/ve
+          ve --version || true
+
       - name: Get Volcengine CR temporary token
         if: github.event.inputs.dry_run != 'true'
         id: cr_token
+        env:
+          VOLCENGINE_ACCESS_KEY: ${{ secrets.VOLC_ACCESS_KEY }}
+          VOLCENGINE_SECRET_KEY: ${{ secrets.VOLC_SECRET_KEY }}
+          VOLCENGINE_REGION:     "cn-beijing"
         run: |
           set -euo pipefail
-          # 安装 python deps
-          python -m pip install --quiet --upgrade pip
-          pip install --quiet pyyaml
-          # 调用 GetAuthorizationToken 拿 1 小时 token
-          python - <<'PY'
-          import datetime, hashlib, hmac, json, os, urllib.parse, urllib.request, sys
-
-          def _sha(b): return hashlib.sha256(b).hexdigest()
-
-          ak = os.environ["VOLC_ACCESS_KEY"]; sk = os.environ["VOLC_SECRET_KEY"]
-          registry_id = os.environ.get("VOLC_CR_REGISTRY_ID", "manhuaju")
-          host = "open.volcengineapi.com"
-          service = "cr"; region = "cn-beijing"
-          body = json.dumps({"Registry": registry_id}).encode()
-          body_hash = _sha(body)
-          now = datetime.datetime.now(datetime.timezone.utc)
-          amzdate = now.strftime("%Y%m%dT%H%M%SZ")
-          datestamp = now.strftime("%Y%m%d")
-          qs = "Action=GetAuthorizationToken&Version=2022-05-12"
-          canonical_headers = (
-              f"content-type:application/json; charset=utf-8\\nhost:{host}\\n"
-              f"x-content-sha256:{body_hash}\\nx-date:{amzdate}\\n"
-          )
-          signed_headers = "content-type;host;x-content-sha256;x-date"
-          canon = "\\n".join(["POST","/",qs,canonical_headers,signed_headers,body_hash])
-          scope = f"{datestamp}/{region}/{service}/request"
-          sts = "\\n".join(["HMAC-SHA256",amzdate,scope,_sha(canon.encode())])
-          def _h(k, m): return hmac.new(k, m.encode(), hashlib.sha256).digest()
-          k_date = _h(sk.encode(), datestamp); k_reg = _h(k_date, region)
-          k_svc  = _h(k_reg, service); k_sig = _h(k_svc, "request")
-          sig = hmac.new(k_sig, sts.encode(), hashlib.sha256).hexdigest()
-          headers = {
-              "Host": host, "Content-Type": "application/json; charset=utf-8",
-              "X-Date": amzdate, "X-Content-Sha256": body_hash,
-              "Authorization": (f"HMAC-SHA256 Credential={ak}/{scope}, "
-                                f"SignedHeaders={signed_headers}, Signature={sig}"),
-          }
-          url = f"https://{host}/?{qs}"
-          req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-          with urllib.request.urlopen(req, timeout=30) as r:
-              j = json.loads(r.read())
-          result = j.get("Result") or {}
-          token = result.get("Token") or ""
-          username = result.get("Username") or ""
-          assert token and username, f"token/username missing: {j}"
-          # mask token in subsequent logs
-          print(f"::add-mask::{token}")
-          # write to env file
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"username={username}\\n")
-              f.write(f"token={token}\\n")
-          print(f"Got CR token for username={username[:30]}*** (expires {result.get('ExpireTime')})")
-          PY
+          # ve CLI 用 VOLCENGINE_* 环境变量做认证
+          out=$(ve cr GetAuthorizationToken --Registry "$VOLC_CR_NAMESPACE")
+          token=$(echo "$out" | python -c 'import json,sys; print(json.load(sys.stdin)["Result"]["Token"])')
+          username=$(echo "$out" | python -c 'import json,sys; print(json.load(sys.stdin)["Result"]["Username"])')
+          echo "::add-mask::$token"
+          # 用 heredoc 方式安全写多行 token (尽管 JWT 是单行)
+          {
+            echo "username=$username"
+            printf 'token<<EOF_T\n%s\nEOF_T\n' "$token"
+          } >> "$GITHUB_OUTPUT"
+          echo "Got CR token (user=$(echo "$username" | head -c30)***, len=${#token})"
 
       - name: Docker login to Volcengine CR
         if: github.event.inputs.dry_run != 'true'
