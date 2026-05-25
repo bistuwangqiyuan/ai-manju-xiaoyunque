@@ -394,7 +394,11 @@ def build_create_function_payload(cfg: DeployConfig) -> dict:
         "MemoryMB": cfg.memory_mb,
         "RequestTimeout": cfg.timeout_secs,
         "InitializerSec": DEFAULT_INITIALIZER_SECS,
-        "MaxConcurrency": 5,
+        # ExclusiveMode=true: 单实例可处理并发 (Caddy+FastAPI 内部线程池)
+        # ExclusiveMode=false: 一次只处理 1 个请求, 通过 replica 横向扩缩 (强迫 MaxConcurrency=0)
+        # 我们是 web service → ExclusiveMode=true + 中等并发
+        "ExclusiveMode": True,
+        "MaxConcurrency": 20,
         "MinReplicas": 0,
         "MaxReplicas": 5,
         "Envs": [
