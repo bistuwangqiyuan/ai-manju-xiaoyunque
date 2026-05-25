@@ -394,14 +394,12 @@ def build_create_function_payload(cfg: DeployConfig) -> dict:
         "MemoryMB": cfg.memory_mb,
         "RequestTimeout": cfg.timeout_secs,
         "InitializerSec": DEFAULT_INITIALIZER_SECS,
-        # veFaaS 模型语义 (经实测 API 错误信息确认):
-        #   ExclusiveMode=true  → MaxConcurrency 必须 = 1 (单实例独占, 1 req-at-a-time)
-        #   ExclusiveMode=false → MaxConcurrency 必须 = 0 (容器内部线程池处理并发,
-        #                                                  veFaaS 按需扩容 replica)
-        # web service 走 ExclusiveMode=false: Caddy + uvicorn 自己负责高并发,
-        # veFaaS 看流量增加时自动扩 replica (MinReplicas..MaxReplicas).
+        # veFaaS 模型语义 (官方 doc 6662/1262132):
+        #   ExclusiveMode=true  → MaxConcurrency 必须 = 1
+        #   ExclusiveMode=false → MaxConcurrency 取值范围 10~1000, 默认 100
+        # web service 走 ExclusiveMode=false: Caddy + uvicorn 自带高并发, 设 100 足够.
         "ExclusiveMode": False,
-        "MaxConcurrency": 0,
+        "MaxConcurrency": 100,
         "MinReplicas": 0,
         "MaxReplicas": 10,
         "Envs": [
