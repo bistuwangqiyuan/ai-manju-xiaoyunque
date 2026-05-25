@@ -1,58 +1,89 @@
-# Root-level .dockerignore (build context = repo root)
-# 只用最保守的模式，避免 BuildKit 版本差异
-# 注意：Dockerfile 显式 COPY backend/requirements.txt 和 backend/app
-# 所以即便这里少排除点东西，也不会进镜像
+# =============================================================================
+# Root .dockerignore — applied to ALL Dockerfiles built from repo root context
+#
+# 设计原则:
+#   - 只排除「绝对不应进镜像」的东西 (caches, secrets, build artifacts)
+#   - 业务源码 (web/, prompts/, config/, compliance/, backend/, src/) 不排除,
+#     因为 Dockerfile.allinone 和 Dockerfile.vefaas 都 COPY 它们
+#   - 单独的子 Dockerfile (如 backend/Dockerfile.api) 可放置 backend/.dockerignore
+# =============================================================================
 
-# 前端整个目录
-web
-
-# Python 缓存（任意深度）
-__pycache__
+# --- Python ---
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
+.pytest_cache/
+.benchmarks/
+.coverage*
+htmlcov/
+.tox/
 
-# 虚拟环境
-.venv
-venv
-env
+# --- Node ---
+node_modules/
+web/node_modules/
+.next/
+web/.next/
+*.tsbuildinfo
+**/dist/
+**/build/
 
-# 本地数据/日志
+# --- 虚拟环境 ---
+.venv/
+venv/
+env/
+.pyenv/
+
+# --- 本地数据 / 日志 / 数据库 ---
 *.db
 *.sqlite
+*.sqlite3
 *.log
-smoke.db
-smoke.log
-data.db
+data/
+backend/storage/
+backend/data/
+storage/
 
-# 本地 .env（生产用 Railway Variables）
+# --- 本地 .env (生产用 GitHub Secrets / VeFaaS 环境变量) ---
 .env
-.env.local
-.env.development
-.env.production
+.env.*
+!.env.example
+!.env.cn.example
 backend/.env
-backend/.env.local
+backend/.env.*
 
-# 工程文档（不进镜像）
-*.md
-
-# 原 AI 流水线目录（接入真实渲染前不需要）
-prompts
-pilot
-config
-compliance
-tests
-prompt
-data
-
-# Storage 容器内自己建
-backend/storage
-
-# Git / IDE / OS
-.git
+# --- Git / IDE / OS / Cursor ---
+.git/
 .gitignore
 .gitattributes
 .DS_Store
-.claude
-.vercel
-node_modules
+Thumbs.db
+.vscode/
+.idea/
+.cursor/
+.claude/
+.vercel/
+
+# --- 临时 / 构建产物 ---
+*.tmp
+*.bak
+*.swp
+*.zip
+*.tar.gz
+release/
+dist/
+
+# --- 测试 (镜像里不跑测试) ---
+tests/
+test_*.py
+*_test.py
+
+# --- 文档 (不进镜像) ---
+docs/
+*.md
+!README.md
+
+# --- 部署元数据 (递归构建会出现) ---
+deploy/cn-serverless/build/
+deploy/cn-volc-vefaas/build/
