@@ -116,13 +116,72 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Volcengine Container Registry
+      - name: Get Volcengine CR temporary token
         if: github.event.inputs.dry_run != 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.VOLC_CR_REGISTRY_HOST }}
-          username: ${{ secrets.VOLC_ACCESS_KEY }}
-          password: ${{ secrets.VOLC_SECRET_KEY }}
+        id: cr_token
+        run: |
+          set -euo pipefail
+          # 安装 python deps
+          python -m pip install --quiet --upgrade pip
+          pip install --quiet pyyaml
+          # 调用 GetAuthorizationToken 拿 1 小时 token
+          python - <<'PY'
+          import datetime, hashlib, hmac, json, os, urllib.parse, urllib.request, sys
+
+          def _sha(b): return hashlib.sha256(b).hexdigest()
+
+          ak = os.environ["VOLC_ACCESS_KEY"]; sk = os.environ["VOLC_SECRET_KEY"]
+          registry_id = os.environ.get("VOLC_CR_REGISTRY_ID", "manhuaju")
+          host = "open.volcengineapi.com"
+          service = "cr"; region = "cn-beijing"
+          body = json.dumps({"Registry": registry_id}).encode()
+          body_hash = _sha(body)
+          now = datetime.datetime.now(datetime.timezone.utc)
+          amzdate = now.strftime("%Y%m%dT%H%M%SZ")
+          datestamp = now.strftime("%Y%m%d")
+          qs = "Action=GetAuthorizationToken&Version=2022-05-12"
+          canonical_headers = (
+              f"content-type:application/json; charset=utf-8\\nhost:{host}\\n"
+              f"x-content-sha256:{body_hash}\\nx-date:{amzdate}\\n"
+          )
+          signed_headers = "content-type;host;x-content-sha256;x-date"
+          canon = "\\n".join(["POST","/",qs,canonical_headers,signed_headers,body_hash])
+          scope = f"{datestamp}/{region}/{service}/request"
+          sts = "\\n".join(["HMAC-SHA256",amzdate,scope,_sha(canon.encode())])
+          def _h(k, m): return hmac.new(k, m.encode(), hashlib.sha256).digest()
+          k_date = _h(sk.encode(), datestamp); k_reg = _h(k_date, region)
+          k_svc  = _h(k_reg, service); k_sig = _h(k_svc, "request")
+          sig = hmac.new(k_sig, sts.encode(), hashlib.sha256).hexdigest()
+          headers = {
+              "Host": host, "Content-Type": "application/json; charset=utf-8",
+              "X-Date": amzdate, "X-Content-Sha256": body_hash,
+              "Authorization": (f"HMAC-SHA256 Credential={ak}/{scope}, "
+                                f"SignedHeaders={signed_headers}, Signature={sig}"),
+          }
+          url = f"https://{host}/?{qs}"
+          req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+          with urllib.request.urlopen(req, timeout=30) as r:
+              j = json.loads(r.read())
+          result = j.get("Result") or {}
+          token = result.get("Token") or ""
+          username = result.get("Username") or ""
+          assert token and username, f"token/username missing: {j}"
+          # mask token in subsequent logs
+          print(f"::add-mask::{token}")
+          # write to env file
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"username={username}\\n")
+              f.write(f"token={token}\\n")
+          print(f"Got CR token for username={username[:30]}*** (expires {result.get('ExpireTime')})")
+          PY
+
+      - name: Docker login to Volcengine CR
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          CR_USERNAME: ${{ steps.cr_token.outputs.username }}
+          CR_TOKEN:    ${{ steps.cr_token.outputs.token }}
+        run: |
+          echo "$CR_TOKEN" | docker login "$VOLC_CR_REGISTRY_HOST" -u "$CR_USERNAME" --password-stdin
 
       - name: Build (and push) image
         uses: docker/build-push-action@v6
