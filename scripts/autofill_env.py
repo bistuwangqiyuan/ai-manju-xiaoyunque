@@ -277,6 +277,11 @@ def merge_all() -> dict[str, str]:
         if not _is_real(merged.get(k, "")):
             merged[k] = v
 
+    # 漫剧 Agent (v9): 默认关闭, 用户设 1 之后才走专用 API
+    merged.setdefault("MANJU_AGENT_MODE", "0")
+    merged.setdefault("FORCE_MOCK_MANJU_AGENT", "1")
+    merged.setdefault("CN_DOMESTIC_MODE", "1")
+
     return merged
 
 
@@ -340,6 +345,7 @@ def apply_to_targets(merged: dict[str, str]) -> dict[str, list[str]]:
                 "RUNWAY", "HEDRA", "MINIMAX", "SUNO", "KLING", "NETEASE",
                 "ALIBABA", "ALIYUN", "OSS_", "TOS_", "S3_", "STORAGE",
                 "JWT", "INTERNAL", "MOCK", "DATABASE", "TENCENT", "COS_",
+                "MANJU_", "NAS_", "CN_DOMESTIC_MODE",
             )
         )
     }

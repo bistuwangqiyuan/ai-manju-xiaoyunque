@@ -124,12 +124,23 @@ KNOWN_MOCK_FLAGS = {
     "WORKER_POLL_INTERVAL",
     "SKYLARK_REQ_KEY_CACHE",
     "FORCE_MOCK_TTS_ELEVENLABS",
+    "FORCE_MOCK_MANJU_AGENT",
     "CN_DOMESTIC_MODE",
     "LLM_PROVIDER_CHAIN",
     "SCHEMA_VALIDATOR",
     "TTS_PRIMARY",
     "IMAGE_GEN_PRIMARY",
     "DOUBAO_TTS_CLUSTER",
+    # 漫剧 Agent (v9)
+    "MANJU_AGENT_MODE",
+    "MANJU_REQ_KEY",
+    # TOS object storage (v9)
+    "TOS_BUCKET",
+    "TOS_ENDPOINT",
+    "TOS_REGION",
+    "TOS_PREFIX",
+    # NAS persistent data (v9)
+    "NAS_MOUNT_PATH",
     "PYTHONPATH",
     "PATH",
     "PORT",
