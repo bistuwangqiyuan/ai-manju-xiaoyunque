@@ -1,0 +1,212 @@
+{
+  "model": "throughput_model",
+  "version": "v10.0",
+  "constants": {
+    "default_shot_render_seconds": 36.0,
+    "default_episode_seconds": 165.0
+  },
+  "sla_targets": {
+    "novel_first_token_s_lt": 5.0,
+    "single_image_s_lt": 15.0,
+    "five_second_clip_s_lt": 180.0,
+    "queue_wait_p95_s_lt": 600.0
+  },
+  "scenarios": [
+    {
+      "name": "dev",
+      "scenario": {
+        "name": "dev",
+        "concurrent_users": 2,
+        "avg_jobs_per_user_per_h": 2.0,
+        "parallel_workers": 3,
+        "mean_service_s": 165.0
+      },
+      "lambda_per_s": 0.0011111111111111111,
+      "mu_per_s": 0.006060606060606061,
+      "metrics": {
+        "utilisation": 0.06111111111111111,
+        "rho_total": 0.18333333333333332,
+        "p_wait_gt_0": 0.0009106084862416702,
+        "expected_wait_in_queue_s": 0.05334333735971915,
+        "expected_wait_in_system_s": 165.0533433373597,
+        "expected_queue_length": 5.9270374844132384e-05,
+        "expected_jobs_in_system": 0.18339260370817745,
+        "p50_wait_in_system_s": 165.0533433373597,
+        "p95_wait_in_system_s": 165.0533433373597,
+        "p99_wait_in_system_s": 165.0533433373597,
+        "throughput_per_min": 0.06666666666666667
+      },
+      "sla": {
+        "queue_wait_p95_s_lt_target": true,
+        "p95_actual": 165.0533433373597,
+        "target": 600.0
+      }
+    },
+    {
+      "name": "pilot",
+      "scenario": {
+        "name": "pilot",
+        "concurrent_users": 20,
+        "avg_jobs_per_user_per_h": 0.8,
+        "parallel_workers": 6,
+        "mean_service_s": 165.0
+      },
+      "lambda_per_s": 0.0044444444444444444,
+      "mu_per_s": 0.006060606060606061,
+      "metrics": {
+        "utilisation": 0.12222222222222222,
+        "rho_total": 0.7333333333333333,
+        "p_wait_gt_0": 0.00011819735972449983,
+        "expected_wait_in_queue_s": 0.0037030185483308492,
+        "expected_wait_in_system_s": 165.00370301854832,
+        "expected_queue_length": 1.6457860214803775e-05,
+        "expected_jobs_in_system": 0.7333497911935482,
+        "p50_wait_in_system_s": 165.00370301854832,
+        "p95_wait_in_system_s": 165.00370301854832,
+        "p99_wait_in_system_s": 165.00370301854832,
+        "throughput_per_min": 0.26666666666666666
+      },
+      "sla": {
+        "queue_wait_p95_s_lt_target": true,
+        "p95_actual": 165.00370301854832,
+        "target": 600.0
+      }
+    },
+    {
+      "name": "launch",
+      "scenario": {
+        "name": "launch",
+        "concurrent_users": 200,
+        "avg_jobs_per_user_per_h": 0.5,
+        "parallel_workers": 24,
+        "mean_service_s": 165.0
+      },
+      "lambda_per_s": 0.027777777777777776,
+      "mu_per_s": 0.006060606060606061,
+      "metrics": {
+        "utilisation": 0.1909722222222222,
+        "rho_total": 4.583333333333333,
+        "p_wait_gt_0": 1.5037275753809037e-10,
+        "expected_wait_in_queue_s": 1.277845750752871e-09,
+        "expected_wait_in_system_s": 165.00000000127784,
+        "expected_queue_length": 3.549571529869086e-11,
+        "expected_jobs_in_system": 4.583333333368828,
+        "p50_wait_in_system_s": 165.00000000127784,
+        "p95_wait_in_system_s": 165.00000000127784,
+        "p99_wait_in_system_s": 165.00000000127784,
+        "throughput_per_min": 1.6666666666666665
+      },
+      "sla": {
+        "queue_wait_p95_s_lt_target": true,
+        "p95_actual": 165.00000000127784,
+        "target": 600.0
+      }
+    },
+    {
+      "name": "scale",
+      "scenario": {
+        "name": "scale",
+        "concurrent_users": 1500,
+        "avg_jobs_per_user_per_h": 0.3,
+        "parallel_workers": 120,
+        "mean_service_s": 165.0
+      },
+      "lambda_per_s": 0.125,
+      "mu_per_s": 0.006060606060606061,
+      "metrics": {
+        "utilisation": 0.171875,
+        "rho_total": 20.625,
+        "p_wait_gt_0": 1.0628242000375465e-50,
+        "expected_wait_in_queue_s": 1.7646892377981904e-50,
+        "expected_wait_in_system_s": 165.0,
+        "expected_queue_length": 2.205861547247738e-51,
+        "expected_jobs_in_system": 20.625,
+        "p50_wait_in_system_s": 165.0,
+        "p95_wait_in_system_s": 165.0,
+        "p99_wait_in_system_s": 165.0,
+        "throughput_per_min": 7.5
+      },
+      "sla": {
+        "queue_wait_p95_s_lt_target": true,
+        "p95_actual": 165.0,
+        "target": 600.0
+      }
+    },
+    {
+      "name": "peak_friday",
+      "scenario": {
+        "name": "peak_friday",
+        "concurrent_users": 3000,
+        "avg_jobs_per_user_per_h": 0.6,
+        "parallel_workers": 200,
+        "mean_service_s": 165.0
+      },
+      "lambda_per_s": 0.5,
+      "mu_per_s": 0.006060606060606061,
+      "metrics": {
+        "utilisation": 0.4125,
+        "rho_total": 82.5,
+        "p_wait_gt_0": 6.245949118153873e-28,
+        "expected_wait_in_queue_s": 8.770907272301182e-28,
+        "expected_wait_in_system_s": 165.0,
+        "expected_queue_length": 4.385453636150591e-28,
+        "expected_jobs_in_system": 82.5,
+        "p50_wait_in_system_s": 165.0,
+        "p95_wait_in_system_s": 165.0,
+        "p99_wait_in_system_s": 165.0,
+        "throughput_per_min": 30.0
+      },
+      "sla": {
+        "queue_wait_p95_s_lt_target": true,
+        "p95_actual": 165.0,
+        "target": 600.0
+      }
+    }
+  ],
+  "capacity_curve": [
+    {
+      "users": 50,
+      "min_workers": 3,
+      "p95_s": 258.8,
+      "throughput_per_min": 0.417
+    },
+    {
+      "users": 100,
+      "min_workers": 4,
+      "p95_s": 346.3,
+      "throughput_per_min": 0.833
+    },
+    {
+      "users": 200,
+      "min_workers": 6,
+      "p95_s": 472.3,
+      "throughput_per_min": 1.667
+    },
+    {
+      "users": 500,
+      "min_workers": 13,
+      "p95_s": 486.0,
+      "throughput_per_min": 4.167
+    },
+    {
+      "users": 1000,
+      "min_workers": 25,
+      "p95_s": 404.2,
+      "throughput_per_min": 8.333
+    },
+    {
+      "users": 2000,
+      "min_workers": 48,
+      "p95_s": 413.0,
+      "throughput_per_min": 16.667
+    },
+    {
+      "users": 5000,
+      "min_workers": 116,
+      "p95_s": 593.4,
+      "throughput_per_min": 41.667
+    }
+  ],
+  "generated_at_utc": "2026-05-26T16:59:47Z",
+  "source": "tools/data_models/throughput_model.py"
+}

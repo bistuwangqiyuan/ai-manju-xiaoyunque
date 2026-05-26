@@ -35,10 +35,43 @@ YCbCr Matrix: TV.709
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Default,思源黑体 CN Bold,72,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,140,134
 Style: Voiceover,思源宋体 CN,64,&H00E8D9B0,&H000000FF,&H00000000,&H00000000,0,1,0,0,100,100,0,0,1,3,2,8,40,40,180,134
+Style: AncientSeal,方正小篆体,80,&H00D9B575,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,3,2,40,40,160,134
+Style: AncientKai,方正楷体_GBK,72,&H00F2EBD5,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,2,2,40,40,140,134
+Style: ModernSans,思源黑体 CN Bold,68,&H00FFFFFF,&H000000FF,&H00080808,&H00000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,130,134
+Style: ModernRound,阿里巴巴普惠体 R,68,&H00FFFFFF,&H000000FF,&H00121212,&H00000000,0,0,0,0,100,100,0,0,1,4,2,2,40,40,130,134
+Style: DanmuTop,思源黑体 CN,52,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,1,8,40,40,80,134
+Style: DanmuRoll,思源黑体 CN,48,&H66FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,1,7,40,40,300,134
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
+
+SUBTITLE_STYLES = (
+    "Default", "Voiceover",
+    "AncientSeal", "AncientKai", "ModernSans", "ModernRound",
+    "DanmuTop", "DanmuRoll",
+)
+
+STYLE_PRESETS = {
+    "modern":         "Default",
+    "modern_round":   "ModernRound",
+    "modern_sans":    "ModernSans",
+    "voiceover":      "Voiceover",
+    "ancient_seal":   "AncientSeal",
+    "ancient_kai":    "AncientKai",
+    "ancient":        "AncientKai",
+    "danmu_top":      "DanmuTop",
+    "danmu_roll":     "DanmuRoll",
+    "bullet":         "DanmuRoll",
+}
+
+
+def resolve_style(name: str | None) -> str:
+    if not name:
+        return "Default"
+    if name in SUBTITLE_STYLES:
+        return name
+    return STYLE_PRESETS.get(name.lower(), "Default")
 
 
 def _fmt_ts(seconds: float) -> str:

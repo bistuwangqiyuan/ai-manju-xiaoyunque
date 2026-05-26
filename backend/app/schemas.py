@@ -36,18 +36,27 @@ class JobCreateIn(BaseModel):
     title: str = Field(default="未命名漫剧", max_length=120)
     novel_excerpt: str = Field(default="", max_length=200000)
     style: str = Field(default="ancient_3d_guoman", max_length=60)
-    episodes: int = Field(ge=1, le=10)
+    episodes: int = Field(ge=1, le=50)
     # New optional fields for multi-genre / theme generation / multilingual
     genre: str = Field(default="ancient", max_length=40)
     mode: Literal["excerpt", "theme", "novel"] = "excerpt"
     theme: Optional[str] = Field(default=None, max_length=400)
     language: str = Field(default="Chinese", max_length=20)
+    # V10 §1.2 产出规格
+    aspect_ratio: Literal["9:16", "16:9", "1:1"] = "9:16"
+    resolution: Literal["1080p", "2k", "4k"] = "1080p"
+    fps: Literal[24, 25, 30] = 24
+    duration_per_episode_s: int = Field(default=80, ge=30, le=300)
+    # V10 §1.1 自定义画风
+    custom_style_id: Optional[str] = Field(default=None, max_length=60)
+    # V10 §1.3 简易/专业模式（决定后端默认值是否覆盖）
+    ui_mode: Literal["wizard", "pro"] = "wizard"
 
 
 class JobOut(BaseModel):
     id: int
     title: str
-    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled", "paused"]
     progress: int
     cost_cents: int
     episodes: int
@@ -68,6 +77,16 @@ class JobOut(BaseModel):
     pipeline_version: str = "v6"
     scores_7d: Optional[dict] = None
     human_approved: bool = False
+    # V10
+    aspect_ratio: str = "9:16"
+    resolution: str = "1080p"
+    fps: int = 24
+    duration_per_episode_s: int = 80
+    custom_style_id: Optional[str] = None
+    ui_mode: str = "wizard"
+    parent_id: Optional[int] = None
+    org_id: Optional[int] = None
+    confirm_required_at_steps: Optional[list[int]] = None
     created_at: datetime
     updated_at: datetime
 
@@ -111,6 +130,15 @@ def job_to_out(job) -> "JobOut":
         pipeline_version=getattr(job, "pipeline_version", "v6") or "v6",
         scores_7d=_parse_json_field(getattr(job, "scores_7d", None)),
         human_approved=bool(getattr(job, "human_approved", False)),
+        aspect_ratio=getattr(job, "aspect_ratio", "9:16") or "9:16",
+        resolution=getattr(job, "resolution", "1080p") or "1080p",
+        fps=getattr(job, "fps", 24) or 24,
+        duration_per_episode_s=getattr(job, "duration_per_episode_s", 80) or 80,
+        custom_style_id=getattr(job, "custom_style_id", None),
+        ui_mode=getattr(job, "ui_mode", "wizard") or "wizard",
+        parent_id=getattr(job, "parent_id", None),
+        org_id=getattr(job, "org_id", None),
+        confirm_required_at_steps=_parse_json_field(getattr(job, "confirm_required_at_steps_json", None)),
         created_at=job.created_at,
         updated_at=job.updated_at,
     )

@@ -21,20 +21,90 @@ def continue_story(
     direction: str | None = None,
     genre: str = "ancient",
     character_manifests: list[dict] | None = None,
+    n_candidates: int = 1,
+    foreshadowing: list[str] | None = None,
 ) -> dict:
-    """Return ``{episodes: [...], direction_used, method}``.
+    """Return ``{episodes: [...], direction_used, method}`` for ``n_candidates==1``
+    or ``{candidates: [{episodes:[...], summary, direction_used}, ...]}`` for
+    ``n_candidates>1``.
 
-    Falls back to a structured mock so the SaaS UX never blocks.
+    V10 §8.1 — supports multi-candidate brainstorming and explicit
+    foreshadowing injection (each item in ``foreshadowing`` is woven into
+    one of the new episodes).
     """
+    if n_candidates and n_candidates > 1:
+        return _continue_multi(
+            prior_novel=prior_novel, prior_episodes=prior_episodes,
+            extra_episodes=extra_episodes, direction=direction, genre=genre,
+            character_manifests=character_manifests or [],
+            n_candidates=n_candidates, foreshadowing=foreshadowing or [],
+        )
+
     if os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("FORCE_MOCK_CONTINUATION") != "1":
         try:
-            return _via_anthropic(
+            result = _via_anthropic(
                 prior_novel, prior_episodes, extra_episodes, direction, genre,
                 character_manifests or [],
             )
+            if foreshadowing:
+                _inject_foreshadowing(result.get("episodes", []), foreshadowing)
+            return result
         except Exception as e:
             _log.warning("continuation via anthropic failed: %s", e)
-    return _heuristic(prior_episodes, extra_episodes, direction, genre)
+    result = _heuristic(prior_episodes, extra_episodes, direction, genre)
+    if foreshadowing:
+        _inject_foreshadowing(result.get("episodes", []), foreshadowing)
+    return result
+
+
+def _continue_multi(
+    *, prior_novel: str, prior_episodes: list[dict], extra_episodes: int,
+    direction: str | None, genre: str, character_manifests: list[dict],
+    n_candidates: int, foreshadowing: list[str],
+) -> dict:
+    """Brainstorm ``n_candidates`` divergent continuations."""
+    seeds = [
+        direction or "延续上一集结尾的悬念",
+        "翻转主角立场或揭露隐藏身份",
+        "推进副线、引入新对手或盟友",
+        "聚焦情感纠葛与心理转折",
+        "围绕单一危机的密集冲突",
+    ]
+    candidates: list[dict] = []
+    for i in range(n_candidates):
+        seed = seeds[i % len(seeds)]
+        seed_full = f"候选 {i + 1}：{seed}"
+        eps = _heuristic(prior_episodes, extra_episodes, seed_full, genre)
+        for j, ep in enumerate(eps.get("episodes", [])):
+            ep["title"] = f"{ep.get('title', '')}（候选{i + 1}）"
+            ep["candidate_index"] = i
+        if foreshadowing:
+            _inject_foreshadowing(eps.get("episodes", []), foreshadowing)
+        candidates.append({
+            "candidate_index": i,
+            "summary": seed,
+            "direction_used": seed_full,
+            "episodes": eps.get("episodes", []),
+        })
+    return {
+        "candidates": candidates,
+        "n_candidates": n_candidates,
+        "method": "multi_heuristic",
+        "foreshadowing_used": list(foreshadowing),
+    }
+
+
+def _inject_foreshadowing(episodes: list[dict], foreshadowing: list[str]) -> None:
+    """Distribute foreshadowing lines across the generated episodes."""
+    if not episodes or not foreshadowing:
+        return
+    n_eps = len(episodes)
+    for idx, fs in enumerate(foreshadowing):
+        target = episodes[idx % n_eps]
+        existing = target.get("foreshadowing_payload") or []
+        existing.append(fs)
+        target["foreshadowing_payload"] = existing
+        target["synopsis"] = (target.get("synopsis") or "") + f"【伏笔】{fs}"
 
 
 def _heuristic(

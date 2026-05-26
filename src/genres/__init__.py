@@ -70,7 +70,7 @@ def load_genres() -> dict[str, GenreTemplate]:
     out: dict[str, GenreTemplate] = {}
     if not GENRE_DIR.exists():
         return out
-    for path in sorted(GENRE_DIR.glob("*.yaml")):
+    for path in sorted(GENRE_DIR.rglob("*.yaml")):
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         except Exception:

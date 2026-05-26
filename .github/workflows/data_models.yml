@@ -1,0 +1,50 @@
+name: data-models
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "tools/data_models/**"
+      - "tests/v10/data_models/**"
+      - ".github/workflows/data_models.yml"
+  pull_request:
+    paths:
+      - "tools/data_models/**"
+      - "tests/v10/data_models/**"
+  schedule:
+    - cron: "17 4 * * *"  # daily 04:17 UTC
+
+jobs:
+  reproduce-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install minimal deps
+        run: pip install --upgrade pip pytest pyyaml
+
+      - name: Run all six data models
+        run: |
+          python -m tools.data_models.cost_model
+          python -m tools.data_models.throughput_model
+          python -m tools.data_models.quality_model
+          python -m tools.data_models.capacity_model
+          python -m tools.data_models.footprint_model
+          python -m tools.data_models.validation_model
+
+      - name: Pytest
+        run: python -m pytest tests/v10/data_models -q --no-header
+
+      - name: Upload reproducible artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-models-reports
+          path: |
+            data/data_models/*.json
+            docs/data_models/*.md

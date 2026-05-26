@@ -1,0 +1,194 @@
+# V10 §9.1 — 10 viral short-drama templates
+# Each template encodes the genre/aspect/duration/hook DNA the writer
+# layer auto-applies before generation.
+
+version: 1
+templates:
+  - id: ancient_palace_revenge
+    label: 古装·重生归来复仇
+    genre: ancient
+    sub_genre: palace_fight
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 75
+    hook_template: "重生归来的{lead}睁眼便已是被害前夜，这一世她要让仇人血债血偿。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "震撼眼神特写 + 一句标志台词" }
+      - { beat: "setup", seconds: 8, note: "回忆杀闪现前世悲剧" }
+      - { beat: "incident", seconds: 12, note: "今日罪人初登场" }
+      - { beat: "rising", seconds: 30, note: "主角祭出反杀第一招" }
+      - { beat: "twist", seconds: 12, note: "隐藏盟友 / 反派暴露" }
+      - { beat: "cliffhanger", seconds: 10, note: "悬念收尾 + 预告" }
+    bgm_query: "古风宫斗紧张高潮"
+    subtitle_style: ancient_kai
+    cover_prompt: "宫廷夜景，红衣女子持剑回眸，冷月清辉"
+
+  - id: ancient_xianxia_chosen
+    label: 仙侠·废柴觉醒天命
+    genre: ancient
+    sub_genre: xianxia
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 80
+    hook_template: "{lead}灵根被废跌入山涧，醒来时却继承了远古战神的传承。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "灵气爆裂特效 + 慢镜回眸" }
+      - { beat: "setup", seconds: 10, note: "被欺凌的过往" }
+      - { beat: "incident", seconds: 12, note: "意外坠崖 / 传承降临" }
+      - { beat: "rising", seconds: 28, note: "第一次施展神通" }
+      - { beat: "twist", seconds: 12, note: "前世仇敌现身门派" }
+      - { beat: "cliffhanger", seconds: 10, note: "古老封印松动" }
+    bgm_query: "玄幻仙侠史诗觉醒"
+    subtitle_style: ancient_seal
+    cover_prompt: "云海仙山，少年腰悬古剑灵气环绕"
+
+  - id: modern_ceo_amnesia
+    label: 现代·霸总失忆遇真爱
+    genre: modern
+    sub_genre: romance
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 70
+    hook_template: "出车祸失忆的{lead}总裁，却在咖啡馆遇到了让他心跳加速的女孩。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "极致心动眼神特写" }
+      - { beat: "setup", seconds: 8, note: "总裁雷厉风行日常" }
+      - { beat: "incident", seconds: 10, note: "意外失忆" }
+      - { beat: "rising", seconds: 28, note: "落魄遇到 cafe 女孩" }
+      - { beat: "twist", seconds: 12, note: "女孩竟是契约前妻" }
+      - { beat: "cliffhanger", seconds: 9, note: "记忆碎片回归" }
+    bgm_query: "现代都市心动温柔"
+    subtitle_style: modern_round
+    cover_prompt: "夜色都市咖啡馆，西装男与女孩对视"
+
+  - id: modern_school_underdog
+    label: 校园·学渣逆袭学霸
+    genre: modern
+    sub_genre: drama
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 70
+    hook_template: "全校垫底的{lead}被神秘老人传授超脑能力，三个月后他要冲击高考第一。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "试卷飞页瞬间满分" }
+      - { beat: "setup", seconds: 8, note: "被嘲笑的日常" }
+      - { beat: "incident", seconds: 10, note: "雨夜遇见老人" }
+      - { beat: "rising", seconds: 28, note: "课堂上一鸣惊人" }
+      - { beat: "twist", seconds: 12, note: "宿敌登场" }
+      - { beat: "cliffhanger", seconds: 9, note: "决战月考榜单" }
+    bgm_query: "校园励志青春"
+    subtitle_style: modern_sans
+    cover_prompt: "教室阳光下，少年举笔自信微笑"
+
+  - id: modern_action_undercover
+    label: 现代·王者归来扫黑
+    genre: modern
+    sub_genre: action
+    aspect_ratio: "16:9"
+    resolution: "2K"
+    duration_per_episode_s: 90
+    hook_template: "退役特种兵{lead}回到家乡，三年蛰伏只为铲除一个黑道帝国。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "极速搏杀慢镜" }
+      - { beat: "setup", seconds: 10, note: "退役归乡的低调" }
+      - { beat: "incident", seconds: 10, note: "家人遭欺凌" }
+      - { beat: "rising", seconds: 35, note: "一人扫平据点" }
+      - { beat: "twist", seconds: 15, note: "幕后真凶身份" }
+      - { beat: "cliffhanger", seconds: 17, note: "全城追缉令" }
+    bgm_query: "现代动作追逐打斗"
+    subtitle_style: modern_sans
+    cover_prompt: "雨夜街头，男子持枪逆光剪影"
+
+  - id: romance_marriage_first
+    label: 言情·先婚后爱
+    genre: romance
+    sub_genre: modern
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 65
+    hook_template: "灰姑娘{lead}被赶出家门当晚，被神秘男人塞进婚姻协议。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "婚书 + 婚戒特写" }
+      - { beat: "setup", seconds: 8, note: "被原生家庭赶出" }
+      - { beat: "incident", seconds: 10, note: "陌生男人提议契约结婚" }
+      - { beat: "rising", seconds: 26, note: "豪门生活与暗潮" }
+      - { beat: "twist", seconds: 10, note: "丈夫真实身份" }
+      - { beat: "cliffhanger", seconds: 8, note: "心动初见的伏笔" }
+    bgm_query: "言情甜蜜婚约暗涌"
+    subtitle_style: modern_round
+    cover_prompt: "婚纱与西装在落地窗前，男人将戒指戴上女孩手指"
+
+  - id: suspense_apartment_mystery
+    label: 悬疑·凶宅密室
+    genre: suspense
+    sub_genre: thriller
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 75
+    hook_template: "搬进凶宅的{lead}发现，每晚镜子里都多出一个自己。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "镜中诡异身影" }
+      - { beat: "setup", seconds: 9, note: "新家入住" }
+      - { beat: "incident", seconds: 10, note: "镜中倒影异常" }
+      - { beat: "rising", seconds: 30, note: "调查屋内秘密" }
+      - { beat: "twist", seconds: 13, note: "真相藏在地下室" }
+      - { beat: "cliffhanger", seconds: 10, note: "门外脚步声" }
+    bgm_query: "悬疑诡异脚步阴森"
+    subtitle_style: modern_sans
+    cover_prompt: "昏暗走廊尽头，镜子中半张诡异人脸"
+
+  - id: comedy_office_chaos
+    label: 喜剧·新人职场翻车
+    genre: comedy
+    sub_genre: slice_of_life
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 60
+    hook_template: "实习第一天的{lead}误把霸道总裁当成保洁，惹下天大笑话。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "把咖啡泼到总裁" }
+      - { beat: "setup", seconds: 7, note: "兴奋的入职日" }
+      - { beat: "incident", seconds: 8, note: "误认总裁" }
+      - { beat: "rising", seconds: 24, note: "接连闹笑话" }
+      - { beat: "twist", seconds: 10, note: "总裁竟然主动相约" }
+      - { beat: "cliffhanger", seconds: 8, note: "下班同电梯" }
+    bgm_query: "喜剧搞怪职场轻快"
+    subtitle_style: modern_round
+    cover_prompt: "办公室里咖啡泼在西装上，男子哭笑不得"
+
+  - id: horror_school_legend
+    label: 恐怖·校园都市传说
+    genre: horror
+    aspect_ratio: "9:16"
+    resolution: "1080p"
+    duration_per_episode_s: 70
+    hook_template: "深夜十二点的{lead}独自留在教室，黑板上的人名一个个被划掉。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "黑板自己划掉名字" }
+      - { beat: "setup", seconds: 9, note: "夜自习独留" }
+      - { beat: "incident", seconds: 10, note: "怪事接连发生" }
+      - { beat: "rising", seconds: 28, note: "追查名单顺序" }
+      - { beat: "twist", seconds: 12, note: "下一个名字是自己" }
+      - { beat: "cliffhanger", seconds: 8, note: "教室灯一闪而灭" }
+    bgm_query: "恐怖校园都市传说阴森"
+    subtitle_style: modern_sans
+    cover_prompt: "深夜空教室，黑板划痕透出鬼影"
+
+  - id: scifi_time_loop
+    label: 科幻·时间循环
+    genre: scifi
+    sub_genre: time_travel
+    aspect_ratio: "16:9"
+    resolution: "2K"
+    duration_per_episode_s: 85
+    hook_template: "每天醒来都是同一天的{lead}，必须找出循环的真凶。"
+    structure:
+      - { beat: "hook", seconds: 3, note: "闹钟跳秒诡异音效" }
+      - { beat: "setup", seconds: 10, note: "意识到一切重复" }
+      - { beat: "incident", seconds: 10, note: "发现关键线索" }
+      - { beat: "rising", seconds: 32, note: "层层推理与试错" }
+      - { beat: "twist", seconds: 15, note: "循环的源头是自己" }
+      - { beat: "cliffhanger", seconds: 15, note: "下一秒重新开始" }
+    bgm_query: "科幻时间循环未来"
+    subtitle_style: modern_sans
+    cover_prompt: "时钟齿轮内站立的人，画面螺旋扭曲"

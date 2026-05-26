@@ -18,6 +18,7 @@ from .routes import genres as genres_routes
 from .routes import internal as internal_routes
 from .routes import jobs as jobs_routes
 from .routes import library as library_routes
+from .routes import styles as styles_routes  # V10 §1.1
 from .settings import settings
 from .worker import worker_loop
 
@@ -26,6 +27,30 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("xyq.api")
+
+
+def _try_import(name: str):
+    """Import .routes.<name>, return module or None.
+
+    Each router is optional so the API stays bootable even while later
+    phases are still landing.
+    """
+    try:
+        from importlib import import_module
+        return import_module(f".routes.{name}", package=__package__)
+    except Exception as exc:  # pragma: no cover
+        logger.info("router %s not yet available: %s", name, exc)
+        return None
+
+
+novels_routes = _try_import("novels")
+screenplays_routes = _try_import("screenplays")
+derivative_routes = _try_import("derivative")
+orgs_routes = _try_import("orgs")
+templates_routes = _try_import("templates")
+schedules_routes = _try_import("schedules")
+flow_routes = _try_import("flow")
+public_v1_routes = _try_import("public_v1")
 
 
 def _embedded_worker_enabled() -> bool:
@@ -84,6 +109,13 @@ app.include_router(genres_routes.router, prefix="/api")
 app.include_router(library_routes.router, prefix="/api")
 app.include_router(batch_routes.router, prefix="/api")
 app.include_router(internal_routes.router, prefix="/api")
+app.include_router(styles_routes.router, prefix="/api")
+for _m in (novels_routes, screenplays_routes, derivative_routes,
+           orgs_routes, templates_routes, schedules_routes, flow_routes):
+    if _m is not None and getattr(_m, "router", None) is not None:
+        app.include_router(_m.router, prefix="/api")
+if public_v1_routes is not None and getattr(public_v1_routes, "router", None) is not None:
+    app.include_router(public_v1_routes.router)  # carries its own /api/v1 prefix
 
 # Serve generated videos & covers
 app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
@@ -98,6 +130,12 @@ def health() -> JSONResponse:
             "mock_billing": settings.use_mock_billing,
         }
     )
+
+
+@app.get("/api/healthz")
+def healthz() -> JSONResponse:
+    """K8s / Helm readiness alias for ``/api/health``."""
+    return health()
 
 
 @app.get("/")

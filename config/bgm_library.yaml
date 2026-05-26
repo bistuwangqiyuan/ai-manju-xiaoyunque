@@ -1,0 +1,187 @@
+# V10 §7.2 — BGM library catalogue
+# 20 seed entries covering the main mood × bpm cells of our genre matrix.
+# `path` may be a local file under assets/bgm/ OR an https URL; entries with
+# no resolvable path are usable for recommendation queries (the worker
+# will fall back to elevenlabs-music generation).
+
+version: 1
+entries:
+  - id: anc_calm_001
+    label: 古风·宁静长琴
+    genre: [ancient, romance]
+    mood: [calm, gentle]
+    bpm: 78
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/anc_calm_001.mp3
+
+  - id: anc_tension_001
+    label: 古风·暗涌
+    genre: [ancient, palace_fight, suspense]
+    mood: [tense, dark]
+    bpm: 102
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/anc_tension_001.mp3
+
+  - id: anc_climax_001
+    label: 古风·决战长鼓
+    genre: [ancient, palace_fight, wuxia]
+    mood: [epic, intense]
+    bpm: 128
+    duration_sec: 120
+    license: CC0
+    path: assets/bgm/anc_climax_001.mp3
+
+  - id: mod_romance_001
+    label: 现代·温柔咖啡
+    genre: [modern, romance]
+    mood: [warm, gentle]
+    bpm: 88
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/mod_romance_001.mp3
+
+  - id: mod_drama_001
+    label: 现代·都市心跳
+    genre: [modern, drama]
+    mood: [tense, urgent]
+    bpm: 116
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/mod_drama_001.mp3
+
+  - id: mod_action_001
+    label: 现代·追逐
+    genre: [modern, action]
+    mood: [intense, kinetic]
+    bpm: 140
+    duration_sec: 100
+    license: CC0
+    path: assets/bgm/mod_action_001.mp3
+
+  - id: fan_magic_001
+    label: 玄幻·星河圣典
+    genre: [fantasy, xianxia]
+    mood: [epic, mystical]
+    bpm: 96
+    duration_sec: 120
+    license: CC0
+    path: assets/bgm/fan_magic_001.mp3
+
+  - id: fan_battle_001
+    label: 玄幻·战神之怒
+    genre: [fantasy, action]
+    mood: [intense, epic]
+    bpm: 134
+    duration_sec: 110
+    license: CC0
+    path: assets/bgm/fan_battle_001.mp3
+
+  - id: rom_first_001
+    label: 言情·初见心动
+    genre: [romance, modern]
+    mood: [bright, hopeful]
+    bpm: 92
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/rom_first_001.mp3
+
+  - id: rom_sad_001
+    label: 言情·离别
+    genre: [romance, drama]
+    mood: [sad, somber]
+    bpm: 72
+    duration_sec: 100
+    license: CC0
+    path: assets/bgm/rom_sad_001.mp3
+
+  - id: sus_dark_001
+    label: 悬疑·迷雾真相
+    genre: [suspense, thriller]
+    mood: [dark, eerie]
+    bpm: 88
+    duration_sec: 100
+    license: CC0
+    path: assets/bgm/sus_dark_001.mp3
+
+  - id: sus_horror_001
+    label: 悬疑·心跳停滞
+    genre: [suspense, horror]
+    mood: [scary, intense]
+    bpm: 108
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/sus_horror_001.mp3
+
+  - id: com_funny_001
+    label: 喜剧·搞怪日常
+    genre: [comedy, slice_of_life]
+    mood: [playful, bright]
+    bpm: 120
+    duration_sec: 90
+    license: CC0
+    path: assets/bgm/com_funny_001.mp3
+
+  - id: com_silly_001
+    label: 喜剧·闹剧
+    genre: [comedy]
+    mood: [silly, kinetic]
+    bpm: 132
+    duration_sec: 80
+    license: CC0
+    path: assets/bgm/com_silly_001.mp3
+
+  - id: hor_creepy_001
+    label: 恐怖·阴森回廊
+    genre: [horror]
+    mood: [eerie, scary]
+    bpm: 60
+    duration_sec: 120
+    license: CC0
+    path: assets/bgm/hor_creepy_001.mp3
+
+  - id: hor_jump_001
+    label: 恐怖·惊吓临爆
+    genre: [horror]
+    mood: [scary, intense]
+    bpm: 96
+    duration_sec: 30
+    license: CC0
+    path: assets/bgm/hor_jump_001.mp3
+
+  - id: scifi_main_001
+    label: 科幻·宇宙巡航
+    genre: [scifi]
+    mood: [epic, mystical]
+    bpm: 100
+    duration_sec: 120
+    license: CC0
+    path: assets/bgm/scifi_main_001.mp3
+
+  - id: scifi_tech_001
+    label: 科幻·机械律动
+    genre: [scifi, action]
+    mood: [kinetic, intense]
+    bpm: 128
+    duration_sec: 100
+    license: CC0
+    path: assets/bgm/scifi_tech_001.mp3
+
+  - id: tw_drama_001
+    label: 时旅·穿越启程
+    genre: [time_travel, fantasy]
+    mood: [mystical, hopeful]
+    bpm: 104
+    duration_sec: 110
+    license: CC0
+    path: assets/bgm/tw_drama_001.mp3
+
+  - id: wuxia_chivalry_001
+    label: 武侠·侠骨柔肠
+    genre: [wuxia, ancient]
+    mood: [warm, epic]
+    bpm: 92
+    duration_sec: 110
+    license: CC0
+    path: assets/bgm/wuxia_chivalry_001.mp3

@@ -1,0 +1,114 @@
+{
+  "model": "quality_model",
+  "version": "v10.0",
+  "weights": {
+    "structure": 0.18,
+    "style": 0.2,
+    "detail": 0.12,
+    "clarity": 0.1,
+    "color": 0.1,
+    "no_deform": 0.18,
+    "intent": 0.12
+  },
+  "baseline_distributions": {
+    "structure": {
+      "mean": 8.3,
+      "std": 0.9
+    },
+    "style": {
+      "mean": 8.7,
+      "std": 0.7
+    },
+    "detail": {
+      "mean": 7.9,
+      "std": 1.1
+    },
+    "clarity": {
+      "mean": 8.4,
+      "std": 0.8
+    },
+    "color": {
+      "mean": 8.5,
+      "std": 0.7
+    },
+    "no_deform": {
+      "mean": 7.6,
+      "std": 1.4
+    },
+    "intent": {
+      "mean": 8.1,
+      "std": 1.0
+    }
+  },
+  "repair_gains": {
+    "face_drift": {
+      "no_deform": 1.4,
+      "structure": 0.4
+    },
+    "closeup_lipsync": {
+      "intent": 1.1,
+      "no_deform": 0.5
+    },
+    "costume_drift": {
+      "detail": 1.0,
+      "style": 0.6
+    },
+    "cross_show_style": {
+      "style": 1.4,
+      "color": 0.5
+    },
+    "motion_axis": {
+      "structure": 1.1,
+      "no_deform": 0.4
+    },
+    "climax_enhance": {
+      "detail": 0.9,
+      "clarity": 0.7
+    },
+    "god_tier": {
+      "structure": 0.8,
+      "style": 0.8,
+      "detail": 0.8,
+      "clarity": 0.8,
+      "color": 0.8,
+      "no_deform": 0.8,
+      "intent": 0.8
+    },
+    "hand_local": {
+      "no_deform": 1.6
+    }
+  },
+  "baseline_simulation": {
+    "pass_rate_by_iter": {
+      "0": 0.3897,
+      "1": 0.747,
+      "2": 0.9165
+    },
+    "expected_iter_per_shot": 0.8668,
+    "shot_pass_rate_final": 0.915,
+    "shot_overall_mean": 8.416579218662632,
+    "shot_overall_p10": 8.036467339562618,
+    "shot_overall_p90": 8.804401147154149,
+    "project_pass_probability": 6.720089399205773e-07,
+    "n_shots_per_project": 160,
+    "trials": 10000,
+    "seed": 20260526,
+    "pass_threshold": 7.0,
+    "max_iter": 2
+  },
+  "pass_threshold_sweep": {
+    "6.5": 0.981,
+    "7.0": 0.915,
+    "7.5": 0.7079,
+    "8.0": 0.323
+  },
+  "max_iter_sweep": {
+    "0": 0.3848,
+    "1": 0.7489,
+    "2": 0.915,
+    "3": 0.9789,
+    "4": 0.9953
+  },
+  "generated_at_utc": "2026-05-26T17:00:01Z",
+  "source": "tools/data_models/quality_model.py"
+}

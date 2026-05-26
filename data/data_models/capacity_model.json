@@ -1,0 +1,221 @@
+{
+  "model": "capacity_model",
+  "version": "v10.0",
+  "constants": {
+    "sqlite_lock_threshold_writers": 200,
+    "workers_per_vefaas_instance": 3,
+    "vefaas_instance_ram_gb": 2
+  },
+  "asset_bytes": {
+    "master_mp4_per_minute": 7340032.0,
+    "rough_cut_per_minute": 8912896.0,
+    "cover_jpg": 286720,
+    "scene_jpg": 358400,
+    "character_view_jpg": 327680,
+    "storyboard_grid_jpg": 1677721.6,
+    "tts_mp3_per_minute": 1048576.0,
+    "bgm_mp3_per_minute": 1048576.0,
+    "ass_subtitle": 18432,
+    "log_json_per_job": 24576
+  },
+  "scenarios": [
+    {
+      "scenario": {
+        "name": "v10_pilot",
+        "daily_active_users": 1000,
+        "avg_projects_per_dau": 0.2,
+        "avg_episodes_per_project": 8,
+        "avg_minutes_per_episode": 1.5,
+        "storage_retention_days": 90,
+        "shots_per_episode": 16,
+        "concurrent_writers_peak_ratio": 0.04
+      },
+      "derived": {
+        "daily_projects": 200.0,
+        "daily_episodes": 1600.0,
+        "daily_minutes": 2400.0,
+        "daily_shots": 25600.0,
+        "concurrent_writers_peak": 40
+      },
+      "storage": {
+        "tos_total_gb": 4042.5,
+        "tos_breakdown_gb": {
+          "master_mp4": 1476.6,
+          "rough_cut": 1793.0,
+          "cover": 4.81,
+          "scene_lib": 36.05,
+          "char_views": 82.4,
+          "storyboard": 225.0,
+          "tts": 210.9,
+          "bgm": 210.9,
+          "subtitles": 2.472,
+          "logs": 0.412
+        },
+        "nas_total_gb": 19.36
+      },
+      "compute": {
+        "workers_needed": 198,
+        "vefaas_instances": 66,
+        "vefaas_total_ram_gb": 132
+      },
+      "database": {
+        "use_sqlite_safe": true,
+        "postgres_row_estimates": {
+          "xyq_jobs": 18000,
+          "xyq_shots": 2304000,
+          "xyq_job_logs": 1440000
+        },
+        "recommendation": "SQLite"
+      }
+    },
+    {
+      "scenario": {
+        "name": "v10_launch",
+        "daily_active_users": 10000,
+        "avg_projects_per_dau": 0.3,
+        "avg_episodes_per_project": 8,
+        "avg_minutes_per_episode": 1.5,
+        "storage_retention_days": 90,
+        "shots_per_episode": 16,
+        "concurrent_writers_peak_ratio": 0.04
+      },
+      "derived": {
+        "daily_projects": 3000.0,
+        "daily_episodes": 24000.0,
+        "daily_minutes": 36000.0,
+        "daily_shots": 384000.0,
+        "concurrent_writers_peak": 400
+      },
+      "storage": {
+        "tos_total_gb": 60638.1,
+        "tos_breakdown_gb": {
+          "master_mp4": 22148.4,
+          "rough_cut": 26894.5,
+          "cover": 72.1,
+          "scene_lib": 540.73,
+          "char_views": 1235.96,
+          "storyboard": 3375.0,
+          "tts": 3164.1,
+          "bgm": 3164.1,
+          "subtitles": 37.079,
+          "logs": 6.18
+        },
+        "nas_total_gb": 290.45
+      },
+      "compute": {
+        "workers_needed": 2963,
+        "vefaas_instances": 988,
+        "vefaas_total_ram_gb": 1976
+      },
+      "database": {
+        "use_sqlite_safe": false,
+        "postgres_row_estimates": {
+          "xyq_jobs": 270000,
+          "xyq_shots": 34560000,
+          "xyq_job_logs": 21600000
+        },
+        "recommendation": "Postgres ≥ 14 (managed: 火山 RDS / Neon / Supabase)"
+      }
+    },
+    {
+      "scenario": {
+        "name": "v10_scale",
+        "daily_active_users": 100000,
+        "avg_projects_per_dau": 0.25,
+        "avg_episodes_per_project": 8,
+        "avg_minutes_per_episode": 1.5,
+        "storage_retention_days": 90,
+        "shots_per_episode": 16,
+        "concurrent_writers_peak_ratio": 0.04
+      },
+      "derived": {
+        "daily_projects": 25000.0,
+        "daily_episodes": 200000.0,
+        "daily_minutes": 300000.0,
+        "daily_shots": 3200000.0,
+        "concurrent_writers_peak": 4000
+      },
+      "storage": {
+        "tos_total_gb": 505317.9,
+        "tos_breakdown_gb": {
+          "master_mp4": 184570.3,
+          "rough_cut": 224121.1,
+          "cover": 600.81,
+          "scene_lib": 4506.11,
+          "char_views": 10299.68,
+          "storyboard": 28125.0,
+          "tts": 26367.2,
+          "bgm": 26367.2,
+          "subtitles": 308.99,
+          "logs": 51.498
+        },
+        "nas_total_gb": 2420.43
+      },
+      "compute": {
+        "workers_needed": 24692,
+        "vefaas_instances": 8231,
+        "vefaas_total_ram_gb": 16462
+      },
+      "database": {
+        "use_sqlite_safe": false,
+        "postgres_row_estimates": {
+          "xyq_jobs": 2250000,
+          "xyq_shots": 288000000,
+          "xyq_job_logs": 180000000
+        },
+        "recommendation": "Postgres ≥ 14 (managed: 火山 RDS / Neon / Supabase)"
+      }
+    },
+    {
+      "scenario": {
+        "name": "v10_peak",
+        "daily_active_users": 500000,
+        "avg_projects_per_dau": 0.2,
+        "avg_episodes_per_project": 8,
+        "avg_minutes_per_episode": 1.5,
+        "storage_retention_days": 90,
+        "shots_per_episode": 16,
+        "concurrent_writers_peak_ratio": 0.04
+      },
+      "derived": {
+        "daily_projects": 100000.0,
+        "daily_episodes": 800000.0,
+        "daily_minutes": 1200000.0,
+        "daily_shots": 12800000.0,
+        "concurrent_writers_peak": 20000
+      },
+      "storage": {
+        "tos_total_gb": 2021271.5,
+        "tos_breakdown_gb": {
+          "master_mp4": 738281.2,
+          "rough_cut": 896484.4,
+          "cover": 2403.26,
+          "scene_lib": 18024.44,
+          "char_views": 41198.73,
+          "storyboard": 112500.0,
+          "tts": 105468.8,
+          "bgm": 105468.8,
+          "subtitles": 1235.962,
+          "logs": 205.994
+        },
+        "nas_total_gb": 9681.7
+      },
+      "compute": {
+        "workers_needed": 98766,
+        "vefaas_instances": 32922,
+        "vefaas_total_ram_gb": 65844
+      },
+      "database": {
+        "use_sqlite_safe": false,
+        "postgres_row_estimates": {
+          "xyq_jobs": 9000000,
+          "xyq_shots": 1152000000,
+          "xyq_job_logs": 720000000
+        },
+        "recommendation": "Postgres ≥ 14 (managed: 火山 RDS / Neon / Supabase)"
+      }
+    }
+  ],
+  "generated_at_utc": "2026-05-26T17:00:01Z",
+  "source": "tools/data_models/capacity_model.py"
+}

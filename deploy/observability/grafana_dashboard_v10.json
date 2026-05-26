@@ -1,0 +1,98 @@
+{
+  "uid": "xyq-v10-overview",
+  "title": "Xiaoyunque V10 · Production Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["xiaoyunque", "v10", "production"],
+  "templating": { "list": [
+    { "name": "org_id", "type": "query", "query": "label_values(xyq_job_status, org_id)" }
+  ]},
+  "panels": [
+    {
+      "id": 1, "title": "API Request Rate (req/s)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(xyq_api_requests_total[5m])) by (status_class)",
+          "legendFormat": "{{status_class}}" }
+      ]
+    },
+    {
+      "id": 2, "title": "API p50/p95/p99 Latency (ms)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(xyq_api_latency_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(xyq_api_latency_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(xyq_api_latency_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "id": 3, "title": "Jobs Pipeline by Status", "type": "stat",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum(xyq_job_status) by (status)", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 4, "title": "Episode Render Minutes (last 24h)", "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum(increase(xyq_render_minutes_total[24h]))" }
+      ]
+    },
+    {
+      "id": 5, "title": "Per-Org Daily Spend (CNY 元)", "type": "table",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+      "targets": [
+        { "expr": "sum(increase(xyq_org_cost_cents_total[24h])) by (org_id) / 100" }
+      ]
+    },
+    {
+      "id": 6, "title": "Repair Loop Retries (7-axis)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "sum(rate(xyq_repair_retries_total[10m])) by (axis)",
+          "legendFormat": "{{axis}}" }
+      ]
+    },
+    {
+      "id": 7, "title": "GPU / VLM Backend QPS", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        { "expr": "sum(rate(xyq_backend_calls_total[5m])) by (backend)",
+          "legendFormat": "{{backend}}" }
+      ]
+    },
+    {
+      "id": 8, "title": "Pause-Gate Pending (per step)", "type": "bargauge",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 22 },
+      "targets": [
+        { "expr": "sum(xyq_pause_pending) by (step)", "legendFormat": "{{step}}" }
+      ]
+    },
+    {
+      "id": 9, "title": "Public /api/v1 Error Budget Burn", "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 22 },
+      "targets": [
+        { "expr": "1 - (sum(rate(xyq_api_requests_total{status_class=\"2xx\",api=\"v1\"}[1h])) / sum(rate(xyq_api_requests_total{api=\"v1\"}[1h])))" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit",
+        "thresholds": { "mode": "absolute",
+          "steps": [
+            { "value": null, "color": "green" },
+            { "value": 0.005, "color": "yellow" },
+            { "value": 0.01,  "color": "red" }
+          ] } } }
+    },
+    {
+      "id": 10, "title": "Active API Keys & Rate-Limit 429s", "type": "timeseries",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 22 },
+      "targets": [
+        { "expr": "sum(xyq_apikey_enabled)", "legendFormat": "enabled keys" },
+        { "expr": "sum(rate(xyq_rate_limit_throttled_total[5m]))", "legendFormat": "429/s" }
+      ]
+    }
+  ]
+}

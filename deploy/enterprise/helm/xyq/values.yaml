@@ -1,0 +1,62 @@
+image:
+  repository: registry.example.com/xiaoyunque/api
+  tag: "10.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: xyq.your-corp.com
+  tlsSecretName: xyq-tls
+
+env:
+  DATABASE_URL: ""
+  REDIS_URL: ""
+  EMBEDDED_WORKER: "1"
+  LOG_LEVEL: "INFO"
+  USE_MOCK_WORKER: "0"
+  CORS_ORIGINS: "*"
+
+secrets:
+  ANTHROPIC_API_KEY: ""
+  FAL_API_KEY: ""
+  DOUBAO_API_KEY: ""
+  VOLC_ACCESS_KEY: ""
+  VOLC_SECRET_KEY: ""
+  MINIMAX_API_KEY: ""
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "500m"
+    memory: 1Gi
+
+scheduler:
+  enabled: true
+  cron: "* * * * *"
+
+postgres:
+  enabled: false
+  image: postgres:16
+  storageSize: 20Gi
+
+persistence:
+  enabled: true
+  storageSize: 100Gi
+  storageClassName: ""
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+orgIsolation:
+  enabled: true
+  storagePrefixTemplate: "orgs/{org_id}/"

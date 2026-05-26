@@ -289,4 +289,115 @@ class ArtifactStore:
         return f"s3://{bucket}/{s3_key}"
 
 
+    # ------------------------------------------------------------------
+    # V10 §2.1 — tree-path naming convention
+    # ------------------------------------------------------------------
+
+    def tree_key(
+        self,
+        *,
+        kind: str,                     # "script" | "asset" | "shot" | "ep" | "report" | "log"
+        episode: int | None = None,
+        shot: int | None = None,
+        version: int | None = None,
+        filename: str = "",
+        subdir: str = "",
+    ) -> str:
+        """Generate the canonical tree path for an artifact.
+
+        Format examples (lossless, sortable, predictable)::
+
+            script/ep01.txt
+            script/ep01_v2.txt
+            asset/character/protagonist_front.png
+            ep01/shot003_v2.mp4
+            ep01/shot003_v2.scores.json
+            report/scores_7d.csv
+        """
+        parts: list[str] = []
+        if kind == "ep":
+            ep = f"ep{episode:02d}" if episode is not None else "ep00"
+            parts.append(ep)
+            if shot is not None:
+                stub = f"shot{shot:03d}"
+                if version and version > 1:
+                    stub += f"_v{version}"
+                if filename:
+                    stub += "." + filename.lstrip(".")
+                parts.append(stub)
+            elif filename:
+                parts.append(filename)
+        elif kind in ("script", "asset", "report", "log"):
+            parts.append(kind)
+            if subdir:
+                parts.append(subdir)
+            base = filename
+            if episode is not None and not filename.startswith("ep"):
+                base = f"ep{episode:02d}_{base}" if base else f"ep{episode:02d}.txt"
+            if version and version > 1 and "_v" not in base:
+                stem, _, ext = base.rpartition(".")
+                base = f"{stem}_v{version}.{ext}" if stem else f"{base}_v{version}"
+            parts.append(base)
+        elif kind == "shot":
+            ep = f"ep{episode:02d}" if episode is not None else "ep00"
+            stub = f"shot{shot:03d}" if shot is not None else "shot000"
+            if version and version > 1:
+                stub += f"_v{version}"
+            if filename:
+                stub += "." + filename.lstrip(".")
+            parts.extend([ep, stub])
+        else:
+            parts.append(filename or "misc.bin")
+        return "/".join(p for p in parts if p)
+
+    # ------------------------------------------------------------------
+    # V10 §2.2 — full-project bundle export (.zip)
+    # ------------------------------------------------------------------
+
+    def export_project_bundle(
+        self,
+        *,
+        dst: str | pathlib.Path,
+        include_versions: bool = True,
+        manifest: dict[str, Any] | None = None,
+    ) -> pathlib.Path:
+        """Pack the entire job tree into a single ``.zip`` for download."""
+        import zipfile
+
+        dst_p = pathlib.Path(dst)
+        dst_p.parent.mkdir(parents=True, exist_ok=True)
+        files: list[pathlib.Path] = []
+        for p in self.root.rglob("*"):
+            if not p.is_file():
+                continue
+            if not include_versions and "versions" in p.relative_to(self.root).parts:
+                continue
+            files.append(p)
+
+        manifest_payload = {
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "root": str(self.root),
+            "n_files": len(files),
+            "include_versions": include_versions,
+            "extra": manifest or {},
+            "files": [
+                {
+                    "path": str(p.relative_to(self.root)).replace("\\", "/"),
+                    "size": p.stat().st_size,
+                    "sha256": hashlib.sha256(p.read_bytes()).hexdigest()[:16],
+                }
+                for p in files
+            ],
+        }
+        with zipfile.ZipFile(dst_p, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("bundle_manifest.json",
+                        json.dumps(manifest_payload, ensure_ascii=False, indent=2))
+            for p in files:
+                rel = str(p.relative_to(self.root)).replace("\\", "/")
+                zf.write(p, arcname=rel)
+        _log.info("exported project bundle: %s (%d files, %d B)",
+                  dst_p, len(files), dst_p.stat().st_size)
+        return dst_p
+
+
 __all__ = ["ArtifactStore", "ArtifactRef", "VersionSnapshot"]

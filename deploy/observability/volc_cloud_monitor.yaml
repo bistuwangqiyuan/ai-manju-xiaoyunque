@@ -1,0 +1,116 @@
+# Volcengine (火山引擎) Cloud Monitor — V10 alarm definitions
+# Apply with: volc cloud-monitor apply -f deploy/observability/volc_cloud_monitor.yaml
+
+apiVersion: cloudmonitor.volcengine.com/v1
+kind: AlarmRuleSet
+metadata:
+  name: xiaoyunque-v10
+  namespace: ai-pipeline
+  labels:
+    app: xiaoyunque
+    severity: tiered
+spec:
+  alarmGroups:
+    - name: api-availability
+      contact: ops-oncall
+      rules:
+        - name: api-5xx-spike
+          metricNamespace: VCM_VEFAAS
+          metric: HttpStatusCount
+          dimensions:
+            FunctionName: xiaoyunque-api
+            StatusClass: 5xx
+          condition: ">"
+          threshold: 5
+          aggregation: Sum
+          periodSeconds: 60
+          consecutivePeriods: 3
+          severity: critical
+          alertMessage: "API 5xx > 5/min for 3min — page on-call"
+
+        - name: api-latency-p95-high
+          metricNamespace: VCM_VEFAAS
+          metric: ResponseTime
+          dimensions:
+            FunctionName: xiaoyunque-api
+          aggregation: P95
+          condition: ">"
+          threshold: 2000   # 2s
+          periodSeconds: 60
+          consecutivePeriods: 5
+          severity: warning
+          alertMessage: "API p95 latency > 2s for 5min"
+
+    - name: pipeline-quality
+      contact: ai-eng
+      rules:
+        - name: repair-loop-blowout
+          metricNamespace: VCM_CUSTOM
+          metric: xyq_repair_retries
+          aggregation: Sum
+          condition: ">"
+          threshold: 30
+          periodSeconds: 300
+          severity: warning
+          alertMessage: "重画轮次 > 30 次/5min — 模型/Prompt 可能出问题"
+
+        - name: qa-7d-score-low
+          metricNamespace: VCM_CUSTOM
+          metric: xyq_7d_avg_score
+          aggregation: Avg
+          condition: "<"
+          threshold: 7.5
+          periodSeconds: 600
+          severity: warning
+          alertMessage: "7 维评分均值 < 7.5（10min 窗口）"
+
+    - name: storage-and-cost
+      contact: finops
+      rules:
+        - name: tos-write-failure
+          metricNamespace: VCM_TOS
+          metric: PutObjectErrorRate
+          condition: ">"
+          threshold: 0.01
+          severity: critical
+          alertMessage: "TOS 上传失败率 > 1%"
+
+        - name: org-daily-spend-cap
+          metricNamespace: VCM_CUSTOM
+          metric: xyq_org_cost_cents_24h
+          aggregation: Max
+          condition: ">"
+          threshold: 50000   # 500 元
+          severity: warning
+          alertMessage: "单 Org 24h 成本 > 500 元 — 通知客户经理"
+
+    - name: rate-limit
+      contact: api-ops
+      rules:
+        - name: 429-spike
+          metricNamespace: VCM_CUSTOM
+          metric: xyq_rate_limit_throttled
+          aggregation: Sum
+          condition: ">"
+          threshold: 50
+          periodSeconds: 60
+          severity: warning
+          alertMessage: "API 限流 429 > 50/min — 客户调用模式异常"
+
+notificationChannels:
+  - id: ops-oncall
+    type: phone+ding
+    target: ${OPS_ONCALL_PHONE}
+    dingWebhook: ${OPS_DING_WEBHOOK}
+
+  - id: ai-eng
+    type: ding
+    dingWebhook: ${AI_ENG_DING_WEBHOOK}
+
+  - id: finops
+    type: email
+    target: finops@xiaoyunque.example.com
+
+  - id: api-ops
+    type: ding
+    dingWebhook: ${API_OPS_DING_WEBHOOK}

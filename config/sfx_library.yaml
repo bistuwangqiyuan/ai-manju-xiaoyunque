@@ -1,0 +1,109 @@
+# V10 §7.2 — SFX library catalogue
+# Tag-driven library: scene/action keywords trigger volume-controlled inserts.
+
+version: 1
+entries:
+  - id: sfx_door_open_001
+    label: 推门吱呀声
+    keywords: [开门, 推门, door_open]
+    duration_sec: 1.2
+    path: assets/sfx/door_open.wav
+    suggested_volume: 0.45
+
+  - id: sfx_door_close_001
+    label: 关门重声
+    keywords: [关门, 摔门, door_close]
+    duration_sec: 1.4
+    path: assets/sfx/door_close.wav
+    suggested_volume: 0.50
+
+  - id: sfx_footsteps_wood_001
+    label: 木地板脚步
+    keywords: [脚步, 走路, footsteps, walk]
+    duration_sec: 4.0
+    path: assets/sfx/footsteps_wood.wav
+    suggested_volume: 0.30
+
+  - id: sfx_slap_001
+    label: 耳光
+    keywords: [打耳光, 巴掌, slap]
+    duration_sec: 0.5
+    path: assets/sfx/slap.wav
+    suggested_volume: 0.80
+
+  - id: sfx_thunder_001
+    label: 雷声
+    keywords: [雷声, 闪电, thunder]
+    duration_sec: 3.5
+    path: assets/sfx/thunder.wav
+    suggested_volume: 0.65
+
+  - id: sfx_rain_loop_001
+    label: 雨声环境
+    keywords: [雨, 下雨, rain]
+    duration_sec: 12.0
+    path: assets/sfx/rain_loop.wav
+    suggested_volume: 0.25
+
+  - id: sfx_phone_ring_001
+    label: 手机铃声
+    keywords: [电话, 手机响, ring, phone]
+    duration_sec: 2.5
+    path: assets/sfx/phone_ring.wav
+    suggested_volume: 0.45
+
+  - id: sfx_glass_break_001
+    label: 玻璃碎裂
+    keywords: [玻璃, 碎裂, glass_break, shatter]
+    duration_sec: 1.2
+    path: assets/sfx/glass_break.wav
+    suggested_volume: 0.70
+
+  - id: sfx_sword_clash_001
+    label: 兵器交击
+    keywords: [兵器, 刀剑, sword, clash, 打斗]
+    duration_sec: 1.8
+    path: assets/sfx/sword_clash.wav
+    suggested_volume: 0.65
+
+  - id: sfx_crowd_gasp_001
+    label: 人群惊呼
+    keywords: [惊呼, 围观, crowd, gasp]
+    duration_sec: 2.0
+    path: assets/sfx/crowd_gasp.wav
+    suggested_volume: 0.40
+
+  - id: sfx_heartbeat_001
+    label: 心跳放大
+    keywords: [心跳, heartbeat]
+    duration_sec: 6.0
+    path: assets/sfx/heartbeat.wav
+    suggested_volume: 0.35
+
+  - id: sfx_whoosh_001
+    label: 转场风声
+    keywords: [转场, whoosh, transition, 风声]
+    duration_sec: 0.8
+    path: assets/sfx/whoosh.wav
+    suggested_volume: 0.50
+
+  - id: sfx_explosion_001
+    label: 爆炸
+    keywords: [爆炸, explosion, boom]
+    duration_sec: 1.5
+    path: assets/sfx/explosion.wav
+    suggested_volume: 0.85
+
+  - id: sfx_magic_chant_001
+    label: 法术咏唱
+    keywords: [法术, 咏唱, magic, chant, 玄幻]
+    duration_sec: 4.0
+    path: assets/sfx/magic_chant.wav
+    suggested_volume: 0.50
+
+  - id: sfx_keyboard_001
+    label: 键盘敲击
+    keywords: [键盘, typing, keyboard]
+    duration_sec: 3.0
+    path: assets/sfx/keyboard.wav
+    suggested_volume: 0.30

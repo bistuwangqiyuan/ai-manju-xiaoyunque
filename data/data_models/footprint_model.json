@@ -1,0 +1,253 @@
+{
+  "model": "footprint_model",
+  "version": "v10.0",
+  "pip_pkg_mb": {
+    "python_base": 90,
+    "fastapi+uvicorn+pydantic+sqlalchemy": 50,
+    "boto3+aws-cli stubs": 25,
+    "yaml+jinja2+jose+passlib": 18,
+    "anthropic+openai+google_genai sdks": 65,
+    "insightface+onnxruntime": 280,
+    "pillow": 12,
+    "python-docx": 4,
+    "pypdf": 3,
+    "langdetect": 2,
+    "networkx": 6,
+    "mediapipe": 30,
+    "ultralytics": 75,
+    "open_clip_torch": 1900,
+    "faiss-cpu": 45,
+    "imagehash": 1,
+    "opencv-python": 65,
+    "pytorch-grad-cam": 6,
+    "whisperx": 130,
+    "pyannote-audio": 65,
+    "librosa": 30,
+    "laion-clap": 1700,
+    "pyloudnorm": 1,
+    "pedalboard": 20,
+    "reportlab": 30,
+    "scenedetect": 8,
+    "paddleocr": 320,
+    "paddlepaddle": 380,
+    "moviepy": 12,
+    "controlnet-aux": 70,
+    "apscheduler": 4,
+    "websockets": 2,
+    "slowapi": 2,
+    "authlib": 5,
+    "alembic": 6
+  },
+  "system_lib_mb": {
+    "ffmpeg static (full)": 95,
+    "fonts (Source Han Sans+Serif+Kai+Yuan + 篆书替代)": 80,
+    "Caddy binary": 40,
+    "node_modules (next.js standalone)": 220,
+    "next.js .next + public": 60
+  },
+  "static_asset_mb": {
+    "data/bgm_library (50 CC0 tracks)": 250,
+    "data/sfx_library (100 effects)": 50,
+    "config/genres/style_anchor (5 imgs)": 5
+  },
+  "variants": [
+    {
+      "variant": {
+        "name": "v9_current",
+        "pip_groups": [
+          "python_base",
+          "fastapi+uvicorn+pydantic+sqlalchemy",
+          "boto3+aws-cli stubs",
+          "yaml+jinja2+jose+passlib",
+          "anthropic+openai+google_genai sdks",
+          "insightface+onnxruntime",
+          "pillow"
+        ],
+        "system_libs": [
+          "ffmpeg static (full)",
+          "Caddy binary",
+          "node_modules (next.js standalone)",
+          "next.js .next + public",
+          "fonts (Source Han Sans+Serif+Kai+Yuan + 篆书替代)"
+        ],
+        "static_assets": [],
+        "expected_cold_start_s_per_gb": 1.3,
+        "base_cold_start_s": 1.8
+      },
+      "pip_mb": 540,
+      "system_mb": 495,
+      "asset_mb": 0,
+      "total_mb": 1035,
+      "total_gb": 1.01,
+      "cold_start_s_estimated": 3.1,
+      "exceeds_vefaas_2gb_limit": false,
+      "exceeds_vefaas_8gb_limit": false
+    },
+    {
+      "variant": {
+        "name": "v10_main_monolith",
+        "pip_groups": [
+          "python_base",
+          "fastapi+uvicorn+pydantic+sqlalchemy",
+          "boto3+aws-cli stubs",
+          "yaml+jinja2+jose+passlib",
+          "anthropic+openai+google_genai sdks",
+          "insightface+onnxruntime",
+          "pillow",
+          "python-docx",
+          "pypdf",
+          "langdetect",
+          "networkx",
+          "mediapipe",
+          "ultralytics",
+          "open_clip_torch",
+          "faiss-cpu",
+          "imagehash",
+          "opencv-python",
+          "pytorch-grad-cam",
+          "whisperx",
+          "pyannote-audio",
+          "librosa",
+          "laion-clap",
+          "pyloudnorm",
+          "pedalboard",
+          "reportlab",
+          "scenedetect",
+          "paddleocr",
+          "paddlepaddle",
+          "moviepy",
+          "controlnet-aux",
+          "apscheduler",
+          "websockets",
+          "slowapi",
+          "authlib",
+          "alembic"
+        ],
+        "system_libs": [
+          "ffmpeg static (full)",
+          "fonts (Source Han Sans+Serif+Kai+Yuan + 篆书替代)",
+          "Caddy binary",
+          "node_modules (next.js standalone)",
+          "next.js .next + public"
+        ],
+        "static_assets": [
+          "data/bgm_library (50 CC0 tracks)",
+          "data/sfx_library (100 effects)",
+          "config/genres/style_anchor (5 imgs)"
+        ],
+        "expected_cold_start_s_per_gb": 1.3,
+        "base_cold_start_s": 1.8
+      },
+      "pip_mb": 5462,
+      "system_mb": 495,
+      "asset_mb": 305,
+      "total_mb": 6262,
+      "total_gb": 6.12,
+      "cold_start_s_estimated": 9.7,
+      "exceeds_vefaas_2gb_limit": true,
+      "exceeds_vefaas_8gb_limit": false
+    },
+    {
+      "variant": {
+        "name": "v10_main_lean",
+        "pip_groups": [
+          "python_base",
+          "fastapi+uvicorn+pydantic+sqlalchemy",
+          "boto3+aws-cli stubs",
+          "yaml+jinja2+jose+passlib",
+          "anthropic+openai+google_genai sdks",
+          "insightface+onnxruntime",
+          "pillow",
+          "python-docx",
+          "pypdf",
+          "langdetect",
+          "networkx",
+          "mediapipe",
+          "ultralytics",
+          "open_clip_torch",
+          "faiss-cpu",
+          "imagehash",
+          "opencv-python",
+          "pytorch-grad-cam",
+          "reportlab",
+          "scenedetect",
+          "apscheduler",
+          "websockets",
+          "slowapi",
+          "authlib",
+          "alembic"
+        ],
+        "system_libs": [
+          "ffmpeg static (full)",
+          "fonts (Source Han Sans+Serif+Kai+Yuan + 篆书替代)",
+          "Caddy binary",
+          "node_modules (next.js standalone)",
+          "next.js .next + public"
+        ],
+        "static_assets": [
+          "config/genres/style_anchor (5 imgs)"
+        ],
+        "expected_cold_start_s_per_gb": 1.3,
+        "base_cold_start_s": 1.8
+      },
+      "pip_mb": 2734,
+      "system_mb": 495,
+      "asset_mb": 5,
+      "total_mb": 3234,
+      "total_gb": 3.16,
+      "cold_start_s_estimated": 5.9,
+      "exceeds_vefaas_2gb_limit": true,
+      "exceeds_vefaas_8gb_limit": false
+    },
+    {
+      "variant": {
+        "name": "v10_av_worker",
+        "pip_groups": [
+          "python_base",
+          "fastapi+uvicorn+pydantic+sqlalchemy",
+          "whisperx",
+          "pyannote-audio",
+          "librosa",
+          "laion-clap",
+          "pyloudnorm",
+          "pedalboard",
+          "paddleocr",
+          "paddlepaddle",
+          "moviepy",
+          "controlnet-aux"
+        ],
+        "system_libs": [
+          "ffmpeg static (full)"
+        ],
+        "static_assets": [
+          "data/bgm_library (50 CC0 tracks)",
+          "data/sfx_library (100 effects)",
+          "config/genres/style_anchor (5 imgs)"
+        ],
+        "expected_cold_start_s_per_gb": 1.3,
+        "base_cold_start_s": 1.8
+      },
+      "pip_mb": 2868,
+      "system_mb": 95,
+      "asset_mb": 305,
+      "total_mb": 3268,
+      "total_gb": 3.19,
+      "cold_start_s_estimated": 5.9,
+      "exceeds_vefaas_2gb_limit": true,
+      "exceeds_vefaas_8gb_limit": false
+    }
+  ],
+  "decision": {
+    "monolith_total_gb": 6.12,
+    "monolith_cold_start_s": 9.7,
+    "monolith_exceeds_8gb": false,
+    "split_main_total_gb": 3.16,
+    "split_av_total_gb": 3.19,
+    "split_main_cold_start_s": 5.9,
+    "split_av_cold_start_s": 5.9,
+    "recommend_split": false,
+    "reasoning": "monolith 在 veFaaS 限制内"
+  },
+  "generated_at_utc": "2026-05-26T17:00:01Z",
+  "source": "tools/data_models/footprint_model.py"
+}

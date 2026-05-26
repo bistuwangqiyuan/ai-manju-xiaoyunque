@@ -155,6 +155,12 @@ def create_job(
         mode=payload.mode,
         theme=payload.theme,
         language=payload.language,
+        aspect_ratio=payload.aspect_ratio,
+        resolution=payload.resolution,
+        fps=payload.fps,
+        duration_per_episode_s=payload.duration_per_episode_s,
+        custom_style_id=payload.custom_style_id,
+        ui_mode=payload.ui_mode,
     )
     db.add(job)
     db.flush()

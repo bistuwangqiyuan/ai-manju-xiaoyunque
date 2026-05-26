@@ -1,0 +1,79 @@
+{
+  "model": "validation_model",
+  "version": "v10.0",
+  "source": "synthetic 50 samples",
+  "regularisation_lambda": 0.5,
+  "calibration": {
+    "multi_vlm": {
+      "weights": {
+        "structure": 0.1724,
+        "style": 0.2292,
+        "detail": 0.1097,
+        "clarity": 0.0931,
+        "color": 0.0846,
+        "no_deform": 0.1892,
+        "intent": 0.1218
+      },
+      "raw_betas": {
+        "structure": 0.1724,
+        "style": 0.2293,
+        "detail": 0.1098,
+        "clarity": 0.0931,
+        "color": 0.0846,
+        "no_deform": 0.1893,
+        "intent": 0.1218
+      },
+      "rmse": 0.1265,
+      "mae": 0.1031,
+      "sample_count": 50
+    },
+    "doubao_seed16": {
+      "weights": {
+        "structure": 0.1773,
+        "style": 0.2132,
+        "detail": 0.1427,
+        "clarity": 0.0738,
+        "color": 0.0988,
+        "no_deform": 0.1631,
+        "intent": 0.131
+      },
+      "raw_betas": {
+        "structure": 0.1775,
+        "style": 0.2133,
+        "detail": 0.1428,
+        "clarity": 0.0738,
+        "color": 0.0989,
+        "no_deform": 0.1633,
+        "intent": 0.1311
+      },
+      "rmse": 0.1745,
+      "mae": 0.1276,
+      "sample_count": 50
+    },
+    "mock_sha256": {
+      "weights": {
+        "structure": 0.2025,
+        "style": 0.2343,
+        "detail": 0.1516,
+        "clarity": 0.1143,
+        "color": 0.0677,
+        "no_deform": 0.1892,
+        "intent": 0.0404
+      },
+      "raw_betas": {
+        "structure": 0.2043,
+        "style": 0.2364,
+        "detail": 0.1529,
+        "clarity": 0.1153,
+        "color": 0.0683,
+        "no_deform": 0.1909,
+        "intent": 0.0408
+      },
+      "rmse": 0.3236,
+      "mae": 0.2691,
+      "sample_count": 50
+    }
+  },
+  "recommendation": "multi_vlm",
+  "generated_at_utc": "2026-05-26T17:00:01Z"
+}

@@ -1,0 +1,157 @@
+# V10 §7.1 — Voice library (6 timbres × 7 emotions per provider)
+#
+# Each role maps to:
+#   - primary    : default provider+voice_id
+#   - fallback   : second/third provider for cost & latency hedging
+#   - emotion_map: how to translate our 7-dim emotion into the provider's value
+#
+# Providers supported: doubao (Volcengine TTS), elevenlabs, minimax (speech-2.5-hd).
+# Pricing as of 2026-05 — see tools/data_models/cost_model.py.
+
+version: 1
+default_lufs: -14.0          # streaming-platform target loudness
+default_sample_rate: 32000
+default_format: mp3
+
+emotion_universe:
+  - happy
+  - sad
+  - angry
+  - fearful
+  - surprised
+  - disgusted
+  - neutral
+
+roles:
+
+  # 1) 少女音 (16-22) — innocent, bright
+  shaonv:
+    label: 少女音
+    age_range: [16, 22]
+    gender: female
+    primary:
+      provider: doubao
+      voice_id: zh_female_qingxin
+    fallback:
+      - provider: minimax
+        voice_id: female-shaonv
+      - provider: elevenlabs
+        voice_id: 21m00Tcm4TlvDq8ikWAM
+    emotion_map:
+      happy: bright
+      sad: cry
+      angry: pout
+      fearful: tremble
+      surprised: gasp
+      disgusted: dismissive
+      neutral: calm
+
+  # 2) 御姐音 (23-35) — mature, sultry
+  yujie:
+    label: 御姐音
+    age_range: [23, 35]
+    gender: female
+    primary:
+      provider: doubao
+      voice_id: zh_female_xianqing
+    fallback:
+      - provider: minimax
+        voice_id: female-yujie
+      - provider: elevenlabs
+        voice_id: AZnzlk1XvdvUeBnXmlld
+    emotion_map:
+      happy: warm
+      sad: hush
+      angry: fury
+      fearful: alarmed
+      surprised: surprised
+      disgusted: cold
+      neutral: dignified
+
+  # 3) 妇女音 (36-55) — motherly / villainess
+  funv:
+    label: 妇女音
+    age_range: [36, 55]
+    gender: female
+    primary:
+      provider: doubao
+      voice_id: zh_female_chengshu
+    fallback:
+      - provider: minimax
+        voice_id: female-funv
+      - provider: elevenlabs
+        voice_id: pNInz6obpgDQGcFmaJgB
+    emotion_map:
+      happy: laugh
+      sad: lament
+      angry: stern
+      fearful: hesitant
+      surprised: surprised
+      disgusted: scorn
+      neutral: composed
+
+  # 4) 少年音 (15-22) — energetic, crackly
+  shaonian:
+    label: 少年音
+    age_range: [15, 22]
+    gender: male
+    primary:
+      provider: doubao
+      voice_id: zh_male_xiaolong
+    fallback:
+      - provider: minimax
+        voice_id: male-shaonian
+      - provider: elevenlabs
+        voice_id: TxGEqnHWrfWFTfGW9XjX
+    emotion_map:
+      happy: bright
+      sad: cry
+      angry: shout
+      fearful: tremble
+      surprised: gasp
+      disgusted: dismissive
+      neutral: calm
+
+  # 5) 青年音 (23-35) — confident, warm
+  qingnian:
+    label: 青年音
+    age_range: [23, 35]
+    gender: male
+    primary:
+      provider: doubao
+      voice_id: zh_male_yangguang
+    fallback:
+      - provider: minimax
+        voice_id: male-qingnian
+      - provider: elevenlabs
+        voice_id: pqHfZKP75CvOlQylNhV4
+    emotion_map:
+      happy: warm
+      sad: hush
+      angry: fury
+      fearful: alarmed
+      surprised: surprised
+      disgusted: cold
+      neutral: dignified
+
+  # 6) 中老年音 (45+) — authoritative
+  zhonglao:
+    label: 中老年音
+    age_range: [45, 80]
+    gender: male
+    primary:
+      provider: doubao
+      voice_id: zh_male_chunhou
+    fallback:
+      - provider: minimax
+        voice_id: male-zhonglao
+      - provider: elevenlabs
+        voice_id: VR6AewLTigWG4xSOukaG
+    emotion_map:
+      happy: laugh
+      sad: lament
+      angry: stern
+      fearful: hesitant
+      surprised: surprised
+      disgusted: scorn
+      neutral: composed

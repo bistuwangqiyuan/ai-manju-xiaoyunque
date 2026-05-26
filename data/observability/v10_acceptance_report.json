@@ -1,0 +1,683 @@
+{
+  "ran_at": "2026-05-26T16:58:28Z",
+  "pass": 81,
+  "warn": 0,
+  "fail": 0,
+  "chapters": [
+    {
+      "chapter": "§1",
+      "title": "产出规格 & 自定义画风",
+      "pass": 3,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§1",
+          "name": "Job schema aspect/resolution/fps/duration",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§1",
+          "name": "custom_style module",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§1",
+          "name": "/styles route",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§2",
+      "title": "目录命名 / 项目包 / 版本 diff / 风控",
+      "pass": 5,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§2",
+          "name": "artifact_store (tree naming)",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§2",
+          "name": "project bundle export",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§2",
+          "name": "version_diff module",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§2",
+          "name": "post_vlm_review module",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§2",
+          "name": "copyright fingerprint",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§3",
+      "title": "文本层",
+      "pass": 8,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§3",
+          "name": "novel_import",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "chapter_writer",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "plot_state",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "novel_to_screenplay",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "dialogue_polish",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "novel_translate",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "novels routes",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§3",
+          "name": "screenplays routes",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§4",
+      "title": "视觉资产",
+      "pass": 6,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§4",
+          "name": "three_view",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§4",
+          "name": "expression_router",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§4",
+          "name": "pose_extract",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§4",
+          "name": "costume_climate",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§4",
+          "name": "scene_search",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§4",
+          "name": "atmosphere_inferer",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§5",
+      "title": "画面生成",
+      "pass": 6,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§5",
+          "name": "storyboard_layouter",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§5",
+          "name": "storyboard_grid",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§5",
+          "name": "parallel_scheduler",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§5",
+          "name": "resumer",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§5",
+          "name": "anatomy_detector",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§5",
+          "name": "repair_hand_local",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§6",
+      "title": "质量闭环",
+      "pass": 4,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§6",
+          "name": "visual_diagnose",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§6",
+          "name": "style_consistency",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§6",
+          "name": "repair_router",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§6",
+          "name": "feedback_distill",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§7",
+      "title": "音视频核心",
+      "pass": 13,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§7",
+          "name": "voice_library",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "dialogue_timeline",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "bgm_library",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "bgm_recommender",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "beat_align",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "sfx_auto_inject",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "lufs_normalize",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "transitions",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "compose_v10",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "voices.yaml",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "bgm_library.yaml",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "sfx_library.yaml",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§7",
+          "name": "assets/fonts README",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§8",
+      "title": "高阶 + 同人衍生",
+      "pass": 7,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§8",
+          "name": "continuation",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§8",
+          "name": "interaction_logic",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§8",
+          "name": "asset_restyle",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§8",
+          "name": "novel_to_comic",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§8",
+          "name": "video_to_comic",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§8",
+          "name": "comic_to_motion",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§8",
+          "name": "restyle_brush",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§9",
+      "title": "流程 + 双模式",
+      "pass": 8,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§9",
+          "name": "templates",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "pause_gate",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "scheduler",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "drafts",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "hot_templates.yaml (10 entries)",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "/dashboard/new/wizard page",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "/dashboard/new/pro page",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§9",
+          "name": "flow + templates + schedules routes",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§10",
+      "title": "导出适配",
+      "pass": 6,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§10",
+          "name": "gif_export",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§10",
+          "name": "frame_sequence",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§10",
+          "name": "storyboard_export",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§10",
+          "name": "cover_compose",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§10",
+          "name": "platform_copy_presets",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§10",
+          "name": "platform_export",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§11",
+      "title": "团队商用版",
+      "pass": 9,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§11",
+          "name": "rbac",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "api_keys",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "rate_limit",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "invites",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "usage",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "orgs + public_v1 routes",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "5 enterprise ORM tables",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "Helm chart present",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§11",
+          "name": "Alembic v10 migration",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    },
+    {
+      "chapter": "§12",
+      "title": "NFR + 监控 + 文档",
+      "pass": 6,
+      "warn": 0,
+      "fail": 0,
+      "checks": [
+        {
+          "chapter": "§12",
+          "name": "tools/sla_probe.py",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§12",
+          "name": "grafana dashboard JSON",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§12",
+          "name": "volc cloud monitor YAML",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§12",
+          "name": "v10 runbook",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§12",
+          "name": "api-v10 docs",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        },
+        {
+          "chapter": "§12",
+          "name": "SSO/OIDC P0 module",
+          "status": "PASS",
+          "detail": "",
+          "extras": {}
+        }
+      ]
+    }
+  ]
+}

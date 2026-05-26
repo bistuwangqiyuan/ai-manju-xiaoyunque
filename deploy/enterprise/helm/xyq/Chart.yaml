@@ -1,0 +1,22 @@
+apiVersion: v2
+name: xiaoyunque
+description: |
+  Xiaoyunque · AI manga-drama production pipeline · enterprise / private
+  deployment chart. Includes API, embedded worker, optional postgres
+  sidecar, optional NATS for the pause-gate WebSocket fan-out, and a
+  Kubernetes CronJob that hits /api/schedules/poll every minute when
+  APScheduler is not used.
+type: application
+version: 0.1.0
+appVersion: "10.0.0"
+icon: https://example.com/xiaoyunque-logo.png
+
+keywords:
+  - ai
+  - short-drama
+  - generative-video
+  - on-prem
+
+maintainers:
+  - name: Xiaoyunque Platform Team
+    email: platform@xiaoyunque.example.com

@@ -1,0 +1,82 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "probed_at": "2026-05-26T17:00:17Z",
+  "n_samples": 15,
+  "n_ok": 0,
+  "global_success_rate": 0.0,
+  "global_p50_ms": 2034.62,
+  "global_p95_ms": 2049.19,
+  "global_p99_ms": 2062.23,
+  "per_target": {
+    "health": {
+      "n": 3,
+      "n_ok": 0,
+      "success_rate": 0.0,
+      "p50_ms": 2034.78,
+      "p95_ms": 2062.23,
+      "p99_ms": 2062.23,
+      "max_ms": 2062.2297000008984,
+      "errors": [
+        "All connection attempts failed",
+        "All connection attempts failed",
+        "All connection attempts failed"
+      ]
+    },
+    "templates_list": {
+      "n": 3,
+      "n_ok": 0,
+      "success_rate": 0.0,
+      "p50_ms": 2034.62,
+      "p95_ms": 2045.08,
+      "p99_ms": 2045.08,
+      "max_ms": 2045.0839000041015,
+      "errors": [
+        "All connection attempts failed",
+        "All connection attempts failed",
+        "All connection attempts failed"
+      ]
+    },
+    "genres_list": {
+      "n": 3,
+      "n_ok": 0,
+      "success_rate": 0.0,
+      "p50_ms": 2034.47,
+      "p95_ms": 2044.7,
+      "p99_ms": 2044.7,
+      "max_ms": 2044.6978000036324,
+      "errors": [
+        "All connection attempts failed",
+        "All connection attempts failed",
+        "All connection attempts failed"
+      ]
+    },
+    "auth_me": {
+      "n": 3,
+      "n_ok": 0,
+      "success_rate": 0.0,
+      "p50_ms": 2034.12,
+      "p95_ms": 2044.9,
+      "p99_ms": 2044.9,
+      "max_ms": 2044.900199995027,
+      "errors": [
+        "All connection attempts failed",
+        "All connection attempts failed",
+        "All connection attempts failed"
+      ]
+    },
+    "schedules_due": {
+      "n": 3,
+      "n_ok": 0,
+      "success_rate": 0.0,
+      "p50_ms": 2044.35,
+      "p95_ms": 2049.19,
+      "p99_ms": 2049.19,
+      "max_ms": 2049.1863999995985,
+      "errors": [
+        "All connection attempts failed",
+        "All connection attempts failed",
+        "All connection attempts failed"
+      ]
+    }
+  }
+}

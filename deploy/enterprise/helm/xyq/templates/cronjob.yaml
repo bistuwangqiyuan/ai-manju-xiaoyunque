@@ -1,0 +1,27 @@
+{{- if .Values.scheduler.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "xyq.fullname" . }}-scheduler-tick
+  labels:
+    app: {{ include "xyq.name" . }}
+    component: scheduler
+spec:
+  schedule: {{ .Values.scheduler.cron | quote }}
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scheduler-tick
+              image: curlimages/curl:8.6.0
+              args:
+                - -fsSL
+                - -X
+                - POST
+                - http://{{ include "xyq.fullname" . }}:{{ .Values.service.port }}/api/schedules/poll
+{{- end }}

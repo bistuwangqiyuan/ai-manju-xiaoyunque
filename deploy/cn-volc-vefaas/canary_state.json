@@ -1,0 +1,21 @@
+{
+  "version": "v10",
+  "stages": [
+    {
+      "percent": 10,
+      "started_at": "2026-05-26T17:01:50Z",
+      "traffic": {
+        "backend": "dry_run",
+        "percent": 10,
+        "manual": "# Manual: set canary traffic to 10% on API Gateway\nvolc apig UpdateRoute --route-id $ROUTE_ID --canary-weight 10 --stable-weight 90\n"
+      },
+      "sla_probe": {
+        "global_success_rate": 1.0,
+        "skipped": true,
+        "reason": "dry_run"
+      },
+      "status": "passed"
+    }
+  ],
+  "current_percent": 10
+}
