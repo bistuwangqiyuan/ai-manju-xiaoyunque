@@ -73,6 +73,10 @@ COPY requirements.txt ./pipeline-requirements.txt
 RUN pip install -r backend-requirements.txt \
     && pip install -r pipeline-requirements.txt
 
+# Tail-only deps (see backend/requirements.txt NOTE: keeps heavy pip layer
+# cacheable in Volc CR cn-beijing; this layer is ~150KB, pushes in seconds).
+RUN pip install --no-cache-dir python-multipart==0.0.20
+
 # Backend app code (含 TOS storage 实现)
 COPY backend/app ./app
 COPY src ./src

@@ -67,6 +67,9 @@ COPY requirements.txt ./pipeline-requirements.txt
 RUN pip install -r backend-requirements.txt \
     && pip install -r pipeline-requirements.txt
 
+# Tail-only deps (see backend/requirements.txt NOTE)
+RUN pip install --no-cache-dir python-multipart==0.0.20
+
 # Backend app code
 COPY backend/app ./app
 COPY src ./src
