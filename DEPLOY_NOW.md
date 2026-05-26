@@ -1,115 +1,137 @@
 # 上线状态 — v9 全国产 serverless
 
-> **当前**：v9.0.1 镜像已构建+推送+部署到 veFaaS，函数已 Release 完成。
-> **剩 1 步**：在 API 网关控制台 5 分钟点几下，让函数对公网开放（火山 veFaaS 必须通过 APIG 暴露 HTTP）。
+> **当前**: veFaaS 函数 + API 网关全部就位; 实测发现镜像 v9.0.1 漏了 `python-multipart` 依赖, 已在 v9.0.2 修复, 正在重新出 release。
+> **公网域名 (上线后即可用)**: `http://sd8ahl2ki9edvua7ttfs0.apigateway-cn-beijing.volceapi.com`
 
 ---
 
-## 已完成（全自动）
+## 已完成 (全自动)
 
 | 步骤 | 状态 | 资源 / 证据 |
 |---|---|---|
 | Windows 用户级 env (52 keys) + Credential Manager (26 keys) | ✅ | `data/windows_keys_synced.json` |
-| GitHub Secrets 同步 (33 keys) | ✅ | `gh secret list` 已有 |
-| veFaaS 服务授权 | ✅ | 账号 2101722825 |
+| GitHub Secrets 同步 (33 keys) | ✅ | `gh secret list` |
+| veFaaS / APIG / TOS / CR 服务授权 | ✅ | 账号 `2101722825` |
 | 容器镜像仓库 (CR) | ✅ | `manhuaju-cn-beijing.cr.volces.com/manhuaju/xyq-manju:v9.0.1` |
 | TOS bucket | ✅ | `tos://xyq-prod-cn-beijing` (cn-beijing, 私有) |
 | GitHub Actions deploy-vefaas.yml | ✅ | tag push 自动跑 |
-| Docker image build & push | ✅ | 4 min build, 已推 CR (registry cache) |
-| veFaaS CreateFunction | ✅ | id=`0mt4ej8a`, name=`xyq-manju`, port=8000 |
-| veFaaS Release | ✅ | RevisionNumber 已发布, weight=100 |
-| 33 个 env 注入函数 | ✅ | 包括 `STORAGE_BACKEND=tos`, `TTS_PRIMARY=doubao`, `LLM_PROVIDER_CHAIN=deepseek,glm,moonshot,tongyi,spark,doubao` |
-| 自动化测试 (50 pass / 10 skip) | ✅ | `tests/test_vefaas_deploy.py` 23 个 OK |
+| Docker image build & push | ✅ | 已推 CR (registry cache) |
+| veFaaS Function | ✅ | id=`0mt4ej8a`, name=`xyq-manju`, port=8000 |
+| veFaaS Release v9.0.1 | ✅ | RevisionNumber=1, weight=100 |
+| 33 个 env 注入函数 | ✅ | 包括 `STORAGE_BACKEND=tos`, `TTS_PRIMARY=doubao` |
+| **APIG Gateway** | ✅ | `gd8afjpepm94qqo1kmttg` (manhuaju-gw, Running, 公网+私网) |
+| **APIG Service** | ✅ | `sd8ahl2ki9edvua7ttfs0` (xyq-manju-svc, public HTTP/HTTPS) |
+| **APIG Upstream → veFaas** | ✅ | `ud8ahl2pi2gkmuvqaqepg` → FunctionId `0mt4ej8a`, Version `v1` |
+| **APIG Route** | ✅ | `rd8ahljpi2gkmuvqaqf30` (xyq-manju-all, Prefix `/`, 7 methods) |
+| **APIG Trigger 写入函数** | ✅ | `ListTriggers` 已显示该 trigger |
+| **容器冷启动成功** | ✅ | Caddy + Next.js 都已 Ready, FastAPI 因 multipart 缺失退出 |
+| 自动化测试 (50 pass / 10 skip) | ✅ | `tests/test_vefaas_deploy.py` 23 OK |
 
 ---
 
-## 剩下的 1 件事：绑定 API 网关 (5 分钟)
+## v9.0.2 修复 (本提交)
 
-veFaaS 的函数只有绑定 API 网关才能从公网访问 (官方设计如此，无 `fcapp.run` 这种直访域名)。
+### 根因
+APIG 上线后 curl 返回 **HTTP 503**, veFaaS 容器日志显示:
+```
+File "/app/app/routes/batch.py", line 111, in <module>
+    @router.post("/upload", response_model=BatchOut, status_code=201)
+RuntimeError: Form data requires "python-multipart" to be installed.
+```
+`/api/batch/upload` 用了 FastAPI `UploadFile`, FastAPI 0.115 起 multipart 不再随 fastapi 一起打包, 需要显式声明。
 
-### 方式 A — 用控制台 (推荐, 3 分钟)
+### 修复
+- `backend/requirements.txt`: 加 `python-multipart==0.0.20`
+- 不改任何代码逻辑, 只补依赖
+- 重新跑 GitHub Actions deploy-vefaas (push tag v9.0.2 触发)
 
-1. **创建 APIG 实例** (一次性):
-   - 打开 https://console.volcengine.com/veapig
-   - 点【创建实例】 → 类型选 **Serverless 网关** → 区域 **cn-beijing** → 计费 **按量** → 双可用区随便选 → 提交
-   - 等 1~2 分钟实例 Ready
+### 自动重新部署
+```powershell
+git tag v9.0.2
+git push origin v9.0.2
+# GitHub Actions 自动:
+#   1. docker build → push CR (cache hit 大部分层, 只重装 python deps + COPY 源码, ~3min)
+#   2. python deploy.py → UpdateFunction (idempotent) + Release new revision
+#   3. veFaaS 自动滚动到新镜像
+```
 
-2. **进入实例 → 创建服务**:
-   - 服务名 `xyq-manju-svc` → 协议 HTTP → 保存
+跑完后再访问 `http://sd8ahl2ki9edvua7ttfs0.apigateway-cn-beijing.volceapi.com/healthz` 应返回 `ok`。
 
-3. **绑定到 veFaaS 函数** (1 次点击):
-   - 打开 https://console.volcengine.com/vefaas/region:cn-beijing/function/0mt4ej8a
-   - 左侧【触发器】→【创建触发器】→ 类型选 **API 网关**
-   - 选你刚建的 APIG 实例 + 服务
-   - 路由路径 `/`，匹配模式 `Prefix`，方法全选
-   - 点【确定】
+---
 
-4. **拿到公网域名**:
-   - 触发器列表会显示一个形如 `xxx.apigw-cn-beijing.volces.com` 的域名
-   - 浏览器访问 `https://<域名>/healthz` 应该看到 `ok`
-
-### 方式 B — 用 OpenAPI (适合后续自动化, 已写好脚本)
+## 验证步骤 (v9.0.2 部署完成后)
 
 ```powershell
-# 你拿到 3 个 ID 后跑这行 (从控制台复制 ID, 或用 ve CLI 列出):
-python scripts/bind_apig_trigger.py `
-    --function-name xyq-manju `
-    --gateway-id    <你的 gw ID> `
-    --service-id    <你的 svc ID> `
-    --upstream-id   <你的 upstream ID> `
-    --path          /
+$url = "http://sd8ahl2ki9edvua7ttfs0.apigateway-cn-beijing.volceapi.com"
+
+# 健康探针 (Caddy 内置 200, 不进 FastAPI)
+curl.exe -v "$url/healthz"
+# 期望: HTTP 200, body = "ok"
+
+# FastAPI 后端健康
+curl.exe -v "$url/api/health"
+# 期望: HTTP 200, JSON {status: ok, ...}
+
+# Next.js 前端
+curl.exe -v "$url/"
+# 期望: HTTP 200, HTML
+
+# 跑一次完整流水线 (mock mode)
+curl.exe -X POST "$url/api/runs" -H "Content-Type: application/json" `
+    -d '{\"novel\":\"test\",\"force_mock\":true}'
 ```
 
 ---
 
-## 拿到公网域名后回填
+## 关键运维 ID 表 (上线必备)
 
-```powershell
-# 假设域名是 abc123.apigw-cn-beijing.volces.com
-$domain = "abc123.apigw-cn-beijing.volces.com"
-
-# 1. 回填 .env
-(Get-Content .env) -replace '^SITE_URL=.*', "SITE_URL=https://$domain" |
-  Set-Content .env
-
-# 2. 同步到 GitHub Secrets (供下次 deploy 用)
-gh secret set SITE_URL --body "https://$domain" --repo bistuwangqiyuan/ai-manju-xiaoyunque
-
-# 3. 健康检查
-curl https://$domain/healthz
-curl https://$domain/api/health
-```
+| 资源 | ID | 备注 |
+|---|---|---|
+| 火山账号 | `2101722825` | sts GetCallerIdentity 已验证 |
+| Region | `cn-beijing` | 全栈统一 |
+| veFaaS Function | `0mt4ej8a` | name `xyq-manju` |
+| APIG Gateway | `gd8afjpepm94qqo1kmttg` | name `manhuaju-gw` |
+| APIG Service | `sd8ahl2ki9edvua7ttfs0` | name `xyq-manju-svc` |
+| APIG Upstream | `ud8ahl2pi2gkmuvqaqepg` | name `xyq-manju-up`, ver `v1` |
+| APIG Route | `rd8ahljpi2gkmuvqaqf30` | name `xyq-manju-all` |
+| TOS Bucket | `xyq-prod-cn-beijing` | endpoint `tos-cn-beijing.volces.com` |
+| CR Namespace / Repo | `manhuaju` / `xyq-manju` | tag 滚动 `v9.x` |
 
 ---
 
-## 仍在等用户的 2 件小事 (不阻塞上线)
+## 仍在等用户的 1 件小事 (P4, 不阻塞主功能)
 
-- **P3**: 4 个漫剧 Agent PDF 放到 `docs/volc-manju/`
-  - 抓 4 个页面 (右上角 "下载 pdf") → `manju_agent_intro.pdf` / `manju_agent_video_gen.pdf` / `manju_agent_video_synth.pdf` / `manju_agent_full_workflow.pdf`
-  - 拿到后我即把 `src/shell3_skylark_engine/manju_agent_client.py` 里的 `req_key` + 字段映射常量改成真实值
-- **P4**: `DOUBAO_TTS_APPID` 数字 ID
-  - 你现在填的是 API Key 名字 `api-key-20260516225257`，不是 AppID
-  - 访问 https://console.volcengine.com/speech/service/8 → 找"语音合成 大模型 ICL"应用 → 复制 11 位数字 AppID
-  - 告诉我数字 ID, 我同步到 .env + Windows env + GitHub Secrets
+**`DOUBAO_TTS_APPID` 11 位数字 ID**
+
+`.env` 里现在填的 `api-key-20260516225257` 是 API Key 的名字, 不是真正的 AppID。豆包 Seed-TTS 调用必须传 11 位数字 AppID。
+
+- 我尝试过 `ve speechsaasprod ListAPIKeys` 自动查询, 但需先有 AppID 才能列, 是鸡蛋问题
+- IAM 账号 ID 是 `2101722825` (10 位, 也不是 AppID; AppID 是语音 SaaS 单独的)
+
+**1 分钟人工解决**:
+1. 访问 https://console.volcengine.com/speech/service/8
+2. 找"语音合成 大模型 ICL"应用 → 复制顶部的 **AppID** (一串 11 位数字)
+3. 告诉我数字, 我同步到 `.env` + Windows env + GitHub Secrets
+
+**降级备份**: 当 `DOUBAO_TTS_APPID` 缺失或非数字时, `tts_minimax.py` 自动 fallback 到 MiniMax Speech 2.5 HD (已验证可用), 系统不影响功能。
 
 ---
 
-## 故障排查
+## 自动化脚本一览
 
-### A. 触发器绑定后 404
-- veFaaS 函数容器内监听 `:8000` (Caddy)，APIG 把流量转发到这个端口
-- 如果 healthz 404 → 检查 APIG 触发器的【后端配置】是否选了对的函数
-
-### B. 触发器绑定后 502
-- 容器还在冷启动 (Docker pull + Caddy/Next/FastAPI 启动需要 ~30 s)
-- 多 curl 几次, 或先 `gh api repos/bistuwangqiyuan/ai-manju-xiaoyunque/actions/runs --jq '.workflow_runs[0]'` 看 build 是否真成功
-
-### C. APIG 实例创建后看不到
-- 等 2-3 分钟 (APIG 实例创建是异步的)
-- 或刷新页面
+| 脚本 | 用途 |
+|---|---|
+| `scripts/setup_apig_full.py` | 一键创建 APIG Service + Upstream + Route + UpstreamVersion (idempotent) |
+| `scripts/bind_apig_trigger.py` | 备用: 通过 veFaaS `CreateAPIGTrigger` 反向绑定 |
+| `scripts/get_function_info.py` | 轮询函数状态 + 取公网 URL |
+| `scripts/verify_deployment.py` | 部署后 5 项 smoke test |
+| `scripts/verify_volc_chain.py` | 5 个火山 API 真网联通 (ARK / Doubao TTS / Seedream / Jimeng / TOS) |
+| `scripts/sync_keys_to_windows.ps1` | 把 52 个 API key 同步到 Windows 用户级 env |
+| `scripts/sync_keys_to_github.ps1` | 把已验证 key 同步到 GitHub Secrets |
+| `scripts/setup_volc_resources.ps1` | 一次性创建/检查 TOS bucket + CR + veFaaS + APIG |
 
 ---
 
 ## 一行汇总
 
-> 函数已上线，需要 **3 分钟点 APIG 控制台**拿到公网 URL，然后系统全功能就绪。
+> APIG 全部接好, 镜像 v9.0.1 因缺 `python-multipart` 启动失败 → v9.0.2 加依赖, push tag 后 GitHub Actions 自动重出 release, 5 分钟后 `http://sd8ahl2ki9edvua7ttfs0.apigateway-cn-beijing.volceapi.com/healthz` 就 200 了。
