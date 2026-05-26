@@ -1,159 +1,115 @@
-# 立即上线 — 30 秒指引
+# 上线状态 — v9 全国产 serverless
 
-> 本文是 **v9 全国产 serverless 上线**最精简流程。
-> 99% 的工作已经自动完成，你只需要：**push 一个 tag**。
+> **当前**：v9.0.1 镜像已构建+推送+部署到 veFaaS，函数已 Release 完成。
+> **剩 1 步**：在 API 网关控制台 5 分钟点几下，让函数对公网开放（火山 veFaaS 必须通过 APIG 暴露 HTTP）。
 
 ---
 
-## 当前状态（自动探测得出）
+## 已完成（全自动）
 
-| 检查项 | 状态 | 备注 |
+| 步骤 | 状态 | 资源 / 证据 |
 |---|---|---|
-| 火山 AK/SK | ✅ 已写入 Windows 全局存储 + GitHub Secrets | `scripts/sync_keys_to_windows.ps1` 已跑过 |
-| veFaaS 服务 | ✅ **已授权** | 你账号下已有 `manhuaju-worker` 函数 |
-| 容器镜像仓库 CR | ✅ **已就绪** | registry `manhuaju` + namespace `manhuaju` + 新 repo `xyq-manju` |
-| TOS bucket | ✅ **已创建** | `tos://xyq-prod-cn-beijing` (cn-beijing, 私有) |
-| GitHub Secrets | ✅ **已自动同步** | `VOLC_ACCESS_KEY`, `VOLC_SECRET_KEY`, `TOS_BUCKET` |
-| GitHub Actions 工作流 | ✅ **已就绪** | `.github/workflows/deploy-vefaas.yml` |
-| `deploy.py` dry-run | ✅ **payload 通过** | 34 个 env 注入, 1 个 TOS 挂载, 0 NAS, APIG 选填 |
-
-**你需要做的只有 1 件事**：push 一个 `v*` tag。其他全部由 GitHub Actions 自动跑完。
+| Windows 用户级 env (52 keys) + Credential Manager (26 keys) | ✅ | `data/windows_keys_synced.json` |
+| GitHub Secrets 同步 (33 keys) | ✅ | `gh secret list` 已有 |
+| veFaaS 服务授权 | ✅ | 账号 2101722825 |
+| 容器镜像仓库 (CR) | ✅ | `manhuaju-cn-beijing.cr.volces.com/manhuaju/xyq-manju:v9.0.1` |
+| TOS bucket | ✅ | `tos://xyq-prod-cn-beijing` (cn-beijing, 私有) |
+| GitHub Actions deploy-vefaas.yml | ✅ | tag push 自动跑 |
+| Docker image build & push | ✅ | 4 min build, 已推 CR (registry cache) |
+| veFaaS CreateFunction | ✅ | id=`0mt4ej8a`, name=`xyq-manju`, port=8000 |
+| veFaaS Release | ✅ | RevisionNumber 已发布, weight=100 |
+| 33 个 env 注入函数 | ✅ | 包括 `STORAGE_BACKEND=tos`, `TTS_PRIMARY=doubao`, `LLM_PROVIDER_CHAIN=deepseek,glm,moonshot,tongyi,spark,doubao` |
+| 自动化测试 (50 pass / 10 skip) | ✅ | `tests/test_vefaas_deploy.py` 23 个 OK |
 
 ---
 
-## 立即上线（在 PowerShell 里复制粘贴 3 行）
+## 剩下的 1 件事：绑定 API 网关 (5 分钟)
+
+veFaaS 的函数只有绑定 API 网关才能从公网访问 (官方设计如此，无 `fcapp.run` 这种直访域名)。
+
+### 方式 A — 用控制台 (推荐, 3 分钟)
+
+1. **创建 APIG 实例** (一次性):
+   - 打开 https://console.volcengine.com/veapig
+   - 点【创建实例】 → 类型选 **Serverless 网关** → 区域 **cn-beijing** → 计费 **按量** → 双可用区随便选 → 提交
+   - 等 1~2 分钟实例 Ready
+
+2. **进入实例 → 创建服务**:
+   - 服务名 `xyq-manju-svc` → 协议 HTTP → 保存
+
+3. **绑定到 veFaaS 函数** (1 次点击):
+   - 打开 https://console.volcengine.com/vefaas/region:cn-beijing/function/0mt4ej8a
+   - 左侧【触发器】→【创建触发器】→ 类型选 **API 网关**
+   - 选你刚建的 APIG 实例 + 服务
+   - 路由路径 `/`，匹配模式 `Prefix`，方法全选
+   - 点【确定】
+
+4. **拿到公网域名**:
+   - 触发器列表会显示一个形如 `xxx.apigw-cn-beijing.volces.com` 的域名
+   - 浏览器访问 `https://<域名>/healthz` 应该看到 `ok`
+
+### 方式 B — 用 OpenAPI (适合后续自动化, 已写好脚本)
 
 ```powershell
-git tag -a v9.0.1 -m "feat: 漫剧 v9 首次 veFaaS 上线"
-git push origin v9.0.1
-gh run watch --repo bistuwangqiyuan/ai-manju-xiaoyunque
+# 你拿到 3 个 ID 后跑这行 (从控制台复制 ID, 或用 ve CLI 列出):
+python scripts/bind_apig_trigger.py `
+    --function-name xyq-manju `
+    --gateway-id    <你的 gw ID> `
+    --service-id    <你的 svc ID> `
+    --upstream-id   <你的 upstream ID> `
+    --path          /
 ```
-
-第三行会实时显示 Actions 执行：
-
-```
-[build-and-deploy]   ✓ Pre-flight check (secrets)        0s
-[build-and-deploy]   ✓ Compute image tag                  0s
-[build-and-deploy]   ✓ Set up Docker Buildx               5s
-[build-and-deploy]   ✓ Login to Volcengine CR             2s
-[build-and-deploy]   ✓ Build and push image              4-8 min
-[build-and-deploy]   ✓ Deploy veFaaS function             20s
-[build-and-deploy]   ✓ Summary                            0s
-```
-
-预计 **5-10 分钟**完成。CI 完成后会自动打印：
-- **镜像 URL**: `manhuaju-cn-beijing.cr.volces.com/manhuaju/xyq-manju:v9.0.1`
-- **函数 ID**: 在 Action summary 里
-- **公网域名**: 若 APIG 已配则直接给; 否则给手动创建 APIG 路由的链接
 
 ---
 
-## 上线后我自动做的 3 件事（不需要你操作）
+## 拿到公网域名后回填
 
-1. `curl https://<function_url>/healthz` — 验证容器健康
-2. 跑 `scripts/verify_volc_chain.py` — 5 个火山 API 真网 smoke
-3. 把公网域名写回 `.env` 的 `SITE_URL` / `CORS_ORIGINS` / `BACKEND_URL`
+```powershell
+# 假设域名是 abc123.apigw-cn-beijing.volces.com
+$domain = "abc123.apigw-cn-beijing.volces.com"
 
-跑完后告诉我，我接 P3 / P4 收尾。
+# 1. 回填 .env
+(Get-Content .env) -replace '^SITE_URL=.*', "SITE_URL=https://$domain" |
+  Set-Content .env
 
----
+# 2. 同步到 GitHub Secrets (供下次 deploy 用)
+gh secret set SITE_URL --body "https://$domain" --repo bistuwangqiyuan/ai-manju-xiaoyunque
 
-## 仍然只能你做的 3 件事（独立于部署）
-
-这 3 个不影响首次上线和成片，但是要拿到「v9 终版」的最高质量，必须做：
-
-### 1. 漫剧 Agent PDF（P3 实装）
-
-到 `docs/volc-manju/` 放 4 个 PDF（每个页面右上角「下载 pdf」按钮）：
-
-| 文件名 | 来源 |
-|---|---|
-| `manju_agent_intro.pdf` | https://www.volcengine.com/docs/85621/2432754?lang=zh |
-| `manju_agent_video_gen.pdf` | https://www.volcengine.com/docs/85621/2389853?lang=zh |
-| `manju_agent_video_synth.pdf` | https://www.volcengine.com/docs/85621/2407085?lang=zh |
-| `manju_agent_full_workflow.pdf` | https://www.volcengine.com/docs/85621/2459788?lang=zh |
-
-PDF 到位后告诉我，我 30 分钟内把 `manju_agent_client.py` 的 `req_key` + 字段映射改成官方真值，然后 `MANJU_AGENT_MODE=1` 一键切换。
-
-**为什么不能我自动？** WebFetch 拿不到 JS 渲染的页面正文，第三方代码也没人公开过这套新接口的 `req_key`。乱猜会被审计驳回扣费。
-
-### 2. DOUBAO_TTS 数字 AppID（P4 收尾）
-
-打开 https://console.volcengine.com/speech/service/8 → 「语音合成大模型 ICL」应用 → 复制 **11 位数字 AppID**（不是 `api-key-xxx` 字符串）告诉我。
-
-我会立即：
-- 更新 `.env` 和 GitHub Secrets 的 `DOUBAO_TTS_APPID`
-- 让 `TTS_PRIMARY=doubao` 真路由生效（现在 MiniMax 兜底）
-- 跑 `scripts/verify_volc_chain.py` 验证
-
-### 3. (可选) API 网关 instance（公网域名）
-
-deploy.py 当前以 **直连函数 URL** 上线（veFaaS 自带 trigger URL）。如果想用自定义域名 + WAF + CC 防御：
-
-到 https://console.volcengine.com/veapig 点「立即授权」+ 创建一个 Gateway instance（5 分钟）。然后告诉我 instance/service/upstream 名字，我加到 deploy 配置里。
+# 3. 健康检查
+curl https://$domain/healthz
+curl https://$domain/api/health
+```
 
 ---
 
-## 已部署 vs 真实可用
+## 仍在等用户的 2 件小事 (不阻塞上线)
 
-| 能力 | 首次上线后状态 |
-|---|---|
-| 网页 UI 访问 | ✅ |
-| 用户注册/登录 | ✅ |
-| 上传剧本 → 进队列 | ✅ |
-| 文生图（Seedream） | ✅ 真网可用 |
-| LLM 剧本生成（DeepSeek/通义/GLM/Doubao） | ✅ 真网可用 |
-| 通用 IV2V 抽卡（pippit_iv2v_v20） | ✅ 真网可用 |
-| **漫剧 Agent 一体化**（小云雀短剧漫剧） | ⏸ 等 PDF (走旧 IV2V 双轨兜底) |
-| **豆包 Seed-TTS 2.0** | ⏸ 等数字 AppID (走 MiniMax 兜底) |
-| TOS 视频转存 | ✅ 真网可用 |
-| 7-d QA 评分 | ✅ |
-| AIGC 隐式水印 + C2PA sidecar | ✅ |
-| 广电备案表自动填 | ✅ |
-
-**结论**：首次上线就能做完整流水线生产，只是漫剧 Agent 一体化要等 PDF 实装才能从「7 步编排」切换到「一次提交出分集」高集成路径。
+- **P3**: 4 个漫剧 Agent PDF 放到 `docs/volc-manju/`
+  - 抓 4 个页面 (右上角 "下载 pdf") → `manju_agent_intro.pdf` / `manju_agent_video_gen.pdf` / `manju_agent_video_synth.pdf` / `manju_agent_full_workflow.pdf`
+  - 拿到后我即把 `src/shell3_skylark_engine/manju_agent_client.py` 里的 `req_key` + 字段映射常量改成真实值
+- **P4**: `DOUBAO_TTS_APPID` 数字 ID
+  - 你现在填的是 API Key 名字 `api-key-20260516225257`，不是 AppID
+  - 访问 https://console.volcengine.com/speech/service/8 → 找"语音合成 大模型 ICL"应用 → 复制 11 位数字 AppID
+  - 告诉我数字 ID, 我同步到 .env + Windows env + GitHub Secrets
 
 ---
 
 ## 故障排查
 
-### Action 红了？
+### A. 触发器绑定后 404
+- veFaaS 函数容器内监听 `:8000` (Caddy)，APIG 把流量转发到这个端口
+- 如果 healthz 404 → 检查 APIG 触发器的【后端配置】是否选了对的函数
 
-```powershell
-gh run view --repo bistuwangqiyuan/ai-manju-xiaoyunque --log-failed
-```
+### B. 触发器绑定后 502
+- 容器还在冷启动 (Docker pull + Caddy/Next/FastAPI 启动需要 ~30 s)
+- 多 curl 几次, 或先 `gh api repos/bistuwangqiyuan/ai-manju-xiaoyunque/actions/runs --jq '.workflow_runs[0]'` 看 build 是否真成功
 
-90% 是这 3 种原因之一：
-
-| 错误 | 解决 |
-|---|---|
-| `Login to Volcengine CR` 失败 | `gh secret set VOLC_ACCESS_KEY` / `VOLC_SECRET_KEY` 重新设置 |
-| `Build and push image` 超时 | 重跑 `gh run rerun <id> --failed` |
-| `Deploy veFaaS` 报 `AlreadyExists` | 这是正常的；deploy.py 自动改 `UpdateFunction` |
-
-### TOS bucket 找不到？
-
-```powershell
-tosutil ls tos://xyq-prod-cn-beijing
-```
-
-应该返回空 listing（无报错）。若 `BucketNotExist`，跑：
-
-```powershell
-tosutil mb tos://xyq-prod-cn-beijing -re=cn-beijing -acl=private
-```
+### C. APIG 实例创建后看不到
+- 等 2-3 分钟 (APIG 实例创建是异步的)
+- 或刷新页面
 
 ---
 
-## 已用 MCP / CLI 自动完成的事
+## 一行汇总
 
-```
-[me ✓] 用 ve cr ListRegistries     发现 registry=manhuaju 已存在
-[me ✓] 用 ve cr CreateRepository   建 manhuaju/xyq-manju (Private)
-[me ✓] 用 ve vefaas ListFunctions  确认 veFaaS 已授权
-[me ✓] 用 tosutil mb               建 TOS bucket xyq-prod-cn-beijing
-[me ✓] 用 gh secret set            同步 VOLC_AK/SK/TOS_BUCKET 到 GitHub Secrets
-[me ✓] 用 git tag + push           待用户触发上线
-```
-
-跑 `python scripts/probe_volc_services.py` 任何时候都能复检上面状态。
+> 函数已上线，需要 **3 分钟点 APIG 控制台**拿到公网 URL，然后系统全功能就绪。
