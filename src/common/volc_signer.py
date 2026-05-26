@@ -73,8 +73,13 @@ def sign_request(
 
     payload_hash = hashlib.sha256(body or b"").hexdigest()
 
+    # NOTE: Volc vefaas / apig OpenAPI reject signatures whose canonical
+    # content-type omits the charset segment (returns
+    # InvalidAuthorization 100024). Keep `application/json; charset=utf-8`
+    # to stay compatible with both visual.volcengineapi.com and
+    # open.volcengineapi.com.
     canonical_headers = (
-        "content-type:application/json\n"
+        "content-type:application/json; charset=utf-8\n"
         f"host:{host}\n"
         f"x-content-sha256:{payload_hash}\n"
         f"x-date:{amzdate}\n"
@@ -112,7 +117,8 @@ def sign_request(
         method=method.upper(),
         url=f"https://{host}/?{canonical_qs}",
         headers={
-            "Content-Type": "application/json",
+            # MUST match canonical_headers exactly (incl. ; charset=utf-8)
+            "Content-Type": "application/json; charset=utf-8",
             "Host": host,
             "X-Date": amzdate,
             "X-Content-Sha256": payload_hash,

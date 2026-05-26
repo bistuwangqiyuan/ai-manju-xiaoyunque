@@ -48,7 +48,26 @@ APIG_VERSION_GW      = "2021-03-03"
 APIG_VERSION_ROUTE   = "2022-11-12"
 
 
+_PLACEHOLDER_MARKERS = (
+    "<paste", "your-", "your_", "xxxx", "todo", "<set",
+    "changeme", "replace-me", "your-key-here",
+)
+
+
+def _is_placeholder(v: str) -> bool:
+    if not v:
+        return True
+    lo = v.strip().lower()
+    return lo.startswith("<") or any(m in lo for m in _PLACEHOLDER_MARKERS)
+
+
 def _from_registry(name: str) -> str:
+    """Windows-only: read user-level env var directly from HKCU\\Environment.
+
+    Necessary because PowerShell sessions may have stale env values from a
+    project .env that contain placeholder strings; the global Windows env
+    set by ``scripts/sync_keys_to_windows.ps1`` is the canonical source.
+    """
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
             v, _ = winreg.QueryValueEx(k, name)
@@ -62,12 +81,15 @@ def _ak_sk() -> tuple[str, str]:
           os.environ.get("VOLCENGINE_ACCESS_KEY") or "").strip()
     sk = (os.environ.get("VOLC_SECRET_KEY") or
           os.environ.get("VOLCENGINE_SECRET_KEY") or "").strip()
-    if not ak or ak.startswith("<"):
-        ak = _from_registry("VOLC_ACCESS_KEY") or _from_registry("VOLCENGINE_ACCESS_KEY")
-    if not sk or sk.startswith("<"):
-        sk = _from_registry("VOLC_SECRET_KEY") or _from_registry("VOLCENGINE_SECRET_KEY")
-    if not ak or not sk:
-        raise SystemExit("VOLC_ACCESS_KEY / VOLC_SECRET_KEY missing")
+    if _is_placeholder(ak):
+        ak = (_from_registry("VOLC_ACCESS_KEY")
+              or _from_registry("VOLCENGINE_ACCESS_KEY") or "").strip()
+    if _is_placeholder(sk):
+        sk = (_from_registry("VOLC_SECRET_KEY")
+              or _from_registry("VOLCENGINE_SECRET_KEY") or "").strip()
+    if not ak or not sk or _is_placeholder(ak) or _is_placeholder(sk):
+        raise SystemExit("VOLC_ACCESS_KEY / VOLC_SECRET_KEY missing (or placeholder). "
+                         "Run scripts/sync_keys_to_windows.ps1 first.")
     return ak, sk
 
 
@@ -159,6 +181,19 @@ def find_or_create_upstream(gateway_id: str, name: str, function_id: str) -> str
     if not uid:
         raise SystemExit(f"CreateUpstream failed [HTTP {code}]: {_err(resp) or resp}")
     print(f"[+] upstream '{name}' created: {uid}")
+
+    # Bootstrap an UpstreamVersion 'v1' so the route can reference a stable
+    # label. VeFaas-typed upstreams auto-track the function's released
+    # revision; the version label is only a routing alias.
+    code, resp = _call("CreateUpstreamVersion", APIG_VERSION_GW, {
+        "UpstreamId": uid,
+        "UpstreamVersion": {"Name": "v1", "Labels": []},
+    })
+    if code == 200:
+        print(f"[+] upstream version 'v1' bootstrapped")
+    else:
+        # Tolerate 'already exists' (will happen on idempotent re-runs)
+        print(f"[=] upstream version 'v1' bootstrap: HTTP {code}")
     return str(uid)
 
 
@@ -181,9 +216,10 @@ def find_or_create_route(service_id: str, route_name: str, upstream_id: str,
             "Path":   {"MatchType": "Prefix", "MatchContent": path},
             "Method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
         },
-        "UpstreamList": [{"UpstreamId": upstream_id, "Weight": 100}],
+        "UpstreamList": [{"UpstreamId": upstream_id, "Version": "v1",
+                          "Weight": 100}],
         "AdvancedSetting": {
-            "TimeoutSetting": {"Enable": True, "Timeout": 60},
+            "TimeoutSetting": {"Enable": True, "Timeout": 120},
         },
     }
     code, resp = _call("CreateRoute", APIG_VERSION_ROUTE, body)
