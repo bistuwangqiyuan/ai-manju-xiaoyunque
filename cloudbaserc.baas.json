@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "envId": "manju-d7gnrc3h6c9f792ec",
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "functions": [
+    {
+      "name": "xyq-api",
+      "timeout": 900,
+      "memorySize": 1024,
+      "runtime": "Python3.9",
+      "installDependency": true,
+      "envVariables": {
+        "MOCK_MODE": "1",
+        "EMBEDDED_WORKER": "0",
+        "CORS_ORIGINS": "*",
+        "DATABASE_URL": "sqlite:////tmp/xyq.db",
+        "STORAGE_DIR": "/tmp/storage"
+      }
+    }
+  ]
+}

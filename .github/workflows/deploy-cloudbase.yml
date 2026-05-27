@@ -1,0 +1,117 @@
+name: Deploy XYQ to CloudBase CloudRun
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'src/**'
+      - 'web/**'
+      - 'deploy/cn-serverless/**'
+      - '.github/workflows/deploy-cloudbase.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDRUN_ENV_ID: manju-d9g4i12d551bf6621
+      BAAS_ENV_ID: manju-d7gnrc3h6c9f792ec
+      SERVICE_NAME: xyq
+      TCR_NAMESPACE: tcb
+      TCR_REPO: manju-d9g4i12d551bf6621_xyq
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build static frontend (same-origin bundle)
+        working-directory: web
+        env:
+          CLOUDBASE_STATIC: '1'
+          NEXT_PUBLIC_BACKEND_URL: ''
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Prepare Dockerfile
+        run: cp deploy/cn-serverless/Dockerfile.cloudbase Dockerfile
+
+      - name: Login TCR and build push image
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+        run: |
+          REGISTRY=ccr.ccs.tencentyun.com
+          IMAGE="${REGISTRY}/${TCR_NAMESPACE}/${TCR_REPO}:${IMAGE_TAG}"
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+          docker login "${REGISTRY}" --username "${TENCENT_SECRET_ID}" --password "${TENCENT_SECRET_KEY}"
+          docker build -t "${IMAGE}" .
+          docker push "${IMAGE}"
+
+      - name: Deploy image to CloudRun and update static hosting
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+        run: |
+          pip install tencentcloud-sdk-python
+          python - <<'PY'
+          import json, os
+          from tencentcloud.common import credential
+          from tencentcloud.tcbr.v20220217 import tcbr_client, models
+
+          env_id = os.environ["CLOUDRUN_ENV_ID"]
+          service = os.environ["SERVICE_NAME"]
+          image = os.environ["IMAGE"]
+          client = tcbr_client.TcbrClient(
+              credential.Credential(os.environ["TENCENT_SECRET_ID"], os.environ["TENCENT_SECRET_KEY"]),
+              "ap-shanghai",
+          )
+          env_params = {
+              "JWT_SECRET": os.environ.get("JWT_SECRET", "gha-deploy-secret"),
+              "INTERNAL_API_SECRET": os.environ.get("INTERNAL_API_SECRET", "gha-internal-secret"),
+              "DATABASE_URL": "sqlite:////data/xyq.db",
+              "STORAGE_DIR": "/data/storage",
+              "STATIC_WEB_DIR": "/app/static_web",
+              "EMBEDDED_WORKER": "1",
+              "MOCK_MODE": "1",
+              "CORS_ORIGINS": "*",
+              "PORT": "8080",
+          }
+          req = models.UpdateCloudRunServerRequest()
+          req.EnvId = env_id
+          req.ServerName = service
+          req.ServerConfig = models.ServerBaseConfig()
+          req.ServerConfig.Port = 8080
+          req.ServerConfig.MinNum = 1
+          req.ServerConfig.MaxNum = 5
+          req.ServerConfig.Cpu = 1
+          req.ServerConfig.Mem = 2
+          req.ServerConfig.EnvParams = json.dumps(env_params)
+          req.DeployInfo = models.DeployParam()
+          req.DeployInfo.DeployType = "image"
+          req.DeployInfo.ImageUrl = image
+          req.DeployInfo.ReleaseType = "FULL"
+          req.DeployInfo.DeployRemark = f"gha {image}"
+          resp = client.UpdateCloudRunServer(req)
+          print(resp.to_json_string())
+          PY
+
+      - name: Install CloudBase CLI and deploy static frontend
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+        run: |
+          npm install -g @cloudbase/cli
+          tcb login --apiKeyId "${TENCENT_SECRET_ID}" --apiKey "${TENCENT_SECRET_KEY}"
+          tcb hosting deploy web/out / --env-id "${BAAS_ENV_ID}"
