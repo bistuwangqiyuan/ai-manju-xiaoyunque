@@ -25,7 +25,8 @@ const PRIMARY_LINKS: NavLink[] = [
 ];
 
 const SECONDARY_LINKS: NavLink[] = [
-  { href: '/quality', key: 'nav.docs' },
+  { href: '/guide', key: 'nav.guide' },
+  { href: '/quality', key: 'nav.quality' },
   { href: '/pricing', key: 'nav.pricing' },
 ];
 

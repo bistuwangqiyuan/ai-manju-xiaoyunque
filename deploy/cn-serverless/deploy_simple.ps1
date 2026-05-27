@@ -74,7 +74,9 @@ Green "  登录成功"
 # ---------- 4) 自动生成密钥 ----------
 HR; Blue "[4/6] 生成 JWT_SECRET + INTERNAL_API_SECRET..."
 function NewSecret {
-    [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+    $bytes = New-Object byte[] 48
+    [System.Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($bytes)
+    [Convert]::ToBase64String($bytes)
 }
 if (-not $env:JWT_SECRET)          { $env:JWT_SECRET          = NewSecret }
 if (-not $env:INTERNAL_API_SECRET) { $env:INTERNAL_API_SECRET = NewSecret }
@@ -87,19 +89,22 @@ foreach ($k in 'VOLC_ARK_API_KEY','ANTHROPIC_API_KEY','DEEPSEEK_API_KEY','DOUBAO
 }
 Green "  Secrets 已生成 (运行时注入到容器)"
 
-# ---------- 5) tcb framework deploy ----------
-HR; Blue "[5/6] 推送 Dockerfile.allinone 到 CloudBase 云托管..."
+# ---------- 5) tcb cloudrun deploy ----------
+HR; Blue "[5/6] 推送 Dockerfile.allinone 到 CloudBase 云托管 (cloudrun)..."
 Yellow "  首次构建约 5-10 分钟 (Next.js + Python + Caddy + ffmpeg 多阶段镜像)"
-Set-Location $RootDir
-& tcb framework deploy -e $env:ENV_ID --config-file deploy/cn-serverless/cloudbaserc.allinone.json
+Yellow "  若报 ResourceFrozen: 请到控制台解冻云托管后再重试"
+    # cloudrun deploy 需要项目根目录有 Dockerfile
+    Copy-Item -Force (Join-Path $RootDir 'deploy/cn-serverless/Dockerfile.allinone') (Join-Path $RootDir 'Dockerfile')
+    Set-Location $RootDir
+    & tcb cloudrun deploy --env-id $env:ENV_ID -s xyq --port 8080 --source . --force
 
 # ---------- 6) 获取 URL + 烟雾测试 ----------
 HR; Blue "[6/6] 获取访问 URL + 烟雾测试..."
-$ServiceJson = & tcb run service:list -e $env:ENV_ID --json 2>$null | Out-String
+$ServiceJson = & tcb cloudrun list --env-id $env:ENV_ID --json 2>$null | Out-String
 $url = $null
 try {
     $svcs = $ServiceJson | ConvertFrom-Json
-    $svc = $svcs | Where-Object { $_.name -eq 'xyq' } | Select-Object -First 1
+    $svc = $svcs | Where-Object { $_.name -eq "xyq" } | Select-Object -First 1
     if ($svc -and $svc.url) { $url = $svc.url }
 } catch {}
 

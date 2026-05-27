@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api, Shot } from '@/lib/api';
+import { api, Shot, assetUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/lib/i18n';
 import { Scores7DPanel } from '@/components/WorkflowStepper';
@@ -88,7 +88,7 @@ function ShotsInner() {
               )}
               {s.result_url && (
                 <video
-                  src={(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + s.result_url}
+                  src={assetUrl(s.result_url)}
                   className="w-full aspect-[9/16] rounded mb-2 bg-black object-contain"
                   controls
                 />

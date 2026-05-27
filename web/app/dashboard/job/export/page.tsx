@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api, ExportResult, MarketingCopy } from '@/lib/api';
+import { api, ExportResult, MarketingCopy, assetUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/lib/i18n';
 import { ArrowLeft, Download, Megaphone } from 'lucide-react';
@@ -164,7 +164,7 @@ function ExportInner() {
                 ))}
               </div>
               <a
-                href={(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + r.url}
+                href={assetUrl(r.url)}
                 download
                 className="btn-secondary text-xs inline-flex items-center"
               >

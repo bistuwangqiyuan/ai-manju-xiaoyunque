@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api, JobVersion } from '@/lib/api';
+import { api, JobVersion, assetUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/lib/i18n';
 import { Scores7DPanel } from '@/components/WorkflowStepper';
@@ -108,7 +108,7 @@ function VersionsInner() {
               )}
               {v.result_url && (
                 <a
-                  href={(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + v.result_url}
+                  href={assetUrl(v.result_url)}
                   download
                   className="btn-ghost text-xs mt-3 inline-block"
                 >

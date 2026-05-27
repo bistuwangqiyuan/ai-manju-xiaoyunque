@@ -248,6 +248,6 @@
     "recommend_split": false,
     "reasoning": "monolith 在 veFaaS 限制内"
   },
-  "generated_at_utc": "2026-05-26T17:00:01Z",
+  "generated_at_utc": "2026-05-26T17:39:51Z",
   "source": "tools/data_models/footprint_model.py"
 }

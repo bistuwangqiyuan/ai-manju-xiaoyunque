@@ -1,0 +1,43 @@
+{
+  "base_url": "http://127.0.0.1:8765",
+  "env_id": "cursoraicode-5g67ezfl8a1891da",
+  "passed": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "GET / (frontend)",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/health",
+      "ok": true,
+      "detail": "status=200 body=ok"
+    },
+    {
+      "name": "GET /api/healthz",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/genres",
+      "ok": true,
+      "detail": "status=200 count=5"
+    },
+    {
+      "name": "POST /api/auth/signup",
+      "ok": true,
+      "detail": "status=201"
+    },
+    {
+      "name": "POST /api/auth/login",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/jobs (auth)",
+      "ok": true,
+      "detail": "status=200"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # V10 Acceptance Report (need.md V3.0)
 
-**Generated:** 2026-05-26T16:58:28Z
+**Generated:** 2026-05-26T17:40:06Z
 **Totals:** PASS 81 · WARN 0 · FAIL 0
 
 ## §1 · 产出规格 & 自定义画风

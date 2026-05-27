@@ -22,7 +22,8 @@ RUN npm config set registry https://registry.npmmirror.com \
     && npm install --no-audit --no-fund
 COPY web/ ./
 ENV NEXT_TELEMETRY_DISABLED=1 \
-    NEXT_OUTPUT_STANDALONE=1
+    NEXT_OUTPUT_STANDALONE=1 \
+    NEXT_PUBLIC_BACKEND_URL=
 RUN npx next build
 
 # -------- 2) runtime (python + node + caddy) --------

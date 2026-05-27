@@ -12,9 +12,10 @@ export function Footer() {
         <div>
           <div className="font-semibold mb-2">产品</div>
           <ul className="space-y-1">
+            <li><a href="/guide">使用说明</a></li>
             <li><a href="/pricing">定价方案</a></li>
             <li><a href="/dashboard">控制台</a></li>
-            <li><a href="https://github.com" target="_blank" rel="noreferrer">技术文档</a></li>
+            <li><a href="/quality">评分方法</a></li>
           </ul>
         </div>
         <div>

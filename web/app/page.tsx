@@ -90,6 +90,9 @@ export default function HomePage() {
           </h2>
           <p className="text-ink-600">
             不用学软件，不用懂技术，会用浏览器就行
+            <Link href="/guide" className="text-cinnabar-700 hover:underline ml-1">
+              · 查看完整使用说明
+            </Link>
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">

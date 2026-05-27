@@ -1,0 +1,16 @@
+.git/
+.cursor/
+.pytest_cache/
+node_modules/
+web/node_modules/
+web/.next/
+data/
+storage/
+backend/storage/
+tests/
+docs/
+deploy/cn-volc-vefaas/
+*.db
+*.log
+.env
+.env.*

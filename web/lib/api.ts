@@ -1,7 +1,8 @@
 'use client';
 
-export const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+import { BACKEND_URL, assetUrl } from './backend-url';
+
+export { BACKEND_URL, assetUrl };
 
 export type Tier = 'free' | 'pro' | 'studio' | 'admin';
 

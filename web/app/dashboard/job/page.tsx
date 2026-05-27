@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { api, Job, JobLog } from '@/lib/api';
+import { api, Job, JobLog, assetUrl, BACKEND_URL } from '@/lib/api';
 import { WorkflowStepper, Scores7DPanel } from '@/components/WorkflowStepper';
 import { formatDate, formatYuan } from '@/lib/utils';
 import { ArrowLeft, Download, XCircle, RefreshCw, Award } from 'lucide-react';
@@ -86,7 +86,7 @@ function JobDetailInner() {
   }
 
   const canCancel = job.status === 'queued' || job.status === 'running';
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = BACKEND_URL;
   // /samples/... 是 Vercel 自己的静态文件（项目内真实 R40 样片，跟首页 Showcase 同源）
   // /storage/... 是 Railway 后端运行时落地（接入真实流水线后使用）
   // http... 是外链

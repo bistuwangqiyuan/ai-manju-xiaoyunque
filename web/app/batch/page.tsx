@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api, Batch, BatchItem } from '@/lib/api';
+import { api, Batch, BatchItem, assetUrl, BACKEND_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/lib/i18n';
 import { Upload, Play, RefreshCw, Download, Image as ImageIcon } from 'lucide-react';
@@ -122,7 +122,7 @@ function BatchCard({ batch, onRefresh }: { batch: Batch; onRefresh: () => void }
     setExporting(true);
     try {
       const { url } = await api.exportBatch(batch.id);
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const backend = BACKEND_URL;
       window.open(`${backend}${url}`, '_blank');
     } finally {
       setExporting(false);
@@ -159,7 +159,7 @@ function BatchCard({ batch, onRefresh }: { batch: Batch; onRefresh: () => void }
             <div className="aspect-[3/4] bg-ink-100 overflow-hidden">
               {it.result_url ? (
                 <img
-                  src={(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + it.result_url}
+                  src={assetUrl(it.result_url)}
                   alt={`item ${it.id}`}
                   className="w-full h-full object-cover"
                 />
