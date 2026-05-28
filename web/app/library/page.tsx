@@ -15,6 +15,8 @@ const TAB_ICONS = {
   wardrobe: Shirt,
 };
 
+type LoadState = 'loading' | 'ready' | 'error';
+
 export default function LibraryPage() {
   const { t, locale } = useI18n();
   const [tab, setTab] = useState<Tab>('characters');
@@ -23,14 +25,37 @@ export default function LibraryPage() {
   const [expressions, setExpressions] = useState<any[]>([]);
   const [actions, setActions] = useState<any[]>([]);
   const [wardrobe, setWardrobe] = useState<any[]>([]);
+  const [charsState, setCharsState] = useState<LoadState>('loading');
+  const [scenesState, setScenesState] = useState<LoadState>('loading');
+  const [exprState, setExprState] = useState<LoadState>('loading');
+  const [actState, setActState] = useState<LoadState>('loading');
+  const [wardState, setWardState] = useState<LoadState>('loading');
+  const [errMsg, setErrMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    api.listLibraryCharacters().then(setChars).catch(() => {});
-    api.listLibraryScenes().then(setScenes).catch(() => {});
-    api.listExpressionKeys().then(setExpressions).catch(() => {});
-    api.listActionKeys().then(setActions).catch(() => {});
-    api.listWardrobeKeys().then(setWardrobe).catch(() => {});
+    api.listLibraryCharacters()
+      .then((d) => { setChars(d); setCharsState('ready'); })
+      .catch((e) => { setCharsState('error'); setErrMsg(e?.message ?? String(e)); });
+    api.listLibraryScenes()
+      .then((d) => { setScenes(d); setScenesState('ready'); })
+      .catch((e) => { setScenesState('error'); setErrMsg(e?.message ?? String(e)); });
+    api.listExpressionKeys()
+      .then((d) => { setExpressions(d); setExprState('ready'); })
+      .catch((e) => { setExprState('error'); setErrMsg(e?.message ?? String(e)); });
+    api.listActionKeys()
+      .then((d) => { setActions(d); setActState('ready'); })
+      .catch((e) => { setActState('error'); setErrMsg(e?.message ?? String(e)); });
+    api.listWardrobeKeys()
+      .then((d) => { setWardrobe(d); setWardState('ready'); })
+      .catch((e) => { setWardState('error'); setErrMsg(e?.message ?? String(e)); });
   }, []);
+
+  const emptyHint = (s: LoadState, hasData: boolean) => {
+    if (hasData) return null;
+    if (s === 'loading') return locale === 'en' ? 'Loading…' : '加载中…';
+    if (s === 'error') return locale === 'en' ? 'Failed to load' : '加载失败，请刷新重试';
+    return locale === 'en' ? 'No data yet' : '暂无数据';
+  };
 
   const tabs: { id: Tab; label: string; count: number }[] = [
     { id: 'characters', label: t('library.characters'), count: chars.length },
@@ -100,7 +125,7 @@ export default function LibraryPage() {
             </div>
           ))}
           {chars.length === 0 && (
-            <div className="col-span-full text-ink-500 py-8 text-center">{t('common.loading')}</div>
+            <div className="col-span-full text-ink-500 py-8 text-center">{emptyHint(charsState, false)}</div>
           )}
         </div>
       )}
@@ -120,7 +145,7 @@ export default function LibraryPage() {
             </div>
           ))}
           {scenes.length === 0 && (
-            <div className="col-span-full text-ink-500 py-8 text-center">{t('common.loading')}</div>
+            <div className="col-span-full text-ink-500 py-8 text-center">{emptyHint(scenesState, false)}</div>
           )}
         </div>
       )}
@@ -134,6 +159,9 @@ export default function LibraryPage() {
               <p className="text-xs text-ink-700">{e.description}</p>
             </div>
           ))}
+          {expressions.length === 0 && (
+            <div className="col-span-full text-ink-500 py-8 text-center">{emptyHint(exprState, false)}</div>
+          )}
         </div>
       )}
 
@@ -146,6 +174,9 @@ export default function LibraryPage() {
               <p className="text-xs text-ink-700">{a.description}</p>
             </div>
           ))}
+          {actions.length === 0 && (
+            <div className="col-span-full text-ink-500 py-8 text-center">{emptyHint(actState, false)}</div>
+          )}
         </div>
       )}
 
@@ -158,6 +189,15 @@ export default function LibraryPage() {
               <p className="text-xs text-ink-700">{w.description}</p>
             </div>
           ))}
+          {wardrobe.length === 0 && (
+            <div className="col-span-full text-ink-500 py-8 text-center">{emptyHint(wardState, false)}</div>
+          )}
+        </div>
+      )}
+
+      {errMsg && (
+        <div className="mt-6 p-3 rounded-lg bg-red-50 text-red-700 text-xs">
+          {locale === 'en' ? 'Some lists failed: ' : '部分接口加载失败：'}{errMsg}
         </div>
       )}
     </div>

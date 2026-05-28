@@ -102,6 +102,25 @@ def main() -> int:
         if not _ok(f"GET {path}", ok, f"status={code} body[0:80]={snippet}"):
             failures.append(f"GET {path}")
 
+    print("\n== 3b. Library endpoints must return non-empty arrays ==")
+    lib_min = {
+        "/api/library/characters": 5,
+        "/api/library/scenes": 5,
+        "/api/library/expressions": 5,
+        "/api/library/actions": 5,
+        "/api/library/wardrobe": 5,
+    }
+    for path, min_count in lib_min.items():
+        code, body = _req(path, token=token)
+        try:
+            arr = json.loads(body)
+        except Exception:  # noqa: BLE001
+            arr = None
+        cond = isinstance(arr, list) and len(arr) >= min_count
+        if not _ok(f"{path} >= {min_count} items",
+                   cond, f"got {len(arr) if isinstance(arr, list) else type(arr).__name__}"):
+            failures.append(f"library-empty {path}")
+
     print("\n== 4. Hosting front page advertises new CTA ==")
     code, html = _req("/", base=HOSTING, retries=2)
     _ok("hosting status=200", code == 200)
@@ -109,6 +128,15 @@ def main() -> int:
     missing = [m for m in must if m not in html]
     if not _ok("homepage has new CTA copy", not missing, f"missing={missing}"):
         failures.append("homepage-copy")
+
+    print("\n== 4b. Library page renders heading + tab labels ==")
+    code, lib_html = _req("/library/", base=HOSTING, retries=2)
+    _ok("hosting /library status=200", code == 200)
+    lib_must = ["角色", "场景", "表情", "动作", "服饰", "分镜层可直接调用"]
+    lib_missing = [m for m in lib_must if m not in lib_html]
+    if not _ok("library page has expected labels", not lib_missing,
+               f"missing={lib_missing}"):
+        failures.append("library-page-html")
 
     print("\n== 5. Guest user can hit core 'requires_auth' resources ==")
     # listJobs after auth must include seeded test1/test2 jobs even for guest? No:

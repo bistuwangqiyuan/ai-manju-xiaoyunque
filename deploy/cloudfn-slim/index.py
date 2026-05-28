@@ -103,6 +103,170 @@ _PLANS = {
     "series": 129900,
 }
 
+# ---------------------------------------------------------------------------
+# 资产库样本：角色 / 场景 / 表情 / 动作 / 服饰
+# 来源：prompts/characters/*.yaml + prompts/scenes/*.yaml 精简版
+# ---------------------------------------------------------------------------
+_LIBRARY_CHARACTERS = [
+    {
+        "char_id": "nie_xiaoqian",
+        "name_zh": "聂小倩",
+        "role": "女主角",
+        "age": 18,
+        "canonical_image_url": "/samples/nie02_appears.jpg",
+        "signature_marks": [
+            "★ 眉间一点朱砂痣（圆点直径 3mm，#C5283D，每镜可见）",
+            "★ 左肩黑色藤纹束缚标记（visibility 见 episode_visibility_map）",
+            "颈侧左下 0.5cm 一颗黑色小痣（与右脸颊酒窝呼应）",
+        ],
+        "voice": "鬼魅期清冷空灵女音 + reverb 0.2；人化期温暖少女音",
+    },
+    {
+        "char_id": "ningcaichen",
+        "name_zh": "宁采臣",
+        "role": "男主角",
+        "age": 22,
+        "canonical_image_url": "/samples/nie01_lanruosi.jpg",
+        "signature_marks": [
+            "★ 长袍配青衣襦，腰束玉佩，挂书袋",
+            "★ 眉清目秀，鬓发束玉冠，眼神温润如玉",
+            "右手执卷不离身（赴试书生标志）",
+        ],
+        "voice": "温润沉稳书生音，咬字清晰",
+    },
+    {
+        "char_id": "yan_chixia",
+        "name_zh": "燕赤霞",
+        "role": "侠客 / 配角",
+        "age": 38,
+        "canonical_image_url": "/samples/nie03_yan_chixia.jpg",
+        "signature_marks": [
+            "★ 短须，眉骨高耸，眼神锐利如鹰",
+            "★ 腰间一柄长剑，剑鞘饰朱砂符箓",
+            "右手食指带骨戒，赤红色道袍",
+        ],
+        "voice": "豪迈低音，气沉丹田",
+    },
+    {
+        "char_id": "popo_yaowu",
+        "name_zh": "婆婆姥姥",
+        "role": "反派 / 千年树妖",
+        "age": 1000,
+        "canonical_image_url": None,
+        "signature_marks": [
+            "★ 银白长发披散过腰，皮肤如树皮皲裂",
+            "★ 右手抓握黑色藤条作鞭",
+            "出场时背景必有兰若寺白杨树枯影",
+        ],
+        "voice": "嘶哑老妇音 + 风过枯枝混响",
+    },
+    {
+        "char_id": "ningmu_hengniang",
+        "name_zh": "宁母 / 衡娘",
+        "role": "宁采臣母亲",
+        "age": 50,
+        "canonical_image_url": None,
+        "signature_marks": [
+            "★ 中年妇人，髻发挽于脑后，鬓边一支素银簪",
+            "★ 灰布长衫，腰系青色围裙",
+            "眼角细纹与慈祥微笑共存",
+        ],
+        "voice": "中年妇人温和略带颤音",
+    },
+    {
+        "char_id": "stone_monkey",
+        "name_zh": "石猴 / 美猴王",
+        "role": "西游记主角",
+        "age": 0,
+        "canonical_image_url": "/samples/xiyou01_immortal_stone.jpg",
+        "signature_marks": [
+            "★ 金色毛发，瞳孔火焰金光",
+            "★ 头戴紫金冠（封王后），手持如意金箍棒",
+            "腰间虎皮裙，足蹬藕丝步云履",
+        ],
+        "voice": "顽皮少年音转洪亮中音",
+    },
+]
+
+_LIBRARY_SCENES = [
+    {
+        "id": "lanruosi",
+        "category": "古风寺庙",
+        "name_zh": "兰若寺",
+        "description": "破败古寺，夜雨初停，月光透瓦，蛛网密布",
+        "keywords": ["夜晚", "兰若寺", "古寺", "月光", "白杨树", "破败"],
+        "preview_cover_url": "/samples/nie01_lanruosi.jpg",
+    },
+    {
+        "id": "baiyangshu",
+        "category": "野外",
+        "name_zh": "兰若白杨树",
+        "description": "兰若寺旁千年白杨树，盘根错节，黑藤缠绕",
+        "keywords": ["白杨树", "黑藤", "夜风", "枯枝", "鬼气"],
+    },
+    {
+        "id": "ningjia",
+        "category": "古风宅院",
+        "name_zh": "宁家厢房",
+        "description": "宁采臣家中厢房，木格窗，红木桌椅，烛火摇曳",
+        "keywords": ["木格窗", "红木桌", "烛火", "床帐", "字画"],
+    },
+    {
+        "id": "xitang",
+        "category": "古风内堂",
+        "name_zh": "宁家喜堂",
+        "description": "ep08 鬼婚现场：红绸 / 龙凤烛 / 喜帖满堂",
+        "keywords": ["红绸", "龙凤烛", "喜字", "红盖头", "拜堂"],
+    },
+    {
+        "id": "yeshi",
+        "category": "市井",
+        "name_zh": "夜市灯影",
+        "description": "古镇夜市，灯笼连绵，摊贩叫卖，行人如织",
+        "keywords": ["灯笼", "夜市", "摊贩", "茶楼", "石板路"],
+    },
+    {
+        "id": "huaguoshan",
+        "category": "野外",
+        "name_zh": "花果山",
+        "description": "西游记开篇：花果山仙石，万年生灵气，蹦出石猴",
+        "keywords": ["花果山", "仙石", "瀑布", "水帘洞", "猴群"],
+        "preview_cover_url": "/samples/xiyou01_immortal_stone.jpg",
+    },
+]
+
+_LIBRARY_EXPRESSIONS = [
+    {"key": "shy", "name_zh": "羞涩低眉", "description": "低头微笑 + 眼神回避，适合女主初见 / 喜堂"},
+    {"key": "shocked", "name_zh": "惊愕瞠目", "description": "瞳孔放大 + 嘴微张 + 眉毛上挑，剧情转折用"},
+    {"key": "smile_warm", "name_zh": "温暖微笑", "description": "嘴角自然上扬 + 眼角微弯，人化后小倩常用"},
+    {"key": "cry_silent", "name_zh": "默泪含情", "description": "眼眶湿润 + 一行清泪，不抽噎，悲情戏首选"},
+    {"key": "fierce", "name_zh": "凌厉怒视", "description": "眉峰上挑 + 双目如电 + 唇线绷紧，侠客出剑前"},
+    {"key": "afraid", "name_zh": "惊恐畏缩", "description": "眼神躲闪 + 嘴角颤抖 + 双肩收紧，被反派威胁"},
+    {"key": "smile_eerie", "name_zh": "诡魅冷笑", "description": "嘴角斜上 + 眼神空洞 + 唇色偏冷，鬼魅期专用"},
+    {"key": "determined", "name_zh": "坚毅决意", "description": "眉眼平直 + 嘴唇微抿 + 下颌微抬，关键抉择时"},
+]
+
+_LIBRARY_ACTIONS = [
+    {"key": "walk_slow", "name_zh": "缓步行走", "description": "节奏放缓 4 步/秒，适合月夜出场 / 殿前踱步"},
+    {"key": "kneel", "name_zh": "跪倒在地", "description": "双膝跪地 + 上身前倾，求情 / 告罪 / 拜堂"},
+    {"key": "raise_sword", "name_zh": "拔剑出鞘", "description": "右手按剑柄 + 左手扶剑鞘 + 身体微沉，侠客准备战斗"},
+    {"key": "hug", "name_zh": "紧拥入怀", "description": "双臂环抱 + 头侧靠肩，重逢 / 临别催泪戏"},
+    {"key": "scroll_read", "name_zh": "执卷诵读", "description": "右手持卷 + 左手扶页 + 唇微动，书生标配"},
+    {"key": "summon_vine", "name_zh": "黑藤召唤", "description": "右手画符 + 黑色藤蔓自地涌出，婆婆姥姥专属"},
+    {"key": "bow_wedding", "name_zh": "拜堂三鞠", "description": "并肩三拜：天 / 地 / 高堂，喜堂场景固定动作"},
+    {"key": "leap_cloud", "name_zh": "腾云驾雾", "description": "右脚踏云 + 衣袂飞扬，仙侠 / 西游御风戏"},
+]
+
+_LIBRARY_WARDROBE = [
+    {"key": "ru_qun_white", "name_zh": "白色襦裙 + 浅粉缎带", "description": "小倩鬼魅期标配，外披薄纱披帛飘逸"},
+    {"key": "ru_qun_pink", "name_zh": "浅粉襦裙 + 朱红腰带", "description": "小倩人化期，更明亮鲜活"},
+    {"key": "xia_pei_red", "name_zh": "朱红霞帔 + 凤纹绣样", "description": "ep08-09 喜服，含红盖头"},
+    {"key": "scholar_robe", "name_zh": "青衣襦袍 + 玉佩腰带", "description": "宁采臣赴试书生标准装束"},
+    {"key": "daoist_red", "name_zh": "赤红道袍 + 朱砂符箓", "description": "燕赤霞侠客装束 + 长剑骨戒"},
+    {"key": "tree_demon_grey", "name_zh": "灰色破衫 + 树皮披肩", "description": "婆婆姥姥树妖形态服饰"},
+    {"key": "monkey_armor", "name_zh": "虎皮裙 + 紫金冠", "description": "美猴王封王后标配 + 藕丝步云履"},
+]
+
 # ---- 测试账号种子数据（无状态，按 user_id+slot 派生固定 job_id） ----
 TEST_SEED_EMAILS = {"test1@139.com", "test2@139.com"}
 
@@ -1048,19 +1212,43 @@ def _route(event: dict) -> dict[str, Any]:
         new_credits = auth[2] + amount
         return _response(200, _user_out((auth[0], auth[1], new_credits, "pro")))
 
-    for lib_path in (
-        "/library/characters",
-        "/library/scenes",
-        "/library/expressions",
-        "/library/actions",
-        "/library/wardrobe",
-    ):
-        if path == lib_path or path.startswith(lib_path + "/"):
-            if method == "GET":
-                if path in ("/library/characters", "/library/scenes", "/library/expressions",
-                            "/library/actions", "/library/wardrobe"):
-                    return _response(200, [])
-                return _response(404, {"detail": "Not Found"})
+    if path == "/library/characters" and method == "GET":
+        return _response(200, _LIBRARY_CHARACTERS)
+    if path == "/library/scenes" and method == "GET":
+        cat = ""
+        try:
+            from urllib.parse import urlparse, parse_qs
+            qs_raw = event.get("queryString") or event.get("queryStringParameters") or ""
+            if isinstance(qs_raw, dict):
+                cat = (qs_raw.get("category") or "").strip()
+            elif isinstance(qs_raw, str) and qs_raw:
+                qs = parse_qs(qs_raw.lstrip("?"))
+                cat = (qs.get("category", [""])[0] or "").strip()
+        except Exception:  # noqa: BLE001
+            cat = ""
+        if cat:
+            return _response(200, [s for s in _LIBRARY_SCENES if s.get("category") == cat])
+        return _response(200, _LIBRARY_SCENES)
+    if path == "/library/expressions" and method == "GET":
+        return _response(200, _LIBRARY_EXPRESSIONS)
+    if path == "/library/actions" and method == "GET":
+        return _response(200, _LIBRARY_ACTIONS)
+    if path == "/library/wardrobe" and method == "GET":
+        return _response(200, _LIBRARY_WARDROBE)
+    m = re.match(r"^/library/characters/([^/]+)$", path)
+    if m and method == "GET":
+        cid = m.group(1)
+        for c in _LIBRARY_CHARACTERS:
+            if c["char_id"] == cid:
+                return _response(200, c)
+        return _response(404, {"detail": "character 不存在"})
+    m = re.match(r"^/library/scenes/([^/]+)$", path)
+    if m and method == "GET":
+        sid = m.group(1)
+        for s in _LIBRARY_SCENES:
+            if s["id"] == sid:
+                return _response(200, s)
+        return _response(404, {"detail": "scene 不存在"})
 
     if re.match(r"^/batch/?$", path) and method == "GET":
         auth = _require_user(hdrs)

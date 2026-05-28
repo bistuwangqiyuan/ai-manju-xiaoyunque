@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -8,6 +8,83 @@ import { api, Job, JobLog, assetUrl, BACKEND_URL } from '@/lib/api';
 import { WorkflowStepper, Scores7DPanel } from '@/components/WorkflowStepper';
 import { formatDate, formatYuan } from '@/lib/utils';
 import { ArrowLeft, Download, XCircle, RefreshCw, Award } from 'lucide-react';
+
+/**
+ * Smooth progress interpolation.
+ *
+ * 后端按阶段跳变（0/25/50/85/99/100），单阶段可耗时 5-10 分钟。
+ * 这里每 10 秒钟把显示值向阶段天花板（next milestone - 1）漂移 1%，
+ * 后端推回新进度时直接 snap 到更高值，让用户视觉上感受到「一直在进展」。
+ */
+function useSmoothProgress(rawProgress: number, status: Job['status']): number {
+  const [display, setDisplay] = useState<number>(Math.max(0, rawProgress || 0));
+  const baseRef = useRef<number>(rawProgress || 0);
+
+  const ceilOf = (p: number): number => {
+    if (p >= 99) return 100;
+    if (p >= 85) return 98;
+    if (p >= 50) return 84;
+    if (p >= 25) return 49;
+    return 24;
+  };
+
+  useEffect(() => {
+    setDisplay((d) => {
+      const next = Math.max(d, rawProgress || 0);
+      baseRef.current = next;
+      return next;
+    });
+  }, [rawProgress]);
+
+  useEffect(() => {
+    if (status === 'succeeded') {
+      setDisplay(100);
+      return;
+    }
+    if (status === 'failed' || status === 'cancelled') return;
+    const id = setInterval(() => {
+      setDisplay((d) => {
+        const ceiling = ceilOf(rawProgress || 0);
+        if (d >= ceiling - 1) return d;
+        return Math.min(ceiling - 1, d + 1);
+      });
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [status, rawProgress]);
+
+  return Math.round(display);
+}
+
+function ProgressBar({
+  progress,
+  status,
+  pipelineVersion,
+}: {
+  progress: number;
+  status: Job['status'];
+  pipelineVersion: string;
+}) {
+  const display = useSmoothProgress(progress, status);
+  return (
+    <div className="mb-6">
+      <div className="flex justify-between text-sm text-ink-700 mb-1">
+        <span>渲染进度 · {pipelineVersion}</span>
+        <span>{display}%</span>
+      </div>
+      <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-cinnabar-500 to-cinnabar-700 transition-all duration-1000 ease-linear"
+          style={{ width: `${display}%` }}
+        />
+      </div>
+      {status === 'running' && display > progress && (
+        <div className="text-[10px] text-ink-400 mt-0.5">
+          已完成 {progress}%（火山真实管线），预估进度自动按 10s 平滑递增
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS_TEXT: Record<Job['status'], string> = {
   queued: '排队中',
@@ -157,18 +234,7 @@ function JobDetailInner() {
           </Link>
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between text-sm text-ink-700 mb-1">
-            <span>渲染进度 · {job.pipeline_version}</span>
-            <span>{job.progress}%</span>
-          </div>
-          <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-cinnabar-500 to-cinnabar-700 transition-all duration-500"
-              style={{ width: `${job.progress}%` }}
-            />
-          </div>
-        </div>
+        <ProgressBar progress={job.progress} status={job.status} pipelineVersion={job.pipeline_version} />
 
         {job.error && (
           <div className="p-4 rounded-lg bg-red-100 text-red-800 text-sm mb-4">
