@@ -2,6 +2,20 @@
   "author_label": "官方示例 · R40 实测",
   "samples": [
     {
+      "id": "sample-xunyu_yingxiandi",
+      "kind": "official",
+      "title": "荀彧劝曹操迎献帝",
+      "subtitle": "汉末 196 年 · 谋士定鼎大局的关键一夜",
+      "genre": "ancient",
+      "style": "ancient_3d_guoman",
+      "video_url": "/samples/xunyu_yingxiandi.mp4",
+      "cover_url": "/samples/xunyu_yingxiandi.jpg",
+      "quality_score": 96,
+      "episodes": 1,
+      "author_label": "官方示例 · HappyHorse 真实生成",
+      "slug": "xunyu_yingxiandi"
+    },
+    {
       "id": "sample-nie01",
       "kind": "official",
       "title": "兰若惊鸿",
