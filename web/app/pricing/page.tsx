@@ -13,9 +13,9 @@ const PLANS = [
     name: 'Free',
     price: '¥0',
     period: '',
-    description: '每日 3 集免费，零成本试用',
+    description: '每日 20 集免费，零成本试用',
     features: [
-      '✅ 每日 3 集 免费生成',
+      '✅ 每日 20 集 免费生成',
       '✅ 全部古风 / 武侠 / 都市风格',
       '✅ 1080p MP4 永久下载',
       '✅ 跨集 ArcFace ≥ 0.80 一致性',

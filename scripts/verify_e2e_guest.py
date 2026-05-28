@@ -149,6 +149,18 @@ def main() -> int:
         _ok("quota.tier=free", q.get("tier") == "free", str(q.get("tier")))
         _ok("quota.credits_cents=10000", q.get("credits_cents") == 10000,
             str(q.get("credits_cents")))
+        if not _ok("quota.free_daily_limit=20",
+                   q.get("free_daily_limit") == 20, str(q.get("free_daily_limit"))):
+            failures.append("free_daily_limit-20")
+
+    print("\n== 6. Homepage advertises new free quota (每天 20 集) ==")
+    text_pool = " ".join([html, lib_html])
+    quota_must = ["每天 20 集", "20"]
+    quota_missing = [m for m in quota_must if m not in text_pool]
+    # 详细：首页是否含"每天 20 集免费用"+"每天 20 集免费"
+    if not _ok("homepage contains free-20 copy",
+               "每天 20 集免费" in html, f"present={'每天 20 集免费' in html}"):
+        failures.append("homepage-quota-20-copy")
 
     if failures:
         print("\n== FAILURES ==")

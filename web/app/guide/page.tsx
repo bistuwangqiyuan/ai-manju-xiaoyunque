@@ -585,7 +585,7 @@ export default function GuidePage() {
         <Film className="w-10 h-10 text-cinnabar-600 mx-auto mb-3" />
         <h2 className="font-serif text-2xl text-ink-900 mb-2">准备好创作了吗？</h2>
         <p className="text-ink-600 mb-6 text-sm">
-          注册即送 100 元体验金 · Free 用户每天 3 集免费
+          点开就用 · 自动赠 100 元体验金 · Free 用户每天 20 集免费
         </p>
         <div className="flex flex-wrap gap-3 justify-center">
           <Link href="/signup" className="btn-primary">

@@ -22,6 +22,8 @@ import hmac
 import json
 import logging
 import os
+import random
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -49,8 +51,14 @@ STATUS_NOT_FOUND = "not_found"
 STATUS_EXPIRED = "expired"
 STATUS_FAILED = "failed"
 
+# 50429 = QPS 限流；50430 = 并发数限流；50500/50501 = 服务端瞬时错误；50511 = 上游瞬时
+RATE_LIMIT_CODES = {50429, 50430}
 RETRYABLE_CODES = {50429, 50430, 50500, 50501, 50511}
 AUDIT_FATAL_CODES = {50411, 50412, 50413, 50512, 50513, 50514}
+
+# 进程内重试上限（每个 _http_post 调用）
+_DEFAULT_RETRIES = 3
+_BACKOFF_BASE_S = 2.0  # 第 N 次重试 sleep = 2^N + jitter
 
 
 class ManjuError(RuntimeError):
@@ -82,59 +90,87 @@ def _sign(secret_key: str, datestamp: str) -> bytes:
     return s(k_service, "request")
 
 
-def _http_post(action: str, payload: dict, *, timeout: float = 30.0) -> dict:
+def _http_post(action: str, payload: dict, *, timeout: float = 30.0,
+               retries: int = _DEFAULT_RETRIES) -> dict:
+    """POST 并对 50429/50430/50500/50501/50511 自动指数退避重试。
+
+    每次重试睡眠 ``2^attempt + jitter`` 秒（attempt 从 0 起），最长 ~14s。
+    若所有重试都打到限流，抛 ManjuError（caller 可据此降级到 HappyHorse）。
+    """
     ak, sk = _credentials()
     if not ak or not sk:
         raise ManjuError(None, "missing VOLC_ACCESS_KEY/VOLC_SECRET_KEY")
 
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    now = dt.datetime.now(dt.timezone.utc)
-    amzdate = now.strftime("%Y%m%dT%H%M%SZ")
-    datestamp = now.strftime("%Y%m%d")
-    canonical_qs = f"Action={action}&Version={VERSION}"
-    payload_hash = hashlib.sha256(body).hexdigest()
-    canonical_headers = (
-        "content-type:application/json; charset=utf-8\n"
-        f"host:{HOST}\n"
-        f"x-content-sha256:{payload_hash}\n"
-        f"x-date:{amzdate}\n"
-    )
-    signed_headers = "content-type;host;x-content-sha256;x-date"
-    canonical_request = "\n".join([
-        "POST", "/", canonical_qs, canonical_headers, signed_headers, payload_hash,
-    ])
-    credential_scope = f"{datestamp}/{REGION}/{SERVICE}/request"
-    sts = "\n".join([
-        ALGO, amzdate, credential_scope,
-        hashlib.sha256(canonical_request.encode()).hexdigest(),
-    ])
-    signing_key = _sign(sk, datestamp)
-    signature = hmac.new(signing_key, sts.encode(), hashlib.sha256).hexdigest()
-    authorization = (
-        f"{ALGO} Credential={ak}/{credential_scope}, "
-        f"SignedHeaders={signed_headers}, Signature={signature}"
-    )
-    url = f"https://{HOST}/?{canonical_qs}"
-    req = urllib.request.Request(
-        url, data=body,
-        headers={
-            "Content-Type": "application/json; charset=utf-8",
-            "Host": HOST, "X-Date": amzdate, "X-Content-Sha256": payload_hash,
-            "Authorization": authorization,
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        raw = e.read().decode("utf-8", errors="replace")
+    last_err: ManjuError | None = None
+    attempts = max(1, int(retries))
+    for attempt in range(attempts):
+        now = dt.datetime.now(dt.timezone.utc)
+        amzdate = now.strftime("%Y%m%dT%H%M%SZ")
+        datestamp = now.strftime("%Y%m%d")
+        canonical_qs = f"Action={action}&Version={VERSION}"
+        payload_hash = hashlib.sha256(body).hexdigest()
+        canonical_headers = (
+            "content-type:application/json; charset=utf-8\n"
+            f"host:{HOST}\n"
+            f"x-content-sha256:{payload_hash}\n"
+            f"x-date:{amzdate}\n"
+        )
+        signed_headers = "content-type;host;x-content-sha256;x-date"
+        canonical_request = "\n".join([
+            "POST", "/", canonical_qs, canonical_headers, signed_headers, payload_hash,
+        ])
+        credential_scope = f"{datestamp}/{REGION}/{SERVICE}/request"
+        sts = "\n".join([
+            ALGO, amzdate, credential_scope,
+            hashlib.sha256(canonical_request.encode()).hexdigest(),
+        ])
+        signing_key = _sign(sk, datestamp)
+        signature = hmac.new(signing_key, sts.encode(), hashlib.sha256).hexdigest()
+        authorization = (
+            f"{ALGO} Credential={ak}/{credential_scope}, "
+            f"SignedHeaders={signed_headers}, Signature={signature}"
+        )
+        url = f"https://{HOST}/?{canonical_qs}"
+        req = urllib.request.Request(
+            url, data=body,
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+                "Host": HOST, "X-Date": amzdate, "X-Content-Sha256": payload_hash,
+                "Authorization": authorization,
+            },
+            method="POST",
+        )
         try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            raise ManjuError(e.code, raw[:300]) from None
-        _raise_for_code(data, http_status=e.code)
-        return data
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode("utf-8", errors="replace")
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                last_err = ManjuError(e.code, raw[:300])
+                break
+            try:
+                _raise_for_code(data, http_status=e.code)
+                return data
+            except ManjuError as me:
+                last_err = me
+                if me.code in RETRYABLE_CODES and attempt < attempts - 1:
+                    sleep_s = min(15.0, _BACKOFF_BASE_S ** (attempt + 1)) + random.uniform(0, 0.5)
+                    _log.warning("manju %s [%s] %s — backoff %.1fs (attempt %d/%d)",
+                                 action, me.code, me, sleep_s, attempt + 1, attempts)
+                    time.sleep(sleep_s)
+                    continue
+                raise
+        except urllib.error.URLError as e:
+            last_err = ManjuError(None, f"network error: {e}")
+            if attempt < attempts - 1:
+                time.sleep(min(10.0, _BACKOFF_BASE_S ** (attempt + 1)))
+                continue
+            break
+    assert last_err is not None  # 不可达
+    raise last_err
 
 
 def _raise_for_code(response: dict, *, http_status: int = 200) -> None:

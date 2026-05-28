@@ -26,7 +26,7 @@ const STEPS = [
 const TRUST = [
   { num: '96.81', unit: '/100', label: 'R40 实测均分' },
   { num: '95+', unit: '保证', label: '不达标自动重做' },
-  { num: '3', unit: '集/天', label: '每天免费用' },
+  { num: '20', unit: '集/天', label: '每天免费用' },
   { num: '¥0.72', unit: '/集', label: '充值即用' },
 ];
 
@@ -47,7 +47,7 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl text-ink-700 mb-10 max-w-2xl mx-auto leading-relaxed">
             粘贴文字 · 点击生成 · 下载视频。
             <br className="hidden sm:block" />
-            <span className="text-base md:text-lg text-ink-600">免注册免登录 · 每天 3 集免费 · 无需信用卡</span>
+            <span className="text-base md:text-lg text-ink-600">免注册免登录 · 每天 20 集免费 · 无需信用卡</span>
           </p>
 
           {/* 超大双按钮 */}
@@ -140,7 +140,7 @@ export default function HomePage() {
       {/* 最后 CTA */}
       <section className="mx-auto max-w-3xl px-6 py-20 text-center">
         <h2 className="font-serif text-4xl text-ink-900 mb-4">
-          每天 3 集免费用 · 不用付钱
+          每天 20 集免费用 · 不用付钱
         </h2>
         <p className="text-lg text-ink-600 mb-8">
           打开就送 100 元体验金，足够生成一集试看片。想保存作品再注册即可。

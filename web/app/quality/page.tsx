@@ -163,7 +163,7 @@ export default function QualityPage() {
       {/* CTA */}
       <div className="text-center">
         <Link href="/signup" className="btn-primary text-base">
-          免费注册，每天 3 集免费试用
+          点开就用，每天 20 集免费试用
         </Link>
         <p className="text-xs text-ink-500 mt-3">
           每一集都按 100-Pt Rubric 评分 · 未达 95 自动修复重试

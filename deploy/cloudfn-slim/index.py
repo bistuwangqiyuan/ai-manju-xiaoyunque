@@ -25,7 +25,7 @@ try:
 except ImportError:  # 兼容打包前的本地静态分析
     real_jobs = None  # type: ignore[assignment]
 
-FREE_DAILY_QUOTA = 3
+FREE_DAILY_QUOTA = 20
 EPISODE_BASE_COST_CENTS = 6500
 PROFIT_MULTIPLIER = 1.10
 SIGNUP_BONUS_CENTS = 10000
