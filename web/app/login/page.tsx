@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { GuideBanner } from '@/components/guide-banner';
 
 function LoginForm() {
   const { signIn } = useAuth();
@@ -51,7 +52,7 @@ function LoginForm() {
           className="input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="至少 8 位"
+          placeholder="至少 6 位"
           autoComplete="current-password"
         />
       </div>
@@ -78,7 +79,8 @@ export default function LoginPage() {
     <div className="mx-auto max-w-md px-6 py-16">
       <div className="card p-8">
         <h1 className="font-serif text-2xl text-ink-900 mb-1">欢迎回来</h1>
-        <p className="text-sm text-ink-600 mb-6">登录小云雀，继续你的漫剧创作。</p>
+        <p className="text-sm text-ink-600 mb-4">登录小云雀，继续你的漫剧创作。</p>
+        <GuideBanner variant="compact" className="mb-6 block" />
         <Suspense>
           <LoginForm />
         </Suspense>

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import pathlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,6 +15,7 @@ from .db import init_db
 from .routes import auth as auth_routes
 from .routes import batch as batch_routes
 from .routes import billing as billing_routes
+from .routes import gallery as gallery_routes
 from .routes import genres as genres_routes
 from .routes import internal as internal_routes
 from .routes import jobs as jobs_routes
@@ -105,6 +107,7 @@ app.add_middleware(
 app.include_router(auth_routes.router, prefix="/api")
 app.include_router(jobs_routes.router, prefix="/api")
 app.include_router(billing_routes.router, prefix="/api")
+app.include_router(gallery_routes.router, prefix="/api")
 app.include_router(genres_routes.router, prefix="/api")
 app.include_router(library_routes.router, prefix="/api")
 app.include_router(batch_routes.router, prefix="/api")
@@ -119,6 +122,24 @@ if public_v1_routes is not None and getattr(public_v1_routes, "router", None) is
 
 # Serve generated videos & covers
 app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
+
+# Official sample clips (repo root or cloudfunction bundle layout)
+def _resolve_samples_dir() -> pathlib.Path | None:
+    here = pathlib.Path(__file__).resolve()
+    candidates = [
+        pathlib.Path(os.environ.get("SAMPLES_DIR", "")),
+        here.parents[1] / "web" / "public" / "samples",
+        here.parents[2] / "web" / "public" / "samples",
+    ]
+    for path in candidates:
+        if path.is_dir():
+            return path
+    return None
+
+
+_samples_dir = _resolve_samples_dir()
+if _samples_dir is not None:
+    app.mount("/samples", StaticFiles(directory=str(_samples_dir)), name="samples")
 
 
 @app.get("/api/health")
@@ -138,10 +159,40 @@ def healthz() -> JSONResponse:
     return health()
 
 
+_static_web = pathlib.Path(os.environ.get("STATIC_WEB_DIR", "/app/static_web"))
+
+
 @app.get("/")
 def root():
+    if _static_web.is_dir() and (_static_web / "index.html").is_file():
+        from fastapi.responses import FileResponse
+        return FileResponse(_static_web / "index.html")
     return {
         "service": "xiaoyunque-api",
         "docs": "/docs",
         "health": "/api/health",
     }
+
+
+if _static_web.is_dir():
+    from fastapi.responses import FileResponse
+
+    @app.get("/{spa_path:path}", include_in_schema=False)
+    def spa_fallback(spa_path: str):
+        if spa_path.startswith("api/") or spa_path.startswith("storage/") or spa_path.startswith("samples/"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        candidate = _static_web / spa_path
+        if spa_path and candidate.is_file():
+            return FileResponse(candidate)
+        # Next export trailingSlash: try index.html in subdir
+        if spa_path and not spa_path.endswith("/"):
+            alt = _static_web / f"{spa_path}.html"
+            if alt.is_file():
+                return FileResponse(alt)
+            alt_dir = _static_web / spa_path / "index.html"
+            if alt_dir.is_file():
+                return FileResponse(alt_dir)
+        index = _static_web / "index.html"
+        if index.is_file():
+            return FileResponse(index)
+        return JSONResponse({"detail": "Not Found"}, status_code=404)

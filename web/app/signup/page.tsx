@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { GuideBanner } from '@/components/guide-banner';
 
 function SignupForm() {
   const { signUp } = useAuth();
@@ -18,8 +19,8 @@ function SignupForm() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErr(null);
-    if (password.length < 8) {
-      setErr('密码至少 8 位');
+    if (password.length < 6) {
+      setErr('密码至少 6 位');
       return;
     }
     setLoading(true);
@@ -52,11 +53,11 @@ function SignupForm() {
         <input
           type="password"
           required
-          minLength={8}
+          minLength={6}
           className="input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="至少 8 位"
+          placeholder="至少 6 位"
           autoComplete="new-password"
         />
       </div>
@@ -90,10 +91,11 @@ export default function SignupPage() {
     <div className="mx-auto max-w-md px-6 py-16">
       <div className="card p-8">
         <h1 className="font-serif text-3xl text-ink-900 mb-2">免费注册</h1>
-        <p className="text-base text-ink-700 mb-6 leading-relaxed">
+        <p className="text-base text-ink-700 mb-4 leading-relaxed">
           每天可以免费做 <strong className="text-cinnabar-700">3 个视频</strong>。
           再送 100 元体验金。不用信用卡，不用绑微信。
         </p>
+        <GuideBanner variant="compact" className="mb-6 block" />
         <Suspense>
           <SignupForm />
         </Suspense>

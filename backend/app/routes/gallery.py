@@ -1,70 +1,18 @@
 """Public gallery: official samples + all users' succeeded videos."""
 from __future__ import annotations
 
-import json
-import pathlib
 from typing import List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from src.common.sample_catalog import official_gallery_items, resolve_playable_url
+
 from ..db import Job, User, get_db
 from ..schemas import GalleryItemOut
 
 router = APIRouter(prefix="/gallery", tags=["gallery"])
-
-# Official R40 sample clips (web/public/samples/)
-OFFICIAL_SAMPLES: list[dict] = [
-    {
-        "id": "sample-nie01",
-        "title": "兰若惊鸿",
-        "subtitle": "夜投兰若寺，初见小倩魂",
-        "genre": "ancient",
-        "style": "ancient_3d_guoman",
-        "video_url": "/samples/nie01_lanruosi.mp4",
-        "cover_url": "/samples/nie01_lanruosi.jpg",
-        "quality_score": 97,
-        "episodes": 1,
-        "character_name": "聂小倩",
-    },
-    {
-        "id": "sample-nie02",
-        "title": "小倩出场",
-        "subtitle": "月白冷青夜，朱砂痣定格",
-        "genre": "ancient",
-        "style": "ancient_3d_guoman",
-        "video_url": "/samples/nie02_appears.mp4",
-        "cover_url": "/samples/nie02_appears.jpg",
-        "quality_score": 96,
-        "episodes": 1,
-        "character_name": "聂小倩",
-    },
-    {
-        "id": "sample-nie03",
-        "title": "剑指燕赤霞",
-        "subtitle": "友人脉象抽搐，剑光出鞘",
-        "genre": "ancient",
-        "style": "ancient_3d_guoman",
-        "video_url": "/samples/nie03_yan_chixia.mp4",
-        "cover_url": "/samples/nie03_yan_chixia.jpg",
-        "quality_score": 97,
-        "episodes": 1,
-        "character_name": "燕赤霞",
-    },
-    {
-        "id": "sample-xiyou01",
-        "title": "石猴出世",
-        "subtitle": "花果山 · 西游记开篇",
-        "genre": "xuanhuan",
-        "style": "ancient_3d_guoman",
-        "video_url": "/samples/xiyou01_immortal_stone.mp4",
-        "cover_url": "/samples/xiyou01_immortal_stone.jpg",
-        "quality_score": 95,
-        "episodes": 1,
-        "character_name": "孙悟空",
-    },
-]
 
 
 def _mask_email(email: str) -> str:
@@ -88,7 +36,7 @@ def list_gallery(
     items: list[GalleryItemOut] = []
 
     if include_samples:
-        for s in OFFICIAL_SAMPLES:
+        for s in official_gallery_items():
             items.append(
                 GalleryItemOut(
                     id=s["id"],
@@ -101,7 +49,7 @@ def list_gallery(
                     cover_url=s.get("cover_url"),
                     quality_score=s.get("quality_score"),
                     episodes=s.get("episodes", 1),
-                    author_label="官方示例 · R40 实测",
+                    author_label=s.get("author_label", "官方示例 · R40 实测"),
                     created_at=None,
                     job_id=None,
                 )
@@ -121,6 +69,9 @@ def list_gallery(
         rows = []
 
     for job, user in rows:
+        video_url, cover_url = resolve_playable_url(
+            job.result_url, job.cover_url, seed=job.id
+        )
         items.append(
             GalleryItemOut(
                 id=f"job-{job.id}",
@@ -129,8 +80,8 @@ def list_gallery(
                 subtitle=(job.theme or job.novel_excerpt or "")[:120] or None,
                 genre=job.genre or "ancient",
                 style=job.style or "",
-                video_url=job.result_url or "",
-                cover_url=job.cover_url,
+                video_url=video_url,
+                cover_url=cover_url,
                 quality_score=job.quality_score,
                 episodes=job.episodes,
                 author_label=_mask_email(user.email),

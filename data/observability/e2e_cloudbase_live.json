@@ -1,0 +1,169 @@
+{
+  "frontend": "https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com",
+  "backend": "https://cursoraicode-5g67ezfl8a1891da-1300352403.ap-shanghai.app.tcloudbase.com",
+  "ts": "2026-05-27T16:35:38Z",
+  "passed": 32,
+  "failed": 0,
+  "results": [
+    {
+      "name": "frontend GET /",
+      "ok": true,
+      "detail": "status=200 kw_match=True"
+    },
+    {
+      "name": "frontend GET /login/",
+      "ok": true,
+      "detail": "status=200 kw_match=True"
+    },
+    {
+      "name": "frontend GET /signup/",
+      "ok": true,
+      "detail": "status=200 kw_match=True"
+    },
+    {
+      "name": "frontend GET /dashboard/",
+      "ok": true,
+      "detail": "status=200 len=10954"
+    },
+    {
+      "name": "frontend GET /pricing/",
+      "ok": true,
+      "detail": "status=200 kw_match=True"
+    },
+    {
+      "name": "backend /api/health",
+      "ok": true,
+      "detail": "status=200 body={\"status\": \"ok\", \"mock_worker\": true, \"mock_billing\": true}"
+    },
+    {
+      "name": "backend /api/genres",
+      "ok": true,
+      "detail": "status=200 count=5"
+    },
+    {
+      "name": "backend /api/genres/ancient",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "auth login test1@139.com",
+      "ok": true,
+      "detail": "via login"
+    },
+    {
+      "name": "jobs list test1@139.com",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "seed jobs present test1@139.com",
+      "ok": true,
+      "detail": "missing=set()"
+    },
+    {
+      "name": "seed job has result_url test1@139.com",
+      "ok": true,
+      "detail": "url=/samples/xiyou01_immortal_stone.mp4"
+    },
+    {
+      "name": "seed job sub /api/jobs/1108252/logs (test1@139.com)",
+      "ok": true,
+      "detail": "status=200 body=[{\"level\": \"INFO\", \"message\": \"[worker] pull job #1108252 '西游·石猴出世'\", \"ts\": \"202"
+    },
+    {
+      "name": "seed job sub /api/jobs/1108252/versions (test1@139.com)",
+      "ok": true,
+      "detail": "status=200 body=[{\"id\": 1, \"version_no\": 1, \"quality_score\": 96, \"scores_7d\": {\"structure\": 9.2,"
+    },
+    {
+      "name": "seed job sub /api/jobs/1108252/marketing (test1@139.com)",
+      "ok": true,
+      "detail": "status=200 body={\"title\": \"西游·石猴出世\", \"summary\": \"xuanhuan 题材 AI 漫剧 · 1 集 · 全网首发\", \"hook_copy\": \""
+    },
+    {
+      "name": "seed job export POST (test1@139.com)",
+      "ok": true,
+      "detail": "status=200 body=[{\"platform\": \"douyin\", \"url\": \"/samples/xiyou01_immortal_stone.mp4\", \"cover_url"
+    },
+    {
+      "name": "create job test1@139.com",
+      "ok": true,
+      "detail": "id=1779899632 status=queued"
+    },
+    {
+      "name": "job reach succeeded test1@139.com",
+      "ok": true,
+      "detail": "final_status=succeeded id=1779899632"
+    },
+    {
+      "name": "job logs test1@139.com",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "job export test1@139.com",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "auth login test2@139.com",
+      "ok": true,
+      "detail": "via login"
+    },
+    {
+      "name": "jobs list test2@139.com",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "seed jobs present test2@139.com",
+      "ok": true,
+      "detail": "missing=set()"
+    },
+    {
+      "name": "seed job has result_url test2@139.com",
+      "ok": true,
+      "detail": "url=/samples/xiyou01_immortal_stone.mp4"
+    },
+    {
+      "name": "seed job sub /api/jobs/1336132/logs (test2@139.com)",
+      "ok": true,
+      "detail": "status=200 body=[{\"level\": \"INFO\", \"message\": \"[worker] pull job #1336132 '西游·石猴出世'\", \"ts\": \"202"
+    },
+    {
+      "name": "seed job sub /api/jobs/1336132/versions (test2@139.com)",
+      "ok": true,
+      "detail": "status=200 body=[{\"id\": 1, \"version_no\": 1, \"quality_score\": 96, \"scores_7d\": {\"structure\": 9.2,"
+    },
+    {
+      "name": "seed job sub /api/jobs/1336132/marketing (test2@139.com)",
+      "ok": true,
+      "detail": "status=200 body={\"title\": \"西游·石猴出世\", \"summary\": \"xuanhuan 题材 AI 漫剧 · 1 集 · 全网首发\", \"hook_copy\": \""
+    },
+    {
+      "name": "seed job export POST (test2@139.com)",
+      "ok": true,
+      "detail": "status=200 body=[{\"platform\": \"douyin\", \"url\": \"/samples/xiyou01_immortal_stone.mp4\", \"cover_url"
+    },
+    {
+      "name": "create job test2@139.com",
+      "ok": true,
+      "detail": "id=1779899675 status=queued"
+    },
+    {
+      "name": "job reach succeeded test2@139.com",
+      "ok": true,
+      "detail": "final_status=succeeded id=1779899675"
+    },
+    {
+      "name": "job logs test2@139.com",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "job export test2@139.com",
+      "ok": true,
+      "detail": "status=200"
+    }
+  ]
+}

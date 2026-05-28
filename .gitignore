@@ -71,3 +71,26 @@ logs/
 Thumbs.db
 *.log
 smoke.*
+
+# ===== Build / staging artifacts =====
+deploy/cloudfn-pkg/
+deploy/cloudfn-minimal/
+deploy/tmp-minimal/
+# cloudfunctions/xyq-api is a staging copy of deploy/cloudfn-slim/ created at deploy time
+cloudfunctions/xyq-api/app/
+cloudfunctions/xyq-api/src/
+cloudfunctions/xyq-api/config/
+cloudfunctions/xyq-api/prompts/
+cloudfunctions/xyq-api/tools/
+cloudfunctions/xyq-api/compliance/
+cloudfunctions/xyq-api/web/
+cloudfunctions/xyq-api/requirements.slim.txt
+# Local databases / temp dumps
+data/local_e2e.db
+data/verify_local.db
+data/tmp_create_cloudrun_env.json
+data/observability/real_e2e_first_episode.mp4
+# Stray PowerShell redirect file
+web/-w
+# Volcengine sample mp4 download cache (duplicated under web/public/samples/)
+sample/

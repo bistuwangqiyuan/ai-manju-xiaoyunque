@@ -106,6 +106,14 @@ def _parse_json_field(raw: str | None) -> Optional[dict]:
 
 def job_to_out(job) -> "JobOut":
     """Convert SQLAlchemy Job → JobOut, parsing JSON fields."""
+    result_url = job.result_url
+    cover_url = job.cover_url
+    if job.status == "succeeded":
+        from src.common.sample_catalog import resolve_playable_url
+
+        result_url, cover_url = resolve_playable_url(
+            job.result_url, job.cover_url, seed=job.id
+        )
     return JobOut(
         id=job.id,
         title=job.title,
@@ -119,8 +127,8 @@ def job_to_out(job) -> "JobOut":
         mode=getattr(job, "mode", "excerpt") or "excerpt",
         theme=getattr(job, "theme", None),
         language=getattr(job, "language", "Chinese") or "Chinese",
-        result_url=job.result_url,
-        cover_url=job.cover_url,
+        result_url=result_url,
+        cover_url=cover_url,
         error=job.error,
         quality_score=job.quality_score,
         quality_breakdown=_parse_json_field(job.quality_breakdown),
@@ -344,3 +352,24 @@ class TranslateIn(BaseModel):
 class VersionRollbackIn(BaseModel):
     target_version_no: int = Field(ge=1)
     notes: Optional[str] = Field(default=None, max_length=400)
+
+
+# ---------------------------------------------------------------------
+# Public gallery
+# ---------------------------------------------------------------------
+
+
+class GalleryItemOut(BaseModel):
+    id: str
+    kind: Literal["official", "community"]
+    title: str
+    subtitle: Optional[str] = None
+    genre: str = "ancient"
+    style: str = ""
+    video_url: str
+    cover_url: Optional[str] = None
+    quality_score: Optional[int] = None
+    episodes: int = 1
+    author_label: str = ""
+    created_at: Optional[datetime] = None
+    job_id: Optional[int] = None

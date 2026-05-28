@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CLOUDRUN_ENV_ID: manju-d9g4i12d551bf6621
-      BAAS_ENV_ID: manju-d7gnrc3h6c9f792ec
+      BAAS_ENV_ID: cursoraicode-5g67ezfl8a1891da
       SERVICE_NAME: xyq
       TCR_NAMESPACE: tcb
       TCR_REPO: manju-d9g4i12d551bf6621_xyq

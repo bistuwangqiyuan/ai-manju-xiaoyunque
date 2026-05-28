@@ -1,0 +1,20 @@
+{
+  "version": "2.0",
+  "envId": "cursoraicode-5g67ezfl8a1891da",
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "functions": [
+    {
+      "name": "xyq-api",
+      "handler": "index.main_handler",
+      "timeout": 60,
+      "memorySize": 512,
+      "runtime": "Python3.9",
+      "installDependency": false,
+      "envVariables": {
+        "REAL_VIDEO_MODE": "manju",
+        "COS_BUCKET": "6375-cursoraicode-5g67ezfl8a1891da-1300352403",
+        "COS_REGION": "ap-shanghai"
+      }
+    }
+  ]
+}

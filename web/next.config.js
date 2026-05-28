@@ -1,9 +1,11 @@
 /** @type {import('next').NextConfig} */
 // 三种部署模式同时支持：
 //   - GH_PAGES=1            → GitHub Pages 静态导出（basePath 修正）
+//   - CLOUDBASE_STATIC=1    → CloudBase 静态托管（根路径导出，API 走 NEXT_PUBLIC_BACKEND_URL）
 //   - NEXT_OUTPUT_STANDALONE=1 → Docker 自托管（生成 .next/standalone，国内部署用）
 //   - 默认                  → Vercel/EdgeOne 动态部署 + rewrites
 const isGhPages = process.env.GH_PAGES === '1';
+const isCloudbaseStatic = process.env.CLOUDBASE_STATIC === '1';
 const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === '1';
 
 const nextConfig = {
@@ -13,6 +15,12 @@ const nextConfig = {
         output: 'export',
         basePath: '/ai-manju-xiaoyunque',
         assetPrefix: '/ai-manju-xiaoyunque',
+        trailingSlash: true,
+        images: { unoptimized: true },
+      }
+    : isCloudbaseStatic
+    ? {
+        output: 'export',
         trailingSlash: true,
         images: { unoptimized: true },
       }

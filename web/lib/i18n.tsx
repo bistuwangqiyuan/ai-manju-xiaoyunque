@@ -35,8 +35,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocaleState(saved);
       return;
     }
-    const browser = (navigator.language || 'zh-CN').toLowerCase();
-    setLocaleState(browser.startsWith('en') ? 'en' : 'zh-CN');
+    setLocaleState('zh-CN');
   }, []);
 
   const setLocale = useCallback((l: Locale) => {

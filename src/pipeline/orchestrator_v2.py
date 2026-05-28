@@ -1097,9 +1097,11 @@ class PipelineOrchestratorV2:
         }
 
     def _pick_sample(self, job_id: int, index: int) -> pathlib.Path:
-        samples = sorted((_REPO / "web" / "public" / "samples").glob("*.mp4"))
+        from src.common.sample_catalog import sample_video_paths
+
+        samples = sample_video_paths()
         if not samples:
-            raise FileNotFoundError("No sample mp4 in web/public/samples")
+            raise FileNotFoundError("No sample mp4 in sample/ or web/public/samples")
         return samples[(job_id + index) % len(samples)]
 
     def _render_episode_skylark(

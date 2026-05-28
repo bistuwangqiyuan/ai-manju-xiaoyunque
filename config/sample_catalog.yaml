@@ -1,0 +1,65 @@
+# Official sample videos — source of truth is repo-root sample/*.mp4
+# Run: python scripts/sync_sample_assets.py
+version: 1
+author_label: "官方示例 · R40 实测"
+samples:
+  - id: sample-nie01
+    source: sample/59092566dbcd8ed6c372a6a375cf9010.mp4
+    slug: nie01_lanruosi
+    title: 兰若惊鸿
+    subtitle: 夜投兰若寺，初见小倩魂
+    genre: ancient
+    style: ancient_3d_guoman
+    quality_score: 97
+    episodes: 1
+    character_name: 聂小倩
+  - id: sample-nie02
+    source: sample/8a3f6ed6ddecb8279a684c1ef6373f34.mp4
+    slug: nie02_appears
+    title: 小倩出场
+    subtitle: 月白冷青夜，朱砂痣定格
+    genre: ancient
+    style: ancient_3d_guoman
+    quality_score: 96
+    episodes: 1
+    character_name: 聂小倩
+  - id: sample-nie03
+    source: sample/9e9a0d458e1862c6602a1444b6cc0d14.mp4
+    slug: nie03_yan_chixia
+    title: 剑指燕赤霞
+    subtitle: 友人脉象抽搐，剑光出鞘
+    genre: ancient
+    style: ancient_3d_guoman
+    quality_score: 97
+    episodes: 1
+    character_name: 燕赤霞
+  - id: sample-xiyou01
+    source: sample/c523311b66e661939a077ef2168a4bd2.mp4
+    slug: xiyou01_immortal_stone
+    title: 石猴出世
+    subtitle: 花果山 · 西游记开篇
+    genre: xuanhuan
+    style: ancient_3d_guoman
+    quality_score: 95
+    episodes: 1
+    character_name: 孙悟空
+  - id: sample-real05
+    source: sample/c873a4184b76b5a511e5cc1d693f7955.mp4
+    slug: real05_moon_corridor
+    title: 回廊月影
+    subtitle: 系统真实生成 · 聊斋氛围
+    genre: ancient
+    style: ancient_3d_guoman
+    quality_score: 96
+    episodes: 1
+    character_name: 聂小倩
+  - id: sample-real06
+    source: sample/e032d10b247b10b98249d26e0e69a2ee.mp4
+    slug: real06_spirit_hook
+    title: 魂影定格
+    subtitle: 系统真实生成 · 15s 钩子镜
+    genre: ancient
+    style: ancient_3d_guoman
+    quality_score: 96
+    episodes: 1
+    character_name: 宁采臣

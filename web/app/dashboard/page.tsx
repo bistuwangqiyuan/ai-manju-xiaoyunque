@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { api, Job, Quota } from '@/lib/api';
 import { formatDate, formatYuan } from '@/lib/utils';
 import { Plus, Sparkles, RefreshCw, Crown, AlertTriangle, Zap } from 'lucide-react';
+import { GuideBanner } from '@/components/guide-banner';
 
 const STATUS_TEXT: Record<Job['status'], string> = {
   queued: '排队中',
@@ -73,6 +74,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
+      <GuideBanner className="mb-8" />
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-3xl text-ink-900 mb-1">我的作品</h1>

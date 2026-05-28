@@ -1,13 +1,13 @@
 {
-  "base_url": "http://127.0.0.1:8765",
+  "base_url": "https://cursoraicode-5g67ezfl8a1891da.service.tcloudbase.com",
   "env_id": "cursoraicode-5g67ezfl8a1891da",
-  "passed": 7,
-  "failed": 0,
+  "passed": 6,
+  "failed": 1,
   "checks": [
     {
       "name": "GET / (frontend)",
-      "ok": true,
-      "detail": "status=200"
+      "ok": false,
+      "detail": "status=404"
     },
     {
       "name": "GET /api/health",
@@ -22,7 +22,7 @@
     {
       "name": "GET /api/genres",
       "ok": true,
-      "detail": "status=200 count=5"
+      "detail": "status=200 count=2"
     },
     {
       "name": "POST /api/auth/signup",

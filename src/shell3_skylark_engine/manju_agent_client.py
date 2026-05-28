@@ -930,30 +930,25 @@ def _verify_shot_statuses(resp_data: dict, episode_id: str) -> None:
 
 def _mock_query_response(task_id: str) -> dict:
     """Deterministic mock for tests / dev when AKSK not provided."""
+    from src.common.sample_catalog import catalog_samples
+
+    samples = catalog_samples()
+    episodes = []
+    for i, ep_no in enumerate((1, 2, 3), start=0):
+        s = samples[i % len(samples)]
+        episodes.append(
+            {
+                "episode_no": ep_no,
+                "video_url": s["video_url"],
+                "duration": 150.0,
+                "subtitle_url": f"{s['video_url'].rsplit('.', 1)[0]}.srt",
+                "cover_url": s.get("cover_url"),
+            }
+        )
     return {
         "status": STATUS_TERMINAL_DONE,
         "task_id": task_id,
-        "episodes": [
-            {
-                "episode_no": 1,
-                "video_url": f"https://mock.tos.local/{task_id}/ep001.mp4",
-                "duration": 150.0,
-                "subtitle_url": f"https://mock.tos.local/{task_id}/ep001.srt",
-                "cover_url": f"https://mock.tos.local/{task_id}/ep001.jpg",
-            },
-            {
-                "episode_no": 2,
-                "video_url": f"https://mock.tos.local/{task_id}/ep002.mp4",
-                "duration": 155.0,
-                "subtitle_url": f"https://mock.tos.local/{task_id}/ep002.srt",
-                "cover_url": f"https://mock.tos.local/{task_id}/ep002.jpg",
-            },
-            {
-                "episode_no": 3,
-                "video_url": f"https://mock.tos.local/{task_id}/ep003.mp4",
-                "duration": 148.0,
-            },
-        ],
+        "episodes": episodes,
         "aigc_meta_tagged": False,
     }
 

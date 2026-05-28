@@ -4,15 +4,15 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n, LocaleSwitcher } from '@/lib/i18n';
 import { formatYuan } from '@/lib/utils';
-import { Sparkles, Crown, Building2, Shield, Menu, X } from 'lucide-react';
+import { Sparkles, Crown, Building2, Shield, Menu, X, UserCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Tier } from '@/lib/api';
 
 const TIER_META: Record<Tier, { label: string; icon: typeof Sparkles; cls: string }> = {
-  free:   { label: 'Free',   icon: Sparkles,   cls: 'bg-ink-100 text-ink-700' },
-  pro:    { label: 'Pro',    icon: Crown,      cls: 'bg-cinnabar-100 text-cinnabar-800' },
-  studio: { label: 'Studio', icon: Building2,  cls: 'bg-emerald-100 text-emerald-800' },
-  admin:  { label: 'Admin',  icon: Shield,     cls: 'bg-purple-100 text-purple-800' },
+  free:   { label: '免费版', icon: Sparkles,   cls: 'bg-ink-100 text-ink-700' },
+  pro:    { label: '专业版', icon: Crown,      cls: 'bg-cinnabar-100 text-cinnabar-800' },
+  studio: { label: '工作室', icon: Building2,  cls: 'bg-emerald-100 text-emerald-800' },
+  admin:  { label: '管理员', icon: Shield,     cls: 'bg-purple-100 text-purple-800' },
 };
 
 type NavLink = { href: string; key: string; requiresAuth?: boolean };
@@ -25,13 +25,14 @@ const PRIMARY_LINKS: NavLink[] = [
 ];
 
 const SECONDARY_LINKS: NavLink[] = [
+  { href: '/showcase', key: 'nav.showcase' },
   { href: '/guide', key: 'nav.guide' },
   { href: '/quality', key: 'nav.quality' },
   { href: '/pricing', key: 'nav.pricing' },
 ];
 
 export function Nav() {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, isGuest } = useAuth();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const tierMeta = user ? TIER_META[user.tier] || TIER_META.free : null;
@@ -63,7 +64,19 @@ export function Nav() {
 
         <div className="flex items-center gap-2">
           <LocaleSwitcher className="hidden sm:inline-flex" />
-          {user && tierMeta ? (
+          {isGuest ? (
+            <>
+              <span className="hidden md:inline-flex badge bg-amber-100 text-amber-800" title="当前为游客试用模式，注册可永久保存作品">
+                <UserCircle2 className="w-3 h-3 mr-1" />
+                游客试用中
+              </span>
+              <span className="hidden xl:inline-flex badge bg-ink-100 text-ink-700">
+                {user ? formatYuan(user.credits_cents) : ''}
+              </span>
+              <Link href="/login" className="btn-ghost text-sm hidden sm:inline-flex">登录</Link>
+              <Link href="/signup" className="btn-primary text-sm">保存作品 · 注册</Link>
+            </>
+          ) : user && tierMeta ? (
             <>
               <span className={`hidden md:inline-flex badge ${tierMeta.cls}`}>
                 <tierMeta.icon className="w-3 h-3 mr-1" />

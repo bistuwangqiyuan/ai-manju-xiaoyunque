@@ -1,0 +1,82 @@
+{
+  "base_url": "https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com",
+  "passed": 15,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "GET /showcase/",
+      "ok": true,
+      "detail": "status=206 read=8192"
+    },
+    {
+      "name": "showcase page content",
+      "ok": true,
+      "detail": "html_len=23989"
+    },
+    {
+      "name": "GET /samples/catalog.json",
+      "ok": true,
+      "detail": "status=200 size=2896"
+    },
+    {
+      "name": "GET /samples/nie01_lanruosi.mp4",
+      "ok": true,
+      "detail": "status=200 bytes=3177322"
+    },
+    {
+      "name": "GET /samples/nie01_lanruosi.jpg",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /samples/nie02_appears.mp4",
+      "ok": true,
+      "detail": "status=200 bytes=3192284"
+    },
+    {
+      "name": "GET /samples/nie02_appears.jpg",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /samples/nie03_yan_chixia.mp4",
+      "ok": true,
+      "detail": "status=200 bytes=3062239"
+    },
+    {
+      "name": "GET /samples/nie03_yan_chixia.jpg",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /samples/xiyou01_immortal_stone.mp4",
+      "ok": true,
+      "detail": "status=200 bytes=3113293"
+    },
+    {
+      "name": "GET /samples/xiyou01_immortal_stone.jpg",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /samples/real05_moon_corridor.mp4",
+      "ok": true,
+      "detail": "status=200 bytes=3027382"
+    },
+    {
+      "name": "GET /samples/real05_moon_corridor.jpg",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /samples/real06_spirit_hook.mp4",
+      "ok": true,
+      "detail": "status=200 bytes=3164084"
+    },
+    {
+      "name": "GET /samples/real06_spirit_hook.jpg",
+      "ok": true,
+      "detail": "status=200"
+    }
+  ]
+}

@@ -36,10 +36,11 @@ const TOC = [
   { id: 'shots', label: '8. 镜头质检与 7 维评分' },
   { id: 'versions', label: '9. 版本中心' },
   { id: 'export', label: '10. 多平台导出' },
-  { id: 'templates', label: '11. 爆款模板库' },
-  { id: 'library', label: '12. 资产库' },
-  { id: 'batch', label: '13. 批量转绘' },
-  { id: 'faq', label: '14. 常见问题' },
+  { id: 'showcase', label: '11. 作品广场' },
+  { id: 'templates', label: '12. 爆款模板库' },
+  { id: 'library', label: '13. 资产库' },
+  { id: 'batch', label: '14. 批量转绘' },
+  { id: 'faq', label: '15. 常见问题' },
 ];
 
 const PIPELINE_STEPS = [
@@ -99,10 +100,22 @@ export default function GuidePage() {
           面向普通用户的完整操作手册
         </div>
         <h1 className="font-serif text-4xl text-ink-900 mb-3">小云雀 · 使用说明</h1>
-        <p className="text-lg text-ink-700 leading-relaxed max-w-3xl">
+        <p className="text-lg text-ink-700 leading-relaxed max-w-3xl mb-4">
           本手册帮助您从零开始使用「小云雀 AI 漫剧产线」：把一段小说、大纲或主题，
           自动变成可下载的竖屏漫剧视频。无需安装软件，打开浏览器即可操作。
         </p>
+        <Tip>
+          <strong>在线访问：</strong>{' '}
+          <a
+            href="https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com"
+            className="underline font-medium"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com
+          </a>
+          {' '}· 注册后从顶部「工作台」开始创作
+        </Tip>
       </div>
 
       {/* 目录 */}
@@ -440,7 +453,24 @@ export default function GuidePage() {
           <p className="text-sm">点击导出后，按平台分别下载对应尺寸的视频文件。</p>
         </Section>
 
-        <Section id="templates" title="11. 爆款模板库">
+        <Section id="showcase" title="11. 作品广场（示例 + 用户作品）">
+          <p className="text-sm">
+            打开{' '}
+            <Link href="/showcase" className="text-cinnabar-700 underline">
+              作品广场
+            </Link>
+            ，可浏览：
+          </p>
+          <ul className="text-sm list-disc list-inside space-y-1">
+            <li><strong>官方示例</strong>：项目内 R40 实测生成的 4 部样片（聊斋 + 西游记），可直接播放</li>
+            <li><strong>用户作品</strong>：所有用户成功生成的漫剧会自动公开到广场，供所有人观看</li>
+          </ul>
+          <Tip>
+            您生成的视频在任务「已完成」后会自动出现在作品广场；邮箱会做脱敏显示以保护隐私。
+          </Tip>
+        </Section>
+
+        <Section id="templates" title="12. 爆款模板库">
           <p className="text-sm">
             顶部导航「模板库」(
             <Link href="/templates" className="text-cinnabar-700 underline">
@@ -461,7 +491,7 @@ export default function GuidePage() {
           </p>
         </Section>
 
-        <Section id="library" title="12. 资产库">
+        <Section id="library" title="13. 资产库">
           <p className="text-sm">
             「资产库」(
             <Link href="/library" className="text-cinnabar-700 underline">
@@ -482,7 +512,7 @@ export default function GuidePage() {
           </p>
         </Section>
 
-        <Section id="batch" title="13. 批量转绘">
+        <Section id="batch" title="14. 批量转绘">
           <p className="text-sm">
             「批量转绘」(
             <Link href="/batch" className="text-cinnabar-700 underline">
@@ -502,7 +532,7 @@ export default function GuidePage() {
           </Warn>
         </Section>
 
-        <Section id="faq" title="14. 常见问题">
+        <Section id="faq" title="15. 常见问题">
           <div className="space-y-4 not-prose">
             {[
               {

@@ -15,8 +15,16 @@ FN_ROOT = REPO / "cloudfunctions" / "xyq-api"
 WEB = REPO / "web"
 OUT = WEB / "out"
 
-COPY_DIRS = ["backend/app", "src", "config", "prompts", "tools", "compliance"]
-COPY_AS = {"backend/app": "app"}
+COPY_DIRS = [
+    "backend/app",
+    "src",
+    "config",
+    "prompts",
+    "tools",
+    "compliance",
+    "web/public/samples",
+]
+COPY_AS = {"backend/app": "app", "web/public/samples": "web/public/samples"}
 
 
 def _load_env() -> dict[str, str]:
@@ -46,6 +54,8 @@ def write_scf_bootstrap() -> None:
         "export DATABASE_URL=sqlite:////tmp/xyq.db\n"
         "export STORAGE_DIR=/tmp/storage\n"
         "export CORS_ORIGINS=*\n"
+        "export JWT_SECRET=change-me-in-production\n"
+        "export INTERNAL_API_SECRET=change-me-in-production\n"
         "exec /var/lang/python39/bin/python3.9 -m uvicorn app.main:app --host 0.0.0.0 --port 9000\n"
     )
     (FN_ROOT / "scf_bootstrap").write_bytes(content.encode("utf-8"))
@@ -54,6 +64,10 @@ def write_scf_bootstrap() -> None:
 def stage_function_code() -> None:
     """Copy backend + pipeline into cloudfunctions/xyq-api (keep index.py)."""
     write_scf_bootstrap()
+    slim_req = FN_ROOT / "requirements.slim.txt"
+    if slim_req.is_file():
+        shutil.copy2(slim_req, FN_ROOT / "requirements.txt")
+        print(f"staged requirements.slim.txt -> {FN_ROOT.name}/requirements.txt")
     for rel in COPY_DIRS:
         src = REPO / rel
         dest_name = COPY_AS.get(rel, rel.split("/")[-1])
@@ -79,6 +93,12 @@ def build_frontend(api_base: str) -> int:
 
 
 def main() -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--api-only", action="store_true", help="Skip frontend rebuild/deploy")
+    args = ap.parse_args()
+
     cfg = _load_env()
     baas_env = cfg.get("ENV_ID", "")
     if not baas_env or not cfg.get("TENCENT_SECRET_ID"):
@@ -86,7 +106,7 @@ def main() -> int:
         return 2
 
     # CloudBase HTTP 函数默认访问域名（部署后可在控制台确认）
-    api_base = cfg.get("API_URL") or f"https://{baas_env}.ap-shanghai.app.tcloudbase.com"
+    api_base = cfg.get("API_URL") or f"https://{baas_env}.service.tcloudbase.com"
     static_url = cfg.get("SITE_URL") or f"https://{baas_env}-1300352403.tcloudbaseapp.com"
 
     print("=== [1/4] Stage cloud function code ===")
@@ -118,10 +138,17 @@ def main() -> int:
     if rc_fn != 0:
         return rc_fn
 
-    print("=== [3/4] Build + deploy static frontend ===")
-    if build_frontend(api_base) != 0:
-        return 1
-    rc_host = _run(f'tcb hosting deploy "{OUT}" / --env-id {baas_env}', env=env)
+    # Confirm HTTP trigger attached
+    _run(f"tcb fn detail xyq-api --env-id {baas_env}", env=env)
+
+    if args.api_only:
+        print("\n=== Skipped frontend (--api-only) ===")
+        rc_host = 0
+    else:
+        print("=== [3/4] Build + deploy static frontend ===")
+        if build_frontend(api_base) != 0:
+            return 1
+        rc_host = _run(f'tcb hosting deploy "{OUT}" / --env-id {baas_env}', env=env)
 
     print("\n=== Deploy summary ===")
     print(f"Frontend:  {static_url}")

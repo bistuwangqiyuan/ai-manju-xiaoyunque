@@ -53,15 +53,10 @@ def _set_progress(db: Session, job: Job, progress: int, status: Optional[str] = 
     db.commit()
 
 
-# Mock 渲染产出指向前端 web/public/samples/ 下的真实 R40 成片
-# （这些 mp4 是项目内 Skylark Agent 2.0 真实生成，96-97/100）
-# 让用户提交任务后看到的"成片"和示例画廊同源同质
-SAMPLE_BUNDLES = [
-    ("/samples/nie01_lanruosi.mp4", "/samples/nie01_lanruosi.jpg"),
-    ("/samples/nie02_appears.mp4", "/samples/nie02_appears.jpg"),
-    ("/samples/nie03_yan_chixia.mp4", "/samples/nie03_yan_chixia.jpg"),
-    ("/samples/xiyou01_immortal_stone.mp4", "/samples/xiyou01_immortal_stone.jpg"),
-]
+from src.common.sample_catalog import sample_bundles
+
+# Mock 渲染产出与官方示例同源：repo sample/*.mp4 → web/public/samples/
+SAMPLE_BUNDLES = sample_bundles()
 
 
 def _compute_quality(retry: int) -> tuple[int, dict]:

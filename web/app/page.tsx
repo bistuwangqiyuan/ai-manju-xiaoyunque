@@ -5,8 +5,8 @@ import { ShowcaseGallery } from '@/components/showcase-gallery';
 const STEPS = [
   {
     n: '1',
-    title: '免费注册',
-    desc: '只要一个邮箱，赠 100 元体验金',
+    title: '点开就用',
+    desc: '无需注册，自动赠 100 元体验金',
     icon: Sparkles,
   },
   {
@@ -47,16 +47,16 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl text-ink-700 mb-10 max-w-2xl mx-auto leading-relaxed">
             粘贴文字 · 点击生成 · 下载视频。
             <br className="hidden sm:block" />
-            <span className="text-base md:text-lg text-ink-600">每天 3 集免费，无需信用卡。</span>
+            <span className="text-base md:text-lg text-ink-600">免注册免登录 · 每天 3 集免费 · 无需信用卡</span>
           </p>
 
           {/* 超大双按钮 */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
             <Link
-              href="/signup"
+              href="/dashboard/new"
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-cinnabar-600 text-white text-lg font-semibold shadow-2xl hover:bg-cinnabar-700 hover:scale-105 transition"
             >
-              免费试用，立即开始 <ArrowRight className="ml-2 w-5 h-5" />
+              立即免费体验，无需注册 <ArrowRight className="ml-2 w-5 h-5" />
             </Link>
             <a
               href="#showcase"
@@ -108,7 +108,7 @@ export default function HomePage() {
           ))}
         </div>
         <div className="text-center mt-10">
-          <Link href="/signup" className="btn-primary text-base">
+          <Link href="/dashboard/new" className="btn-primary text-base">
             就试一下 <ArrowRight className="ml-2 w-4 h-4" />
           </Link>
         </div>
@@ -143,13 +143,13 @@ export default function HomePage() {
           每天 3 集免费用 · 不用付钱
         </h2>
         <p className="text-lg text-ink-600 mb-8">
-          注册时送 100 元体验金，足够生成一集试看片
+          打开就送 100 元体验金，足够生成一集试看片。想保存作品再注册即可。
         </p>
         <Link
-          href="/signup"
+          href="/dashboard/new"
           className="inline-flex items-center justify-center px-10 py-5 rounded-xl bg-cinnabar-600 text-white text-xl font-semibold shadow-2xl hover:bg-cinnabar-700 hover:scale-105 transition"
         >
-          免费注册，1 分钟搞定 <ArrowRight className="ml-2 w-6 h-6" />
+          立即免费体验，无需注册 <ArrowRight className="ml-2 w-6 h-6" />
         </Link>
       </section>
     </>

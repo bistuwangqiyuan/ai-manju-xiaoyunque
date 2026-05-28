@@ -3,6 +3,7 @@
 import { BACKEND_URL, assetUrl } from './backend-url';
 
 export { BACKEND_URL, assetUrl };
+export { mediaUrl } from './backend-url';
 
 export type Tier = 'free' | 'pro' | 'studio' | 'admin';
 
@@ -12,6 +13,7 @@ export interface User {
   credits_cents: number;
   tier: Tier;
   created_at: string;
+  is_guest?: boolean;
 }
 
 export interface QualityBreakdown {
@@ -168,6 +170,22 @@ export interface JobLog {
   message: string;
 }
 
+export interface GalleryItem {
+  id: string;
+  kind: 'official' | 'community';
+  title: string;
+  subtitle?: string | null;
+  genre: string;
+  style: string;
+  video_url: string;
+  cover_url?: string | null;
+  quality_score?: number | null;
+  episodes: number;
+  author_label: string;
+  created_at?: string | null;
+  job_id?: number | null;
+}
+
 const TOKEN_KEY = 'xyq_token';
 
 export function getToken(): string | null {
@@ -220,6 +238,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  guest: (guest_id?: string | null) =>
+    request<{ token: string; user: User; guest_id: string; is_guest: true }>(
+      '/auth/guest',
+      {
+        method: 'POST',
+        body: JSON.stringify({ guest_id: guest_id ?? null }),
+      },
+    ),
   me: () => request<User>('/auth/me'),
 
   listJobs: () => request<Job[]>('/jobs'),
@@ -366,4 +392,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ amount_cents }),
     }),
+
+  listGallery: (limit = 50) => request<GalleryItem[]>(`/gallery?limit=${limit}`),
 };
