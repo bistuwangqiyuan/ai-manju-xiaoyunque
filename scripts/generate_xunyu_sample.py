@@ -34,10 +34,17 @@ import happyhorse_client as hh  # noqa: E402
 
 SAMPLES_DIR = ROOT / "web" / "public" / "samples"
 CFN_SAMPLES_DIR = ROOT / "cloudfunctions" / "xyq-api" / "web" / "public" / "samples"
+SLIM_SCF_DIR = ROOT / "deploy" / "cloudfn-slim"
 SLUG = "xunyu_yingxiandi"
 TITLE = "荀彧劝曹操迎献帝"
-SUBTITLE = "汉末 196 年 · 谋士定鼎大局的关键一夜"
+SUBTITLE = "汉末 196 年 · 15s · 720P 真实生成"
 GENRE = "ancient"
+
+# 生成参数（15s + 720P + 关水印 + 固定 seed 便于复现）
+RESOLUTION = os.environ.get("HH_RESOLUTION", "720P")
+DURATION = int(os.environ.get("HH_DURATION", "15"))
+SEED = int(os.environ.get("HH_SEED", "42420528"))
+COVER_FRAME_T = float(os.environ.get("HH_COVER_T", "7.0"))  # 15s 视频取中段更具代表性
 
 # 首帧：选用现有古风男子样片作为视觉起点，prompt 驱动汉末三国意境
 FIRST_FRAME_URL = (
@@ -45,26 +52,36 @@ FIRST_FRAME_URL = (
     "samples/nie03_yan_chixia.jpg"
 )
 
+# 三幕式 prompt（每幕 ~5s）以最大化 15s 内的视觉信息密度
 PROMPT = (
-    "汉末 196 年的将军大帐内，烛火摇曳。曹操披玄色甲胄端坐主位，神情沉吟。"
-    "荀彧着月白色文士长袍跪坐对面，手抚案几，目光坚定地进言："
-    "「奉天子以令诸侯，乃霸王之业也。」镜头从二人的对视缓缓推近，"
-    "帐外可见远山影影绰绰的旌旗轮廓。古风3D国漫风格，9:16 竖屏短剧，"
-    "电影感光影，质感细腻，烛火与盔甲反光柔和自然，无变形无走样。"
+    "汉末 196 年深秋之夜，曹操军中大帐外旌旗猎猎、远处烽火明灭。\n"
+    "【第一幕 0-5s】镜头从帐外远景缓推：黑色玄甲铁骑列阵肃立，士卒铠甲映着篝火"
+    "暖橙，旌旗在夜风中翻卷，帐帘被风吹起，露出帐内昏黄烛光。\n"
+    "【第二幕 5-10s】镜头切入帐内：曹操披玄色金边甲胄端坐主位案前，眉头深锁、"
+    "手指轻叩案几。荀彧着月白色文士长袍跪坐对面，手抚长卷，目光清澈而坚定，"
+    "举袂进言：「奉天子以令不臣，秉至公以服雄杰，扶弘义以致英俊，"
+    "此乃霸王之业也，明公何疑？」\n"
+    "【第三幕 10-15s】曹操缓缓抬眼，眸光骤亮，旋即起身按剑、回望帐外北方，"
+    "镜头从他的背影越过帐帘升向夜空——明月一轮、群星如棋。\n"
+    "视觉风格：古风3D国漫，电影级光影，9:16 竖屏短剧，质感细腻，"
+    "烛火与盔甲反光柔和自然，发丝、布料、金属纹理清晰可辨，"
+    "面部表情自然，无变形无走样，色调以墨黑、暖橙烛光、月白为主，沉稳大气。"
 )
 
 
 def submit() -> str:
     print(f"[1] 提交 HappyHorse i2v 任务")
     print(f"    first_frame = {FIRST_FRAME_URL}")
-    print(f"    prompt[:80] = {PROMPT[:80]}…")
+    print(f"    resolution  = {RESOLUTION}  duration = {DURATION}s  seed = {SEED}")
+    print(f"    prompt[:80] = {PROMPT[:80].replace(chr(10), ' ')}…")
     tid = hh.submit_i2v(FIRST_FRAME_URL, PROMPT,
-                        resolution="720P", duration=5, watermark=False)
+                        resolution=RESOLUTION, duration=DURATION,
+                        watermark=False, seed=SEED)
     print(f"    task_id     = {tid}")
     return tid
 
 
-def poll(task_id: str, timeout_s: int = 600) -> str:
+def poll(task_id: str, timeout_s: int = 900) -> str:
     print(f"[2] 轮询任务状态（最多 {timeout_s}s，每 15s 查询一次）")
     start = time.time()
     last_status = ""
@@ -97,13 +114,13 @@ def download(url: str, dest: Path) -> None:
 
 
 def extract_cover(mp4: Path, cover: Path) -> bool:
-    """用 ffmpeg 抽取第 1.0s 的帧作为封面。失败则返回 False。"""
-    print(f"[4] 抽取封面 ← ffmpeg")
+    """用 ffmpeg 在 ``COVER_FRAME_T`` 秒处抽一帧作为封面。失败返回 False。"""
+    print(f"[4] 抽取封面 ← ffmpeg (t={COVER_FRAME_T}s)")
     if shutil.which("ffmpeg") is None:
         print(f"    [skip] ffmpeg 不可用，复用首帧作为封面")
         return False
     cmd = [
-        "ffmpeg", "-y", "-ss", "1.0", "-i", str(mp4),
+        "ffmpeg", "-y", "-ss", str(COVER_FRAME_T), "-i", str(mp4),
         "-frames:v", "1", "-q:v", "2", str(cover),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -166,13 +183,15 @@ def main() -> int:
         print(f"[skip-gen] {mp4} 已存在，跳过生成；如需重新生成请设 FORCE=1")
     else:
         tid = submit()
-        url = poll(tid, timeout_s=600)
+        url = poll(tid, timeout_s=900)
         download(url, mp4)
         if not extract_cover(mp4, jpg):
             reuse_first_frame_as_cover(jpg)
 
     upload_to_cos([mp4, jpg])
 
+    # 拼接版本号 querystring 强制 CDN 重新拉取（覆盖旧版同名文件）
+    cache_v = os.environ.get("HH_CACHE_V") or time.strftime("%Y%m%d%H%M")
     sample = {
         "id": f"sample-{SLUG}",
         "kind": "official",
@@ -180,8 +199,8 @@ def main() -> int:
         "subtitle": SUBTITLE,
         "genre": GENRE,
         "style": "ancient_3d_guoman",
-        "video_url": f"/samples/{mp4.name}",
-        "cover_url": f"/samples/{jpg.name}",
+        "video_url": f"/samples/{mp4.name}?v={cache_v}",
+        "cover_url": f"/samples/{jpg.name}?v={cache_v}",
         "quality_score": 96,
         "episodes": 1,
         "author_label": "官方示例 · HappyHorse 真实生成",
@@ -190,6 +209,7 @@ def main() -> int:
     print(f"[6] 更新 catalog.json")
     update_catalog(SAMPLES_DIR / "catalog.json", sample)
     update_catalog(CFN_SAMPLES_DIR / "catalog.json", sample)
+    update_catalog(SLIM_SCF_DIR / "catalog.json", sample)
     print(f"\nDone. 新示例：{TITLE}")
     print(f"  video: https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com/samples/{mp4.name}")
     print(f"  cover: https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com/samples/{jpg.name}")
