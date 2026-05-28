@@ -69,22 +69,85 @@ def _circuit_breaker_tripped() -> tuple[bool, dict]:
 
 
 def _circuit_breaker_trip(code: Any, error: str) -> None:
+    # 累积最近失败次数；达到阈值后冷却时间翻倍以避免雪崩。
+    cb = _circuit_breaker_state()
+    prev_count = int(cb.get("consecutive_failures") or 0)
+    next_count = prev_count + 1
+    cooldown_s = _CB_COOLDOWN_S
+    if next_count >= 3:
+        cooldown_s = _CB_COOLDOWN_S * 3  # 连续 3 次 → 15 分钟冷却
+    elif next_count >= 6:
+        cooldown_s = _CB_COOLDOWN_S * 6  # 连续 6 次 → 30 分钟冷却
     cb = {
-        "tripped_until_ts": _now() + _CB_COOLDOWN_S,
+        "tripped_until_ts": _now() + cooldown_s,
         "last_code": code,
         "last_error": (error or "")[:300],
         "last_tripped_at_ts": _now(),
+        "consecutive_failures": next_count,
     }
     try:
         cos_kv.put_json(_CB_KEY, cb)
+        _log.warning("manju CB tripped: code=%s failures=%d cooldown_s=%d",
+                     code, next_count, cooldown_s)
     except Exception as e:  # noqa: BLE001
         _log.warning("circuit_breaker_trip: COS put failed: %s", e)
+
+
+def _circuit_breaker_record_success() -> None:
+    """成功一次 Manju 调用时清空连续失败计数。"""
+    cb = _circuit_breaker_state()
+    if not cb or int(cb.get("consecutive_failures") or 0) == 0:
+        return
+    cb["consecutive_failures"] = 0
+    try:
+        cos_kv.put_json(_CB_KEY, cb)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _is_rate_limited_manju_error(e: Exception) -> bool:
     if not isinstance(e, manju_client.ManjuError):
         return False
     return e.code in manju_client.RATE_LIMIT_CODES
+
+
+# Manju 服务端「不健康」错误码：50429/50430（限流）+ 50500/50501/50511（内部 / 上游瞬时）。
+# 命中这些码且自动重试用尽时，必须切到 HappyHorse 而不是直接 mark failed。
+_MANJU_UNHEALTHY_CODES = manju_client.RATE_LIMIT_CODES | {50500, 50501, 50511}
+
+
+def _is_manju_unhealthy(e: Exception) -> bool:
+    """Manju 服务端不稳定的错误码（限流 / 内部错误）。命中时应切到备用引擎。"""
+    if not isinstance(e, manju_client.ManjuError):
+        return False
+    return e.code in _MANJU_UNHEALTHY_CODES
+
+
+def _error_text_indicates_retryable(error_text: str) -> bool:
+    """根据持久化的 state.error 字符串判断是否值得让备用引擎复活。"""
+    if not error_text:
+        return False
+    needles = (
+        "[50429]", "[50430]", "[50500]", "[50501]", "[50511]",
+        "Concurrent Limit", "Internal Error", "Try Later", "Timeout",
+    )
+    return any(s in error_text for s in needles)
+
+
+def _ensure_ep_state(state: dict) -> None:
+    """保证 ep_state 至少覆盖到 current_ep_idx。
+
+    在 script_analysis / material_design 阶段切换到 HappyHorse 时，ep_state 可能
+    还没初始化，这里兜底创建。
+    """
+    eps = state.get("ep_state") or []
+    idx = int(state.get("current_ep_idx") or 0)
+    eps_target_id = state.get("episode_ids") or []
+    while len(eps) <= idx:
+        ep_id = (str(eps_target_id[len(eps)]) if len(eps) < len(eps_target_id)
+                 else str(len(eps) + 1))
+        eps.append({"ep_id": ep_id, "stage": STAGE_VIDEO_GEN})
+    state["ep_state"] = eps
 
 
 def _default_first_frame(genre: str) -> str:
@@ -295,6 +358,18 @@ def create_job(*, user_id: int, user_email: str, novel_excerpt: str, title: str,
     if script_task_id:
         _append_log(state, "INFO",
                     f"已提交剧本解析 (manju_task_id={script_task_id})；下一步：等待 Agent 完成剧本解析")
+
+    # 初次提交火山就失败 + 错误码可恢复 + HappyHorse 可用 → 立刻切换到 HappyHorse，
+    # 用户不会看到 failed 中间态。
+    if (init_status == "failed" and submit_err
+            and _error_text_indicates_retryable(submit_err)
+            and happyhorse_client.is_configured()):
+        if _try_switch_to_happyhorse(state, "create_job_manju_unhealthy"):
+            _append_log(state, "INFO",
+                        "火山提交即失败，已即时切换 HappyHorse 备用引擎接管")
+            state["status"] = "running"
+            state["stage"] = STAGE_VIDEO_GEN
+            state["error"] = None
     save_state(state)
     return state
 
@@ -306,16 +381,78 @@ def create_job(*, user_id: int, user_email: str, novel_excerpt: str, title: str,
 _MAX_AUTO_RETRY = 2  # 同一任务 step 级最多自动重试次数（针对 transient 错误）
 
 
+def _try_switch_to_happyhorse(state: dict, reason: str) -> bool:
+    """把当前任务切换到 HappyHorse 引擎；成功返回 True。
+
+    无论之前在哪个 stage（script_analysis / material_design / video_generate /
+    video_compose）都能从这里收尾——HappyHorse i2v 直接产出 final_video_url，
+    跳过剩余阶段。
+    """
+    if not happyhorse_client.is_configured():
+        return False
+    try:
+        _ensure_ep_state(state)
+        idx = int(state.get("current_ep_idx") or 0)
+        _switch_ep_to_happyhorse(state, idx)
+        state["stage"] = STAGE_VIDEO_GEN
+        state["status"] = "running"
+        state["error"] = None
+        state.setdefault("fallback_used", []).append({
+            "ts": _now(), "reason": reason, "provider": PROVIDER_HAPPYHORSE,
+        })
+        return True
+    except happyhorse_client.HappyHorseError as he:
+        _append_log(state, "ERROR", f"备用引擎 HappyHorse 也失败：{he}")
+        return False
+    except Exception as he:  # noqa: BLE001
+        _log.exception("[%s] _try_switch_to_happyhorse failed", state.get("job_id"))
+        _append_log(state, "ERROR", f"备用引擎切换异常：{he}")
+        return False
+
+
+def _auto_revive_if_eligible(state: dict) -> bool:
+    """已 failed 的任务，若错误属于「可恢复」 + 第一次复活，则自动切到 HappyHorse。
+
+    Returns True if revived.
+    """
+    if state.get("status") != "failed":
+        return False
+    if int(state.get("revive_count") or 0) >= 1:
+        return False
+    if not happyhorse_client.is_configured():
+        return False
+    if not _error_text_indicates_retryable(state.get("error") or ""):
+        return False
+    state["revive_count"] = int(state.get("revive_count") or 0) + 1
+    state["auto_retry_count"] = 0
+    _append_log(state, "INFO",
+                f"自动复活任务：上次错误={state.get('error')}；切换到 HappyHorse 重做 "
+                f"(revive_count={state['revive_count']})")
+    if _try_switch_to_happyhorse(state, "revive_after_failed"):
+        return True
+    # HappyHorse 也失败 → 保持 failed
+    state["status"] = "failed"
+    state["stage"] = STAGE_FAILED
+    return False
+
+
 def step(state: dict) -> dict:
     """Advance the state machine one tick; persist if anything changes.
 
-    稳定性保障：
-    - 火山 50429/50430（限流）：触发 5 分钟全局熔断 + 自动切换到 HappyHorse；同一任务最多自动重试 2 次。
-    - HappyHorse 任务失败：保留错误并标记 failed，由用户手动 reroll。
-    - 其他 transient 异常（网络/超时）：自动重试 ≤2 次后才置 failed。
+    稳定性保障（多层）：
+    1. ``manju_client._http_post`` 对 50429/50430/50500/50501/50511 自动指数退避 3 次。
+    2. 单任务 step 级：可重试错误最多自动 retry _MAX_AUTO_RETRY 次（不立即 mark failed）。
+    3. 重试用尽 + 错误码不健康（50429/50430/50500/50501/50511） + HappyHorse 已配置：
+       自动切换到 HappyHorse i2v 继续出片，不 mark failed。
+    4. 已 mark failed 的任务，下次 poll 时如错误属于可恢复，自动复活到 HappyHorse 重做（一次）。
+    5. 双引擎都失败时才最终 mark failed，并记录双引擎错误。
     """
+    # 0. 已 failed 的任务，看能不能自动复活（错误码可恢复 + HappyHorse 可用 + 没用过复活配额）
+    if state.get("status") == "failed":
+        _auto_revive_if_eligible(state)
     if state.get("status") in {"succeeded", "failed", "cancelled"}:
         return state
+
     stage = state.get("stage", STAGE_SCRIPT)
     try:
         if stage == STAGE_SCRIPT:
@@ -328,14 +465,22 @@ def step(state: dict) -> dict:
             _step_video_compose(state)
     except manju_client.ManjuError as e:
         retries = int(state.get("auto_retry_count") or 0)
-        if _is_rate_limited_manju_error(e):
+        if _is_manju_unhealthy(e):
             _circuit_breaker_trip(e.code, str(e))
-        if (_is_rate_limited_manju_error(e) or e.code in manju_client.RETRYABLE_CODES) \
-                and retries < _MAX_AUTO_RETRY:
+        if e.code in manju_client.RETRYABLE_CODES and retries < _MAX_AUTO_RETRY:
             state["auto_retry_count"] = retries + 1
             _append_log(state, "WARN",
-                        f"火山可重试错误 {e}（自动重试 {retries + 1}/{_MAX_AUTO_RETRY}）")
+                        f"火山可重试错误 {e}（任务级自动重试 {retries + 1}/{_MAX_AUTO_RETRY}）")
             # 不置 failed，让下一次 poll 重新进入同一 stage
+        elif _is_manju_unhealthy(e):
+            # 重试用尽 + Manju 不健康 → 切到 HappyHorse 而不是直接 fail
+            _append_log(state, "WARN",
+                        f"火山 [{e.code}] 重试用尽，自动切换到备用引擎 HappyHorse")
+            if not _try_switch_to_happyhorse(state, f"manju_unhealthy_{e.code}"):
+                _append_log(state, "ERROR", f"火山 Agent 错误：{e}")
+                state["status"] = "failed"
+                state["stage"] = STAGE_FAILED
+                state["error"] = str(e)[:300]
         else:
             _append_log(state, "ERROR", f"火山 Agent 错误：{e}")
             state["status"] = "failed"
@@ -440,10 +585,10 @@ def _step_material_design(state: dict) -> None:
                 state["assets_id"], state["thread_id"], first["ep_id"]
             )
         except manju_client.ManjuError as e:
-            if _is_rate_limited_manju_error(e) and happyhorse_client.is_configured():
+            if _is_manju_unhealthy(e) and happyhorse_client.is_configured():
                 _circuit_breaker_trip(e.code, str(e))
                 _append_log(state, "WARN",
-                            f"火山抽卡限流 [{e.code}]，EP#{first['ep_id']} 切换 HappyHorse")
+                            f"火山抽卡不健康 [{e.code}]，EP#{first['ep_id']} 切换 HappyHorse")
                 _switch_ep_to_happyhorse(state, 0)
                 return
             raise
@@ -489,10 +634,10 @@ def _step_video_generate(state: dict) -> None:
                 state["assets_id"], state["thread_id"], cur["ep_id"]
             )
         except manju_client.ManjuError as e:
-            if _is_rate_limited_manju_error(e) and happyhorse_client.is_configured():
+            if _is_manju_unhealthy(e) and happyhorse_client.is_configured():
                 _circuit_breaker_trip(e.code, str(e))
                 _append_log(state, "WARN",
-                            f"火山合成限流 [{e.code}]，EP#{cur['ep_id']} 直接采用 video_generate 输出")
+                            f"火山合成不健康 [{e.code}]，EP#{cur['ep_id']} 直接采用 video_generate 输出")
                 # video_generate 已经产出可播放视频，直接把它当作 final
                 resp = manju_client.parse_resp_data(data.get("resp_data"))
                 fb_url = resp.get("video_url") or resp.get("final_video_url") or ""
@@ -602,10 +747,10 @@ def _maybe_finalize_or_next(state: dict, idx: int) -> None:
                 state["assets_id"], state["thread_id"], nxt["ep_id"]
             )
         except manju_client.ManjuError as e:
-            if _is_rate_limited_manju_error(e) and happyhorse_client.is_configured():
+            if _is_manju_unhealthy(e) and happyhorse_client.is_configured():
                 _circuit_breaker_trip(e.code, str(e))
                 _append_log(state, "WARN",
-                            f"火山抽卡限流 [{e.code}]，EP#{nxt['ep_id']} 切换 HappyHorse")
+                            f"火山抽卡不健康 [{e.code}]，EP#{nxt['ep_id']} 切换 HappyHorse")
                 state["current_ep_idx"] = idx + 1
                 _switch_ep_to_happyhorse(state, idx + 1)
                 return
