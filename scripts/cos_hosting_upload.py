@@ -63,7 +63,19 @@ def _upload_one(client: CosS3Client, p: pathlib.Path) -> tuple[str, bool, str]:
         )
         return key, True, ""
     except Exception as exc:  # noqa: BLE001
-        return key, False, repr(exc)
+        # multipart 上传偶发 "some upload_part fail after max_retry"。
+        # 回退到 put_object 单段上传，对小/中等文件足够稳。
+        try:
+            with open(p, "rb") as f:
+                body = f.read()
+            client.put_object(
+                Bucket=BUCKET, Key=key, Body=body,
+                ContentType=_content_type(p),
+                CacheControl="public, max-age=86400",
+            )
+            return key, True, f"(fallback put_object after: {type(exc).__name__})"
+        except Exception as exc2:  # noqa: BLE001
+            return key, False, f"{repr(exc)} | put_object also failed: {repr(exc2)}"
 
 
 def main() -> int:

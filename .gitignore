@@ -94,3 +94,9 @@ data/observability/real_e2e_first_episode.mp4
 web/-w
 # Volcengine sample mp4 download cache (duplicated under web/public/samples/)
 sample/
+
+# 多段拼接的中间分段视频（已合并入最终 mp4，不需要入库）
+web/public/samples/*_seg[0-9].mp4
+
+# t2i / pipeline 日志
+/gen_*.log

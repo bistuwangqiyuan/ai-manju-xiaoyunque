@@ -37,16 +37,25 @@ CFN_SAMPLES_DIR = ROOT / "cloudfunctions" / "xyq-api" / "web" / "public" / "samp
 SLIM_SCF_DIR = ROOT / "deploy" / "cloudfn-slim"
 SLUG = "xunyu_yingxiandi"
 TITLE = "荀彧劝曹操迎献帝"
-SUBTITLE = "汉末 196 年 · 15s · 720P 真实生成"
 GENRE = "ancient"
 
-# 生成参数（15s + 720P + 关水印 + 固定 seed 便于复现）
+# 生成参数（默认 30s 真人写实；HappyHorse 单次最长 15s，>15s 自动两段拼接）
 RESOLUTION = os.environ.get("HH_RESOLUTION", "720P")
-DURATION = int(os.environ.get("HH_DURATION", "15"))
+DURATION = int(os.environ.get("HH_DURATION", "30"))
 SEED = int(os.environ.get("HH_SEED", "42420528"))
-T2I_SEED = int(os.environ.get("HH_T2I_SEED", "20260528"))
-COVER_FRAME_T = float(os.environ.get("HH_COVER_T", "7.0"))  # 15s 视频取中段更具代表性
+SEED2 = int(os.environ.get("HH_SEED2", "42420529"))  # 第 2 段不同 seed 避免重复运动
+T2I_SEED = int(os.environ.get("HH_T2I_SEED", "20260530"))  # 改变首帧避免与上一版相同
+COVER_FRAME_T = float(os.environ.get("HH_COVER_T", "14.0"))  # 30s 视频取中段更具代表性
 T2I_SIZE = os.environ.get("HH_T2I_SIZE", "720*1280")  # 9:16 竖屏与 i2v 一致
+SEGMENT_MAX = 15  # HappyHorse i2v 单次时长上限
+
+# 视觉风格：真实电影写实风（vs 上一版的 ancient_3d_guoman 国漫）
+STYLE_TAG = os.environ.get("HH_STYLE_TAG", "cinema_realism")
+STYLE_LABEL = os.environ.get("HH_STYLE_LABEL", "电影写实")
+SUBTITLE = os.environ.get(
+    "HH_SUBTITLE",
+    f"汉末 196 年 · {DURATION}s · {RESOLUTION} · 真人写实"
+)
 
 # 首帧：由 t2i 实时生成（汉末曹操军中大帐场景），上传 COS 后作为 i2v 输入
 # 若已有 `firstframe.jpg` 本地缓存 + 未设 FORCE_T2I=1，则跳过 t2i 复用旧首帧
@@ -55,39 +64,56 @@ DEFAULT_FALLBACK_FIRST_FRAME = (
     "samples/nie03_yan_chixia.jpg"
 )
 T2I_FIRST_FRAME_PROMPT = (
-    "汉末三国时期，曹操军中大帐内景，深夜，烛火摇曳。\n"
-    "画面左侧主位：曹操，约四十岁，髡发束冠，浓眉锐目，神色沉郁；\n"
-    "  身披玄黑色金边精铁甲胄（鱼鳞甲片清晰），披风暗红色绣金虎纹；\n"
-    "  端坐于黑漆案几之后，左手按膝、右手扶剑柄。\n"
-    "画面右侧客位：荀彧，约三十出头，头戴玄色文士进贤冠，面容俊朗，\n"
-    "  五绺长须，眉清目秀；身着月白色丝绸长袍、青玉腰带；\n"
-    "  跪坐于竹席之上，双手捧一卷竹简，目光坚定地望向曹操。\n"
-    "背景：帐内悬挂大幅虎纹军旗，青铜九枝灯台烛火明亮，\n"
+    "电影写实风格，汉末三国军中大帐内景，深夜，烛火摇曳。\n"
+    "画面左侧主位：曹操，亚洲男性、约四十岁、面庞略胖，髡发束玄色武冠，\n"
+    "  浓眉深目、神色沉郁；身披玄黑色金边精铁鱼鳞甲（甲片纹理清晰），\n"
+    "  外披暗红色绣金虎纹斗篷；端坐于黑漆案几之后，左手按膝、右手扶剑柄。\n"
+    "画面右侧客位：荀彧，亚洲男性、约三十出头、清瘦俊朗，头戴玄色文士进贤冠，\n"
+    "  蓄五绺长须、眉清目秀；身着月白色丝绸长袍、青玉腰带；\n"
+    "  跪坐于竹席之上，双手捧一卷竹简，目光坚定望向曹操。\n"
+    "背景：帐内悬挂大幅暗红色虎纹军旗，青铜九枝灯台烛火明亮，\n"
     "  地铺青色竹席，案几上散放竹简与一柄环首刀。\n"
-    "构图：9:16 竖屏，全景含两人完整身体，电影感对称构图。\n"
-    "风格：古风3D国漫、电影级光影，墨黑/暖橙烛光/月白为主色调，\n"
-    "  质感细腻：发丝、铠甲鳞片、布料纹理、烛火光晕清晰可辨，\n"
-    "  面部表情自然有神，无变形无走样，整体沉稳大气。"
+    "构图：9:16 竖屏，全身入画，电影感对称构图，景深自然。\n"
+    "风格：电影级写实摄影（live-action cinematic photography），\n"
+    "  柯达 Vision3 胶片质感、4K 高分辨率、ARRI Alexa 色彩，\n"
+    "  暖橙烛光（约 2800K）与冷蓝月光（约 5600K）混合打光，\n"
+    "  皮肤毛孔/胡须/铠甲鳞片/丝绸经纬/烛火光晕清晰可辨，\n"
+    "  皮肤呈现真实肌理与微小油光，面部表情自然有神。"
 )
 T2I_NEGATIVE_PROMPT = (
-    "现代服装, 西装, 眼镜, 卡通风格, 模糊, 低分辨率, 变形, 多手指, 多人头, "
-    "畸形脸, 水印, 文字, logo, 中国结, 太多装饰"
+    "anime, 动漫风, 卡通, cartoon, illustration, 3D 国漫, 3D 渲染卡通, "
+    "二次元, painting, 油画, 水彩, 漫画线稿, 塑胶感, plastic skin, "
+    "现代服装, 西装, 眼镜, 模糊, 低分辨率, 变形, 多手指, 多人头, 畸形脸, "
+    "水印, 文字, logo, 中国结, 太多装饰"
 )
 
-# 三幕式 prompt（每幕 ~5s）以最大化 15s 内的视觉信息密度
-PROMPT = (
-    "汉末 196 年深秋之夜，曹操军中大帐外旌旗猎猎、远处烽火明灭。\n"
-    "【第一幕 0-5s】镜头从帐外远景缓推：黑色玄甲铁骑列阵肃立，士卒铠甲映着篝火"
-    "暖橙，旌旗在夜风中翻卷，帐帘被风吹起，露出帐内昏黄烛光。\n"
-    "【第二幕 5-10s】镜头切入帐内：曹操披玄色金边甲胄端坐主位案前，眉头深锁、"
-    "手指轻叩案几。荀彧着月白色文士长袍跪坐对面，手抚长卷，目光清澈而坚定，"
-    "举袂进言：「奉天子以令不臣，秉至公以服雄杰，扶弘义以致英俊，"
-    "此乃霸王之业也，明公何疑？」\n"
-    "【第三幕 10-15s】曹操缓缓抬眼，眸光骤亮，旋即起身按剑、回望帐外北方，"
-    "镜头从他的背影越过帐帘升向夜空——明月一轮、群星如棋。\n"
-    "视觉风格：古风3D国漫，电影级光影，9:16 竖屏短剧，质感细腻，"
-    "烛火与盔甲反光柔和自然，发丝、布料、金属纹理清晰可辨，"
-    "面部表情自然，无变形无走样，色调以墨黑、暖橙烛光、月白为主，沉稳大气。"
+# 视频 prompt 通用风格（每段都附加，确保两段风格一致）
+COMMON_STYLE = (
+    "电影写实风格、live-action cinematic photography，"
+    "柯达 Vision3 胶片质感、ARRI Alexa 色彩、4K，"
+    "暖橙烛光与冷蓝月光对比，皮肤毛孔、胡须、铠甲鳞片、丝绸经纬清晰可辨，"
+    "面部表情自然真实，无动漫、无卡通、无 3D 国漫渲染感，无变形无走样。"
+)
+
+# 段 1（0-15s）：环境推进 → 荀彧进言
+PROMPT_SEG1 = (
+    "汉末 196 年深秋之夜，曹操军中大帐内。\n"
+    "【0-3s】镜头从远景缓慢推近案几两侧：火光忽明忽暗，旌旗微动。\n"
+    "【3-9s】曹操缓缓抬手按住下颌，眉头深锁，手指轻叩案几一次，"
+    "目光沉沉地落向对面。\n"
+    "【9-15s】荀彧上身微微前倾，举起双手中的竹简，张口缓缓进言，"
+    "嘴唇按真人节奏开合（自然口型），眼神坚定而恳切。\n"
+    + COMMON_STYLE
+)
+
+# 段 2（15-30s）：曹操凝思 → 起身允诺 → 镜头拉远定格
+PROMPT_SEG2 = (
+    "承接上一镜头，汉末军中大帐内，深夜烛火摇曳。\n"
+    "【0-4s】曹操凝望荀彧片刻，眼神由疑虑转为坚定，嘴角微动，吐出一字。\n"
+    "【4-9s】曹操缓缓推案而起，按剑直立，斗篷自然垂下；荀彧亦起身躬身行礼。\n"
+    "【9-15s】镜头略微拉远，越过案几俯瞰两人全身，曹操转身面向帐门、"
+    "目光投向北方；镜头自然收尾，画面渐定于两人剪影与摇曳烛火。\n"
+    + COMMON_STYLE
 )
 
 
@@ -141,22 +167,23 @@ def gen_first_frame() -> tuple[Path, str]:
         return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
     print(f"[0c] 下载首帧 → {ff_local}")
     ff_local.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(img_url, timeout=120) as resp, open(ff_local, "wb") as f:
-        shutil.copyfileobj(resp, f)
+    _download_with_retry(img_url, ff_local, attempts=5, label="firstframe")
     print(f"     saved {ff_local.stat().st_size / 1024:.1f} KB")
     print(f"[0d] 上传首帧到 COS：samples/{ff_local.name}")
     upload_to_cos([ff_local])
     return ff_local, cos_url
 
 
-def submit(first_frame_url: str) -> str:
-    print(f"[1] 提交 HappyHorse i2v 任务")
+def submit_segment(first_frame_url: str, prompt: str, *,
+                   duration: int, seed: int, tag: str) -> str:
+    """提交一段 i2v 任务。tag 用于日志（例如 'seg1'/'seg2'）。"""
+    print(f"[{tag}] 提交 HappyHorse i2v")
     print(f"    first_frame = {first_frame_url}")
-    print(f"    resolution  = {RESOLUTION}  duration = {DURATION}s  seed = {SEED}")
-    print(f"    prompt[:80] = {PROMPT[:80].replace(chr(10), ' ')}…")
-    tid = hh.submit_i2v(first_frame_url, PROMPT,
-                        resolution=RESOLUTION, duration=DURATION,
-                        watermark=False, seed=SEED)
+    print(f"    resolution  = {RESOLUTION}  duration = {duration}s  seed = {seed}")
+    print(f"    prompt[:80] = {prompt[:80].replace(chr(10), ' ')}…")
+    tid = hh.submit_i2v(first_frame_url, prompt,
+                        resolution=RESOLUTION, duration=int(duration),
+                        watermark=False, seed=int(seed))
     print(f"    task_id     = {tid}")
     return tid
 
@@ -184,13 +211,106 @@ def poll(task_id: str, timeout_s: int = 900) -> str:
     raise TimeoutError(f"轮询超时（>{timeout_s}s）")
 
 
+def _download_with_retry(url: str, dest: Path, *, attempts: int = 5,
+                         label: str = "asset") -> None:
+    """带指数退避的 URL → 本地文件下载（防 TLS 闪断 / RemoteDisconnected）。"""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    last_err: Exception | None = None
+    for i in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as resp, open(dest, "wb") as f:
+                shutil.copyfileobj(resp, f)
+            return
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            wait = min(30, 2 ** i)
+            print(f"    [retry {i}/{attempts}] {label}: {type(e).__name__}: "
+                  f"{str(e)[:80]} → wait {wait}s")
+            try:
+                if dest.exists():
+                    dest.unlink()
+            except OSError:
+                pass
+            time.sleep(wait)
+    raise RuntimeError(f"download failed after {attempts} attempts: {last_err}")
+
+
 def download(url: str, dest: Path) -> None:
     print(f"[3] 下载视频 → {dest}")
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url, timeout=120) as resp, open(dest, "wb") as f:
-        shutil.copyfileobj(resp, f)
+    _download_with_retry(url, dest, attempts=5, label="video")
     size_mb = dest.stat().st_size / 1024 / 1024
     print(f"    saved {size_mb:.2f} MB")
+
+
+def extract_last_frame(mp4: Path, out_jpg: Path) -> bool:
+    """抽取视频的最后一帧（用 -sseof -0.3 取近末尾），失败返回 False。"""
+    print(f"[mid] 抽取末帧 ← ffmpeg (sseof -0.3) {mp4.name}")
+    if shutil.which("ffmpeg") is None:
+        print(f"    [skip] ffmpeg 不可用")
+        return False
+    cmd = [
+        "ffmpeg", "-y", "-sseof", "-0.3", "-i", str(mp4),
+        "-frames:v", "1", "-q:v", "2", str(out_jpg),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0 or not out_jpg.exists():
+        print(f"    ffmpeg failed: {proc.stderr[-200:]}")
+        return False
+    print(f"    saved {out_jpg.stat().st_size / 1024:.1f} KB")
+    return True
+
+
+def upload_single_to_cos(path: Path, key_name: str) -> str:
+    """单文件上传到 COS samples/，返回公网 URL。"""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import cos_hosting_upload as cu  # type: ignore
+    sid, skey = cu._get_creds()
+    from qcloud_cos import CosConfig, CosS3Client  # type: ignore
+    cfg = CosConfig(Region=cu.REGION, SecretId=sid, SecretKey=skey, Timeout=120)
+    cli = CosS3Client(cfg)
+    key = f"samples/{key_name}"
+    with open(path, "rb") as f:
+        data = f.read()
+    ct = "video/mp4" if path.suffix.lower() == ".mp4" else "image/jpeg"
+    cli.put_object(Bucket=cu.BUCKET, Key=key, Body=data, ContentType=ct,
+                   CacheControl="public, max-age=86400")
+    print(f"    [cos] OK {key} ({len(data)/1024:.1f} KB)")
+    return f"https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com/{key}"
+
+
+def concat_mp4(segments: list[Path], out: Path) -> None:
+    """用 ffmpeg concat demuxer 无损拼接多段 .mp4（编码相同时无重编码）。
+
+    若直接 copy 不行（编码/容器差异），自动回退到重新编码 H.264。
+    """
+    print(f"[concat] 拼接 {len(segments)} 段 → {out.name}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    list_file = out.with_suffix(".concat.txt")
+    list_file.write_text(
+        "\n".join(f"file '{p.as_posix()}'" for p in segments) + "\n",
+        encoding="utf-8",
+    )
+    cmd_copy = [
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+        "-i", str(list_file), "-c", "copy", str(out),
+    ]
+    proc = subprocess.run(cmd_copy, capture_output=True, text=True)
+    if proc.returncode != 0 or not out.exists() or out.stat().st_size < 1024:
+        print(f"    [warn] -c copy 失败（{proc.returncode}），回退到重新编码 H.264")
+        cmd_enc = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+            "-i", str(list_file),
+            "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+            "-c:a", "aac", "-b:a", "128k",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            str(out),
+        ]
+        proc = subprocess.run(cmd_enc, capture_output=True, text=True)
+        if proc.returncode != 0 or not out.exists():
+            raise RuntimeError(f"concat failed: {proc.stderr[-300:]}")
+    list_file.unlink(missing_ok=True)
+    size_mb = out.stat().st_size / 1024 / 1024
+    print(f"    [concat] saved {size_mb:.2f} MB")
 
 
 def extract_cover(mp4: Path, cover: Path) -> bool:
@@ -269,9 +389,38 @@ def main() -> int:
         )
     else:
         first_frame_local, first_frame_url = gen_first_frame()
-        tid = submit(first_frame_url)
-        url = poll(tid, timeout_s=900)
-        download(url, mp4)
+
+        # 计算分段：HappyHorse 单次 ≤15s，DURATION>15 时拆 2 段拼接
+        if DURATION <= SEGMENT_MAX:
+            tid = submit_segment(first_frame_url, PROMPT_SEG1,
+                                 duration=DURATION, seed=SEED, tag="seg1")
+            url = poll(tid, timeout_s=900)
+            download(url, mp4)
+        else:
+            seg1_d = SEGMENT_MAX
+            seg2_d = max(3, min(SEGMENT_MAX, DURATION - SEGMENT_MAX))
+            print(f"[plan] 两段拼接：seg1={seg1_d}s + seg2={seg2_d}s = {seg1_d+seg2_d}s")
+            seg1_mp4 = SAMPLES_DIR / f"{SLUG}_seg1.mp4"
+            seg2_mp4 = SAMPLES_DIR / f"{SLUG}_seg2.mp4"
+            mid_jpg_local = SAMPLES_DIR / f"{SLUG}_midframe.jpg"
+
+            tid1 = submit_segment(first_frame_url, PROMPT_SEG1,
+                                  duration=seg1_d, seed=SEED, tag="seg1")
+            url1 = poll(tid1, timeout_s=900)
+            download(url1, seg1_mp4)
+
+            print(f"[mid] 抽段1末帧 → 上传 COS → 作为段2 首帧")
+            if not extract_last_frame(seg1_mp4, mid_jpg_local):
+                raise RuntimeError("无法抽取段1末帧，无法续接段2")
+            mid_url = upload_single_to_cos(mid_jpg_local, mid_jpg_local.name)
+
+            tid2 = submit_segment(mid_url, PROMPT_SEG2,
+                                  duration=seg2_d, seed=SEED2, tag="seg2")
+            url2 = poll(tid2, timeout_s=900)
+            download(url2, seg2_mp4)
+
+            concat_mp4([seg1_mp4, seg2_mp4], mp4)
+
         if not extract_cover(mp4, jpg):
             print(f"     [fallback] 改用首帧图作为封面")
             if first_frame_local.exists():
@@ -289,12 +438,13 @@ def main() -> int:
         "title": TITLE,
         "subtitle": SUBTITLE,
         "genre": GENRE,
-        "style": "ancient_3d_guoman",
+        "style": STYLE_TAG,
+        "style_label": STYLE_LABEL,
         "video_url": f"/samples/{mp4.name}?v={cache_v}",
         "cover_url": f"/samples/{jpg.name}?v={cache_v}",
         "quality_score": 96,
         "episodes": 1,
-        "author_label": "官方示例 · HappyHorse 真实生成",
+        "author_label": f"官方示例 · HappyHorse 真实生成 · {DURATION}s",
         "slug": SLUG,
     }
     print(f"[6] 更新 catalog.json")
