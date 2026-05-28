@@ -32,6 +32,13 @@ REGION_ENDPOINTS = {
 }
 
 MODEL_I2V = "happyhorse-1.0-i2v"
+# DashScope WanX 文生图（用于生成首帧图）。
+# 候选模型按优先级排序，逐个尝试直到接口接受（DashScope 各账户开放模型不同）。
+T2I_MODEL_CANDIDATES = [
+    "wanx2.1-t2i-plus",
+    "wanx2.1-t2i-turbo",
+    "wanx-v1",
+]
 
 STATUS_PENDING = "PENDING"
 STATUS_RUNNING = "RUNNING"
@@ -172,12 +179,79 @@ def submit_i2v(first_frame_url: str, prompt: str, *,
 
 
 def query(task_id: str) -> dict:
-    """查询任务状态。返回 output dict（含 task_status / video_url 等）。"""
+    """查询任务状态。返回 output dict（含 task_status / video_url 或 results 等）。
+
+    对 i2v：output 里有 video_url（任务成功时）。
+    对 t2i：output 里有 results=[{url, ...}]（任务成功时）。
+    """
     if not task_id:
         raise HappyHorseError(None, "task_id required")
     url = f"{_endpoint()}/api/v1/tasks/{task_id}"
     resp = _http("GET", url)
     return resp.get("output") or {}
+
+
+# ---------------------------------------------------------------------------
+# DashScope WanX 文生图（用于生成 i2v 的首帧图）
+# ---------------------------------------------------------------------------
+
+def submit_t2i(prompt: str, *, size: str = "720*1280",
+               n: int = 1, seed: int | None = None,
+               negative_prompt: str = "",
+               model: str | None = None) -> tuple[str, str]:
+    """提交「文生图」异步任务，返回 (task_id, used_model)。
+
+    DashScope 不同账户开放模型不同；若指定 model 失败，会按
+    T2I_MODEL_CANDIDATES 顺序自动降级尝试。
+    """
+    if not prompt:
+        raise HappyHorseError(None, "prompt required")
+    url = f"{_endpoint()}/api/v1/services/aigc/text2image/image-synthesis"
+    input_obj: dict[str, Any] = {"prompt": (prompt or "")[:2500]}
+    if negative_prompt:
+        input_obj["negative_prompt"] = negative_prompt[:500]
+    params: dict[str, Any] = {"size": size, "n": int(n)}
+    if seed is not None:
+        params["seed"] = int(seed)
+    candidates = [model] if model else list(T2I_MODEL_CANDIDATES)
+    last_err: HappyHorseError | None = None
+    for m in candidates:
+        payload = {"model": m, "input": input_obj, "parameters": params}
+        try:
+            resp = _http("POST", url, body=payload,
+                         extra_headers={"X-DashScope-Async": "enable"})
+        except HappyHorseError as e:
+            # 模型不可用 / 无权限 → 试下一个
+            txt = str(e).lower()
+            if any(k in txt for k in ("model", "permission", "not support",
+                                       "not found", "noaccessperm")):
+                _log.warning("t2i model=%s rejected: %s; try next", m, e)
+                last_err = e
+                continue
+            raise
+        out = resp.get("output") or {}
+        tid = out.get("task_id")
+        if not tid:
+            last_err = HappyHorseError(
+                None, f"submit_t2i: missing task_id in response: {resp}",
+                request_id=resp.get("request_id", ""))
+            continue
+        _log.info("dashscope t2i submit task_id=%s model=%s", tid, m)
+        return str(tid), m
+    raise last_err or HappyHorseError(None, "all t2i model candidates failed")
+
+
+def query_t2i_first_url(task_id: str) -> str:
+    """查询 t2i 任务；成功且有 result 时返回第一张图的 URL，否则返回空串。"""
+    out = query(task_id)
+    status = (out.get("task_status") or "").upper()
+    if status != STATUS_SUCCEEDED:
+        return ""
+    results = out.get("results") or []
+    if not results:
+        return ""
+    first = results[0] or {}
+    return first.get("url") or ""
 
 
 def is_terminal(status: str) -> bool:
@@ -193,10 +267,12 @@ __all__ = [
     "HappyHorseError",
     "is_configured",
     "submit_i2v",
+    "submit_t2i",
     "query",
+    "query_t2i_first_url",
     "is_terminal",
     "is_success",
     "STATUS_PENDING", "STATUS_RUNNING", "STATUS_SUCCEEDED",
     "STATUS_FAILED", "STATUS_CANCELED", "STATUS_UNKNOWN",
-    "MODEL_I2V",
+    "MODEL_I2V", "T2I_MODEL_CANDIDATES",
 ]

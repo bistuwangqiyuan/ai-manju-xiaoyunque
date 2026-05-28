@@ -44,12 +44,34 @@ GENRE = "ancient"
 RESOLUTION = os.environ.get("HH_RESOLUTION", "720P")
 DURATION = int(os.environ.get("HH_DURATION", "15"))
 SEED = int(os.environ.get("HH_SEED", "42420528"))
+T2I_SEED = int(os.environ.get("HH_T2I_SEED", "20260528"))
 COVER_FRAME_T = float(os.environ.get("HH_COVER_T", "7.0"))  # 15s 视频取中段更具代表性
+T2I_SIZE = os.environ.get("HH_T2I_SIZE", "720*1280")  # 9:16 竖屏与 i2v 一致
 
-# 首帧：选用现有古风男子样片作为视觉起点，prompt 驱动汉末三国意境
-FIRST_FRAME_URL = (
+# 首帧：由 t2i 实时生成（汉末曹操军中大帐场景），上传 COS 后作为 i2v 输入
+# 若已有 `firstframe.jpg` 本地缓存 + 未设 FORCE_T2I=1，则跳过 t2i 复用旧首帧
+DEFAULT_FALLBACK_FIRST_FRAME = (
     "https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com/"
     "samples/nie03_yan_chixia.jpg"
+)
+T2I_FIRST_FRAME_PROMPT = (
+    "汉末三国时期，曹操军中大帐内景，深夜，烛火摇曳。\n"
+    "画面左侧主位：曹操，约四十岁，髡发束冠，浓眉锐目，神色沉郁；\n"
+    "  身披玄黑色金边精铁甲胄（鱼鳞甲片清晰），披风暗红色绣金虎纹；\n"
+    "  端坐于黑漆案几之后，左手按膝、右手扶剑柄。\n"
+    "画面右侧客位：荀彧，约三十出头，头戴玄色文士进贤冠，面容俊朗，\n"
+    "  五绺长须，眉清目秀；身着月白色丝绸长袍、青玉腰带；\n"
+    "  跪坐于竹席之上，双手捧一卷竹简，目光坚定地望向曹操。\n"
+    "背景：帐内悬挂大幅虎纹军旗，青铜九枝灯台烛火明亮，\n"
+    "  地铺青色竹席，案几上散放竹简与一柄环首刀。\n"
+    "构图：9:16 竖屏，全景含两人完整身体，电影感对称构图。\n"
+    "风格：古风3D国漫、电影级光影，墨黑/暖橙烛光/月白为主色调，\n"
+    "  质感细腻：发丝、铠甲鳞片、布料纹理、烛火光晕清晰可辨，\n"
+    "  面部表情自然有神，无变形无走样，整体沉稳大气。"
+)
+T2I_NEGATIVE_PROMPT = (
+    "现代服装, 西装, 眼镜, 卡通风格, 模糊, 低分辨率, 变形, 多手指, 多人头, "
+    "畸形脸, 水印, 文字, logo, 中国结, 太多装饰"
 )
 
 # 三幕式 prompt（每幕 ~5s）以最大化 15s 内的视觉信息密度
@@ -69,12 +91,70 @@ PROMPT = (
 )
 
 
-def submit() -> str:
+def gen_first_frame() -> tuple[Path, str]:
+    """先用 DashScope WanX 文生图生成一张「汉末曹操军中大帐」首帧。
+
+    成功后下载到本地、上传到 COS，返回 (本地 jpg path, 公网 url)。
+    若 t2i 失败，则回退到 DEFAULT_FALLBACK_FIRST_FRAME（远端 URL，本地 path 返回 None）。
+    """
+    ff_local = SAMPLES_DIR / f"{SLUG}_firstframe.jpg"
+    cos_url = (
+        f"https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com/"
+        f"samples/{ff_local.name}"
+    )
+    if ff_local.exists() and os.environ.get("FORCE_T2I") != "1":
+        print(f"[0a] 复用首帧缓存：{ff_local}（如需重新生成请设 FORCE_T2I=1）")
+        return ff_local, cos_url
+    print(f"[0a] 提交 DashScope WanX 文生图（{T2I_SIZE}, seed={T2I_SEED}）")
+    print(f"     prompt[:80] = {T2I_FIRST_FRAME_PROMPT[:80].replace(chr(10), ' ')}…")
+    try:
+        tid, used_model = hh.submit_t2i(
+            T2I_FIRST_FRAME_PROMPT,
+            size=T2I_SIZE, n=1, seed=T2I_SEED,
+            negative_prompt=T2I_NEGATIVE_PROMPT,
+        )
+    except hh.HappyHorseError as e:
+        print(f"     [WARN] 文生图提交失败：{e}；回退到默认首帧")
+        return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+    print(f"     task_id={tid} model={used_model}")
+    print(f"[0b] 轮询文生图（最多 240s）")
+    start = time.time()
+    img_url = ""
+    while time.time() - start < 240:
+        out = hh.query(tid)
+        status = (out.get("task_status") or "").upper()
+        if status == hh.STATUS_SUCCEEDED:
+            results = out.get("results") or []
+            img_url = (results[0] or {}).get("url") if results else ""
+            if not img_url:
+                print(f"     [WARN] SUCCEEDED 但 url 为空：{out}")
+                return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+            print(f"     ok t={int(time.time()-start)}s url[:90]={img_url[:90]}")
+            break
+        if status in hh.TERMINAL_FAIL:
+            print(f"     [WARN] terminal={status} msg={out.get('message') or out.get('code')}")
+            return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+        print(f"     [{int(time.time()-start):>3}s] status={status}")
+        time.sleep(8)
+    if not img_url:
+        print(f"     [WARN] t2i 超时，回退")
+        return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+    print(f"[0c] 下载首帧 → {ff_local}")
+    ff_local.parent.mkdir(parents=True, exist_ok=True)
+    with urllib.request.urlopen(img_url, timeout=120) as resp, open(ff_local, "wb") as f:
+        shutil.copyfileobj(resp, f)
+    print(f"     saved {ff_local.stat().st_size / 1024:.1f} KB")
+    print(f"[0d] 上传首帧到 COS：samples/{ff_local.name}")
+    upload_to_cos([ff_local])
+    return ff_local, cos_url
+
+
+def submit(first_frame_url: str) -> str:
     print(f"[1] 提交 HappyHorse i2v 任务")
-    print(f"    first_frame = {FIRST_FRAME_URL}")
+    print(f"    first_frame = {first_frame_url}")
     print(f"    resolution  = {RESOLUTION}  duration = {DURATION}s  seed = {SEED}")
     print(f"    prompt[:80] = {PROMPT[:80].replace(chr(10), ' ')}…")
-    tid = hh.submit_i2v(FIRST_FRAME_URL, PROMPT,
+    tid = hh.submit_i2v(first_frame_url, PROMPT,
                         resolution=RESOLUTION, duration=DURATION,
                         watermark=False, seed=SEED)
     print(f"    task_id     = {tid}")
@@ -131,9 +211,9 @@ def extract_cover(mp4: Path, cover: Path) -> bool:
     return True
 
 
-def reuse_first_frame_as_cover(cover: Path) -> None:
+def reuse_first_frame_as_cover_remote(url: str, cover: Path) -> None:
     print(f"[4b] 下载首帧作为封面 → {cover}")
-    with urllib.request.urlopen(FIRST_FRAME_URL, timeout=60) as resp, open(cover, "wb") as f:
+    with urllib.request.urlopen(url, timeout=60) as resp, open(cover, "wb") as f:
         shutil.copyfileobj(resp, f)
 
 
@@ -181,12 +261,23 @@ def main() -> int:
 
     if mp4.exists() and os.environ.get("FORCE") != "1":
         print(f"[skip-gen] {mp4} 已存在，跳过生成；如需重新生成请设 FORCE=1")
+        first_frame_local = SAMPLES_DIR / f"{SLUG}_firstframe.jpg"
+        first_frame_url = (
+            f"https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com/"
+            f"samples/{first_frame_local.name}"
+            if first_frame_local.exists() else DEFAULT_FALLBACK_FIRST_FRAME
+        )
     else:
-        tid = submit()
+        first_frame_local, first_frame_url = gen_first_frame()
+        tid = submit(first_frame_url)
         url = poll(tid, timeout_s=900)
         download(url, mp4)
         if not extract_cover(mp4, jpg):
-            reuse_first_frame_as_cover(jpg)
+            print(f"     [fallback] 改用首帧图作为封面")
+            if first_frame_local.exists():
+                shutil.copyfile(first_frame_local, jpg)
+            else:
+                reuse_first_frame_as_cover_remote(first_frame_url, jpg)
 
     upload_to_cos([mp4, jpg])
 
