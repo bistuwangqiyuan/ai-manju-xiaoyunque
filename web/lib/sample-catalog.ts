@@ -11,8 +11,8 @@ export const OFFICIAL_SAMPLES: GalleryItem[] = [
     "subtitle": "汉末 196 年 · 30s · 720P · 真人写实",
     "genre": "ancient",
     "style": "cinema_realism",
-    "video_url": "/samples/xunyu_yingxiandi.mp4?v=202605290013",
-    "cover_url": "/samples/xunyu_yingxiandi.jpg?v=202605290013",
+    "video_url": "/samples/xunyu_yingxiandi.mp4?v=202605290921",
+    "cover_url": "/samples/xunyu_yingxiandi.jpg?v=202605290921",
     "quality_score": 96,
     "episodes": 1,
     "author_label": "官方示例 · HappyHorse 真实生成 · 30s"

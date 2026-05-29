@@ -934,7 +934,8 @@ def _to_visual_style(style: str) -> str:
         return "2D, 赛璐璐, 半厚涂"
     if s in {"3d", "ancient_3d_guoman", "3d_anime"}:
         return "3D, CG动画, 国风"
-    if s in {"real", "real_life", "live_action", "cinematic"}:
+    if s in {"real", "real_life", "live_action", "cinematic",
+             "cinema_realism", "realistic", "live-action"}:
         return "真人写实, 电影风格, 冷色调"
     # default — keep most "古风" aesthetic for the project
     return "3D, CG动画, 国风"

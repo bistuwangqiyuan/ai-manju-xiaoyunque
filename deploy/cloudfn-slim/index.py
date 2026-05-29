@@ -32,6 +32,38 @@ SIGNUP_BONUS_CENTS = 10000
 MOCK_RENDER_SECONDS = 25
 
 
+def _pipeline_health() -> dict:
+    """报告真实视频管线是否就绪（供运维 / E2E 脚本判断，避免误用 mock 示例视频）。"""
+    real_module = real_jobs is not None
+    manju_ok = cos_ok = hh_ok = real_on = False
+    if real_module:
+        try:
+            import manju_client  # type: ignore[import-not-found]
+            import cos_kv  # type: ignore[import-not-found]
+            import happyhorse_client as hh  # type: ignore[import-not-found]
+            manju_ok = manju_client.is_configured()
+            cos_ok = cos_kv.is_configured()
+            hh_ok = hh.is_configured()
+            real_on = real_jobs.is_real_mode_enabled()
+        except Exception as e:  # noqa: BLE001
+            _log.warning("_pipeline_health probe failed: %s", e)
+    return {
+        "status": "ok",
+        "real_video_mode": real_on,
+        "mock_worker": not real_on,
+        "real_jobs_module": real_module,
+        "manju_configured": manju_ok,
+        "cos_configured": cos_ok,
+        "happyhorse_configured": hh_ok,
+        "mock_billing": True,
+        "hint": (
+            "真实管线已就绪" if real_on
+            else "真实管线未就绪：需 REAL_VIDEO_MODE=manju + 火山 AK/SK + COS_BUCKET + SCF 注入的腾讯云密钥"
+            + ("；建议配置 HAPPYHORSE_API_KEY 作为限流备用" if not hh_ok else "")
+        ),
+    }
+
+
 def _user_id(email: str) -> int:
     """Deterministic user id derived from email (stateless auth)."""
     h = hashlib.sha256(email.lower().strip().encode("utf-8")).digest()
@@ -718,7 +750,7 @@ def _route(event: dict) -> dict[str, Any]:
     _init_db()
 
     if path.endswith("/health") or path.endswith("/healthz"):
-        return _response(200, {"status": "ok", "mock_worker": True, "mock_billing": True})
+        return _response(200, _pipeline_health())
 
     if re.match(r"^/genres/?$", path) and method == "GET":
         return _response(200, _GENRES)
@@ -876,68 +908,39 @@ def _route(event: dict) -> dict[str, Any]:
                 return _response(400, {"detail": "小说片段至少 50 字"})
             novel_text = excerpt
 
-        if real_jobs is not None and real_jobs.is_real_mode_enabled():
-            try:
-                state = real_jobs.create_job(
-                    user_id=uid, user_email=email,
-                    novel_excerpt=novel_text,
-                    title=body.get("title") or "未命名漫剧",
-                    style=body.get("style") or "ancient_3d_guoman",
-                    genre=body.get("genre") or "ancient",
-                    language=body.get("language") or "Chinese",
-                    episodes=episodes,
-                    aspect_ratio=body.get("aspect_ratio") or "9:16",
-                    mode=mode,
-                    theme=body.get("theme"),
-                    cost_cents=cost,
-                )
-                view = real_jobs.to_job_view(state)
-                if state.get("status") == "failed":
-                    return _response(502, {"detail": state.get("error") or "submit failed",
-                                           "job": view})
-                return _response(201, view)
-            except Exception as e:  # noqa: BLE001
-                _log.exception("real_jobs.create_job failed; falling back to mock")
-                return _response(502, {"detail": f"火山 Agent 提交失败：{e}"})
-
-        now = time.time()
-        job_id = int(now)  # time-encoded id → stateless lookup
-        # Also persist in /tmp for the (lucky) hits to the same instance — lists, logs.
-        try:
-            conn = sqlite3.connect(_DB)
-            conn.execute(
-                "INSERT OR REPLACE INTO jobs(id, user_id, title, novel_excerpt, style, episodes, cost_cents, genre, mode, "
-                "theme, language, status, progress, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?, ?)",
-                (
-                    job_id, uid,
-                    body.get("title") or "未命名漫剧",
-                    novel_text,
-                    body.get("style") or "ancient_3d_guoman",
-                    episodes, cost,
-                    body.get("genre") or "ancient",
-                    mode, body.get("theme"),
-                    body.get("language") or "Chinese",
-                    now, now,
+        if real_jobs is None or not real_jobs.is_real_mode_enabled():
+            h = _pipeline_health()
+            return _response(503, {
+                "detail": (
+                    "真实视频生成管线未就绪，无法创建任务。"
+                    "请管理员在 SCF 配置 REAL_VIDEO_MODE=manju、火山 VOLC_ACCESS_KEY/SECRET_KEY、"
+                    "COS_BUCKET/COS_REGION，以及 HAPPYHORSE_API_KEY（限流备用）。"
                 ),
+                "pipeline": h,
+            })
+
+        try:
+            state = real_jobs.create_job(
+                user_id=uid, user_email=email,
+                novel_excerpt=novel_text,
+                title=body.get("title") or "未命名漫剧",
+                style=body.get("style") or "ancient_3d_guoman",
+                genre=body.get("genre") or "ancient",
+                language=body.get("language") or "Chinese",
+                episodes=episodes,
+                aspect_ratio=body.get("aspect_ratio") or "9:16",
+                mode=mode,
+                theme=body.get("theme"),
+                cost_cents=cost,
             )
-            _add_log(conn, job_id, "INFO", f"[worker] pull job #{job_id} '{body.get('title') or '未命名漫剧'}' ({episodes} 集)")
-            _add_log(conn, job_id, "INFO", "[Step1] [shell1_script] 剧本拆解与分镜规划")
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass
-        synth = _synth_job_from_id(job_id, uid) or {}
-        synth["title"] = body.get("title") or "未命名漫剧"
-        synth["novel_excerpt"] = novel_text
-        synth["style"] = body.get("style") or "ancient_3d_guoman"
-        synth["episodes"] = episodes
-        synth["cost_cents"] = cost
-        synth["genre"] = body.get("genre") or "ancient"
-        synth["mode"] = mode
-        synth["theme"] = body.get("theme")
-        synth["language"] = body.get("language") or "Chinese"
-        return _response(201, synth)
+            view = real_jobs.to_job_view(state)
+            if state.get("status") == "failed":
+                return _response(502, {"detail": state.get("error") or "submit failed",
+                                       "job": view})
+            return _response(201, view)
+        except Exception as e:  # noqa: BLE001
+            _log.exception("real_jobs.create_job failed")
+            return _response(502, {"detail": f"真实视频任务提交失败：{e}"})
 
     m = re.match(r"^/jobs/(\d+)/logs$", path)
     if m and method == "GET":
@@ -1176,8 +1179,10 @@ def _route(event: dict) -> dict[str, Any]:
                 if state:
                     state = real_jobs.step(state)
                     return _response(200, real_jobs.to_job_view(state))
+                return _response(404, {"detail": "任务不存在"})
             except Exception as e:  # noqa: BLE001
                 _log.warning("real_jobs step(%s) failed: %s", job_id, e)
+                return _response(500, {"detail": f"真实任务推进失败：{e}"})
 
         conn = sqlite3.connect(_DB)
         conn.row_factory = sqlite3.Row
@@ -1188,9 +1193,6 @@ def _route(event: dict) -> dict[str, Any]:
         seed = _seed_job_by_id(job_id, auth[0], auth[1])
         if seed:
             return _response(200, seed)
-        synth = _synth_job_from_id(job_id, auth[0])
-        if synth:
-            return _response(200, synth)
         return _response(404, {"detail": "任务不存在"})
 
     if path.endswith("/billing/checkout") and method == "POST":
