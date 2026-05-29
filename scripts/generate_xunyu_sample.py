@@ -39,12 +39,26 @@ SLUG = "xunyu_yingxiandi"
 TITLE = "荀彧劝曹操迎献帝"
 GENRE = "ancient"
 
+_SEED_MAX = 4294967290  # DashScope/HappyHorse 要求 seed ∈ [0, 4294967290]
+
+
+def _clamp_seed(raw: str | int, default: int) -> int:
+    """把任意输入折叠进合法 uint32 seed 区间，避免越界导致接口报错后静默回退。"""
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        v = default
+    if v < 0:
+        v = -v
+    return v % (_SEED_MAX + 1)
+
+
 # 生成参数（默认 30s 真人写实；HappyHorse 单次最长 15s，>15s 自动两段拼接）
 RESOLUTION = os.environ.get("HH_RESOLUTION", "720P")
 DURATION = int(os.environ.get("HH_DURATION", "30"))
-SEED = int(os.environ.get("HH_SEED", "42420528"))
-SEED2 = int(os.environ.get("HH_SEED2", "42420529"))  # 第 2 段不同 seed 避免重复运动
-T2I_SEED = int(os.environ.get("HH_T2I_SEED", "202605291230"))  # 每次新样片请改 seed 以生成不同首帧
+SEED = _clamp_seed(os.environ.get("HH_SEED", "42420528"), 42420528)
+SEED2 = _clamp_seed(os.environ.get("HH_SEED2", "42420529"), 42420529)  # 第 2 段不同 seed 避免重复运动
+T2I_SEED = _clamp_seed(os.environ.get("HH_T2I_SEED", "1230290528"), 1230290528)  # 每次新样片请改 seed 以生成不同首帧
 COVER_FRAME_T = float(os.environ.get("HH_COVER_T", "14.0"))  # 30s 视频取中段更具代表性
 T2I_SIZE = os.environ.get("HH_T2I_SIZE", "720*1280")  # 9:16 竖屏与 i2v 一致
 SEGMENT_MAX = 15  # HappyHorse i2v 单次时长上限
@@ -117,11 +131,22 @@ PROMPT_SEG2 = (
 )
 
 
+def _t2i_fallback(ff_local: Path) -> tuple[Path, str]:
+    """t2i 失败时的回退。FORCE_T2I=1（真人写实新样片）下必须用真实生成，
+    回退到旧国漫首帧会污染画风，因此直接报错；否则才回退默认首帧。"""
+    if os.environ.get("FORCE_T2I") == "1":
+        raise RuntimeError(
+            "t2i 首帧生成失败，且 FORCE_T2I=1 要求必须新生成首帧——"
+            "拒绝回退到旧国漫首帧。请检查 seed/网络后重试。"
+        )
+    return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+
+
 def gen_first_frame() -> tuple[Path, str]:
     """先用 DashScope WanX 文生图生成一张「汉末曹操军中大帐」首帧。
 
     成功后下载到本地、上传到 COS，返回 (本地 jpg path, 公网 url)。
-    若 t2i 失败，则回退到 DEFAULT_FALLBACK_FIRST_FRAME（远端 URL，本地 path 返回 None）。
+    若 t2i 失败：FORCE_T2I=1 时直接抛错（避免用错风格旧帧冒充）；否则回退默认首帧。
     """
     ff_local = SAMPLES_DIR / f"{SLUG}_firstframe.jpg"
     cos_url = (
@@ -140,31 +165,36 @@ def gen_first_frame() -> tuple[Path, str]:
             negative_prompt=T2I_NEGATIVE_PROMPT,
         )
     except hh.HappyHorseError as e:
-        print(f"     [WARN] 文生图提交失败：{e}；回退到默认首帧")
-        return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+        print(f"     [WARN] 文生图提交失败：{e}")
+        return _t2i_fallback(ff_local)
     print(f"     task_id={tid} model={used_model}")
     print(f"[0b] 轮询文生图（最多 240s）")
     start = time.time()
     img_url = ""
     while time.time() - start < 240:
-        out = hh.query(tid)
+        try:
+            out = hh.query(tid)
+        except hh.HappyHorseError as e:
+            print(f"     [{int(time.time()-start):>3}s] 查询瞬时错误，重试：{str(e)[:60]}")
+            time.sleep(8)
+            continue
         status = (out.get("task_status") or "").upper()
         if status == hh.STATUS_SUCCEEDED:
             results = out.get("results") or []
             img_url = (results[0] or {}).get("url") if results else ""
             if not img_url:
                 print(f"     [WARN] SUCCEEDED 但 url 为空：{out}")
-                return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+                return _t2i_fallback(ff_local)
             print(f"     ok t={int(time.time()-start)}s url[:90]={img_url[:90]}")
             break
         if status in hh.TERMINAL_FAIL:
             print(f"     [WARN] terminal={status} msg={out.get('message') or out.get('code')}")
-            return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+            return _t2i_fallback(ff_local)
         print(f"     [{int(time.time()-start):>3}s] status={status}")
         time.sleep(8)
     if not img_url:
-        print(f"     [WARN] t2i 超时，回退")
-        return ff_local, DEFAULT_FALLBACK_FIRST_FRAME
+        print(f"     [WARN] t2i 超时")
+        return _t2i_fallback(ff_local)
     print(f"[0c] 下载首帧 → {ff_local}")
     ff_local.parent.mkdir(parents=True, exist_ok=True)
     _download_with_retry(img_url, ff_local, attempts=5, label="firstframe")
@@ -193,7 +223,12 @@ def poll(task_id: str, timeout_s: int = 900) -> str:
     start = time.time()
     last_status = ""
     while time.time() - start < timeout_s:
-        out = hh.query(task_id)
+        try:
+            out = hh.query(task_id)
+        except hh.HappyHorseError as e:
+            print(f"    [{int(time.time()-start):>3}s] 查询瞬时错误，重试：{str(e)[:60]}")
+            time.sleep(15)
+            continue
         status = (out.get("task_status") or "").upper()
         if status != last_status:
             elapsed = int(time.time() - start)
