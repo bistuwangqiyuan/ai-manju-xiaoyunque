@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import pathlib
 import sys
+import time
+import urllib.error
 import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
@@ -12,18 +14,27 @@ BASE = "https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com"
 MIN_MP4_BYTES = 2_000_000
 
 
-def _fetch(url: str, *, method: str = "GET", nbytes: int = 0) -> tuple[int, int, dict]:
+def _fetch(url: str, *, method: str = "GET", nbytes: int = 0,
+           retries: int = 4) -> tuple[int, int, dict]:
+    """带指数退避的取数：CloudBase CDN 偶发 TLS EOF / RemoteDisconnected，
+    单次失败不代表资源缺失，需重试后再判定。"""
     headers = {"Cache-Control": "no-cache", "User-Agent": "xyq-verify-samples/1.0"}
     if method == "GET" and nbytes > 0:
         headers["Range"] = f"bytes=0-{nbytes - 1}"
     req = urllib.request.Request(url, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
-            data = resp.read() if method == "GET" else b""
-            hdrs = {k.lower(): v for k, v in resp.headers.items()}
-            return resp.status, len(data), hdrs
-    except Exception as exc:
-        return 0, 0, {"error": str(exc)}
+    last_err = ""
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                data = resp.read() if method == "GET" else b""
+                hdrs = {k.lower(): v for k, v in resp.headers.items()}
+                return resp.status, len(data), hdrs
+        except urllib.error.HTTPError as exc:  # 真·HTTP 错误（404 等），不重试
+            return exc.code, 0, {"error": str(exc)}
+        except Exception as exc:  # 网络/TLS 瞬时错误，重试
+            last_err = str(exc)
+            time.sleep(2 + 2 * attempt)
+    return 0, 0, {"error": last_err}
 
 
 def main() -> int:
