@@ -1,0 +1,30 @@
+{
+  "passed": 6,
+  "total": 6,
+  "results": {
+    "health": {
+      "ok": true,
+      "detail": "all green"
+    },
+    "domestic": {
+      "ok": true,
+      "detail": "  - 静态托管: 腾讯云 CloudBase 静态托管\n  - 视频生成(主): 火山引擎 即梦/小云雀 Manju Agent\n  - 视频生成(备): 阿里云百炼 通义万相 / 快乐马 i2v\n  - 首帧文生图: 阿里云百炼 通义万相 T2I\n\n================================================================\n审计结果: 全部国产 ✓\n================================================================"
+    },
+    "gallery": {
+      "ok": true,
+      "detail": "ok mp4=21338980B cover=120072B"
+    },
+    "guest_e2e": {
+      "ok": true,
+      "detail": "  [OK] quota.tier=free — free\n  [OK] quota.credits_cents=10000 — 10000\n  [OK] quota.free_daily_limit=20 — 20\n\n== 6. Homepage advertises new free quota (每天 20 集) ==\n  [OK] homepage contains free-20 copy — present=True\n\n== ALL GREEN =="
+    },
+    "samples": {
+      "ok": true,
+      "detail": "  [PASS] GET /samples/xiyou01_immortal_stone.mp4 �� status=200 bytes=3113293\n  [PASS] GET /samples/xiyou01_immortal_stone.jpg �� status=200\n  [PASS] GET /samples/real05_moon_corridor.mp4 �� status=200 bytes=3027382\n  [PASS] GET /samples/real05_moon_corridor.jpg �� status=200\n  [PASS] GET /samples/real06_spirit_hook.mp4 �� status=200 bytes=3164084\n  [PASS] GET /samples/real06_spirit_hook.jpg �� status=200\nTOTAL: 17 PASS / 0 FAIL\nReport: D:\\project\\cursor\\dev\\ai-manju-xiaoyunque\\data\\observability\\samples_showcase_verify.json"
+    },
+    "fallback_unit": {
+      "ok": true,
+      "detail": ""
+    }
+  }
+}

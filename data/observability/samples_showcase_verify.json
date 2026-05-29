@@ -1,6 +1,6 @@
 {
   "base_url": "https://cursoraicode-5g67ezfl8a1891da-1300352403.tcloudbaseapp.com",
-  "passed": 15,
+  "passed": 17,
   "failed": 0,
   "checks": [
     {
@@ -11,12 +11,22 @@
     {
       "name": "showcase page content",
       "ok": true,
-      "detail": "html_len=23989"
+      "detail": "html_len=25871"
     },
     {
       "name": "GET /samples/catalog.json",
       "ok": true,
-      "detail": "status=200 size=2896"
+      "detail": "status=200 size=3482"
+    },
+    {
+      "name": "GET /samples/xunyu_yingxiandi.mp4?v=202605291015",
+      "ok": true,
+      "detail": "status=200 bytes=21338980"
+    },
+    {
+      "name": "GET /samples/xunyu_yingxiandi.jpg?v=202605291015",
+      "ok": true,
+      "detail": "status=200"
     },
     {
       "name": "GET /samples/nie01_lanruosi.mp4",
