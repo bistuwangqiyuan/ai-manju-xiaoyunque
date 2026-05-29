@@ -299,6 +299,204 @@ _LIBRARY_WARDROBE = [
     {"key": "monkey_armor", "name_zh": "虎皮裙 + 紫金冠", "description": "美猴王封王后标配 + 藕丝步云履"},
 ]
 
+# ---------------------------------------------------------------------------
+# 用户上传的数字资产（角色模板 / 场景模板）—— 持久化到对象存储 COS
+#   元数据 JSON: library_assets/{user_id}/{kind}/{asset_id}.json
+#   图片二进制 : library_assets/{user_id}/{kind}/{asset_id}.{ext}（public-read）
+# 设计为无状态：跨 SCF 实例共享，登录/访客用户都能上传到自己的命名空间。
+# ---------------------------------------------------------------------------
+_ASSET_KINDS = {"characters", "scenes"}
+_MAX_ASSET_IMAGE_BYTES = 5 * 1024 * 1024  # 5MB 上限，避免超出网关同步包体
+_IMAGE_EXT_BY_MIME = {
+    "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+    "image/webp": "webp", "image/gif": "gif",
+}
+_ASSET_IMG_EXTS = ("jpg", "jpeg", "png", "webp", "gif")
+
+
+def _cos_kv_or_none():
+    """返回已配置的 cos_kv 模块；未配置/不可用时返回 None。"""
+    try:
+        import cos_kv  # type: ignore[import-not-found]
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        return cos_kv if cos_kv.is_configured() else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _asset_prefix(user_id: int, kind: str) -> str:
+    return f"library_assets/{int(user_id)}/{kind}/"
+
+
+def _decode_data_url(image_b64: str) -> tuple[bytes, str] | None:
+    """接受 data URL（data:image/png;base64,xxx）或裸 base64，返回 (bytes, mime)。"""
+    if not image_b64:
+        return None
+    mime = "image/png"
+    raw = image_b64.strip()
+    if raw.startswith("data:"):
+        try:
+            head, b64 = raw.split(",", 1)
+            mime = (head[5:].split(";", 1)[0] or mime).strip()
+            raw = b64
+        except ValueError:
+            return None
+    try:
+        data = base64.b64decode(raw, validate=False)
+    except Exception:  # noqa: BLE001
+        return None
+    if not data:
+        return None
+    return data, mime.lower()
+
+
+def _upload_asset_image(cos, user_id: int, kind: str, asset_id: str,
+                        image_b64: str) -> str | None:
+    decoded = _decode_data_url(image_b64)
+    if not decoded:
+        return None
+    data, mime = decoded
+    if len(data) > _MAX_ASSET_IMAGE_BYTES:
+        raise ValueError(f"图片过大（{len(data) // 1024}KB），上限 5MB")
+    ext = _IMAGE_EXT_BY_MIME.get(mime, "png")
+    key = f"{_asset_prefix(user_id, kind)}{asset_id}.{ext}"
+    return cos.put_bytes(key, data, content_type=mime, public=True)
+
+
+def _norm_str_list(value) -> list[str]:
+    if isinstance(value, str):
+        return [s.strip() for s in value.replace(",", "\n").splitlines() if s.strip()]
+    if isinstance(value, list):
+        return [str(s).strip() for s in value if str(s).strip()]
+    return []
+
+
+def _list_user_assets(user_id: int, kind: str) -> list[dict]:
+    cos = _cos_kv_or_none()
+    if cos is None:
+        return []
+    try:
+        keys = cos.list_keys_under(_asset_prefix(user_id, kind), max_keys=200)
+    except Exception as e:  # noqa: BLE001
+        _log.warning("list_user_assets(%s,%s) failed: %s", user_id, kind, e)
+        return []
+    out: list[dict] = []
+    for k in keys:
+        if not k.endswith(".json"):
+            continue
+        try:
+            rec = cos.get_json(k)
+        except Exception:  # noqa: BLE001
+            rec = None
+        if isinstance(rec, dict):
+            out.append(rec)
+    out.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+    return out
+
+
+def _create_user_character(user_id: int, body: dict) -> dict:
+    cos = _cos_kv_or_none()
+    if cos is None:
+        raise RuntimeError("对象存储未配置，暂不能上传角色模板（需 COS_BUCKET + 凭证）")
+    name = (body.get("name_zh") or body.get("name") or "").strip()
+    if not name:
+        raise ValueError("角色名称（name_zh）必填")
+    asset_id = "u" + secrets.token_hex(6)
+    char_id = f"user_{int(user_id)}_{asset_id}"
+    image_url = (body.get("canonical_image_url") or "").strip() or None
+    img_b64 = body.get("image_base64") or body.get("image") or ""
+    if img_b64:
+        image_url = _upload_asset_image(cos, user_id, "characters", asset_id, img_b64) or image_url
+    age = body.get("age")
+    try:
+        age = int(age) if age not in (None, "") else None
+    except (TypeError, ValueError):
+        age = None
+    rec = {
+        "char_id": char_id,
+        "name_zh": name,
+        "role": (body.get("role") or "自定义角色").strip(),
+        "age": age,
+        "canonical_image_url": image_url,
+        "signature_marks": _norm_str_list(body.get("signature_marks"))[:8],
+        "voice": (body.get("voice") or "").strip(),
+        "source": "user",
+        "owner_id": int(user_id),
+        "created_at": _now_iso(),
+    }
+    cos.put_json(f"{_asset_prefix(user_id, 'characters')}{asset_id}.json", rec)
+    return rec
+
+
+def _create_user_scene(user_id: int, body: dict) -> dict:
+    cos = _cos_kv_or_none()
+    if cos is None:
+        raise RuntimeError("对象存储未配置，暂不能上传场景模板（需 COS_BUCKET + 凭证）")
+    name = (body.get("name_zh") or body.get("name") or "").strip()
+    if not name:
+        raise ValueError("场景名称（name_zh）必填")
+    asset_id = "u" + secrets.token_hex(6)
+    sid = f"user_{int(user_id)}_{asset_id}"
+    image_url = (body.get("preview_cover_url") or "").strip() or None
+    img_b64 = body.get("image_base64") or body.get("image") or ""
+    if img_b64:
+        image_url = _upload_asset_image(cos, user_id, "scenes", asset_id, img_b64) or image_url
+    rec = {
+        "id": sid,
+        "category": (body.get("category") or "自定义").strip(),
+        "name_zh": name,
+        "description": (body.get("description") or "").strip(),
+        "keywords": _norm_str_list(body.get("keywords"))[:12],
+        "preview_cover_url": image_url,
+        "source": "user",
+        "owner_id": int(user_id),
+        "created_at": _now_iso(),
+    }
+    cos.put_json(f"{_asset_prefix(user_id, 'scenes')}{asset_id}.json", rec)
+    return rec
+
+
+def _delete_user_asset(user_id: int, kind: str, asset_key: str) -> bool:
+    """删除用户自己上传的资产（asset_key = char_id 或 scene id），仅限本人命名空间。"""
+    cos = _cos_kv_or_none()
+    if cos is None:
+        return False
+    owner_prefix = f"user_{int(user_id)}_"
+    if not asset_key.startswith(owner_prefix):
+        return False  # 内置资产或他人资产，禁止删除
+    asset_id = asset_key[len(owner_prefix):]
+    json_key = f"{_asset_prefix(user_id, kind)}{asset_id}.json"
+    try:
+        rec = cos.get_json(json_key)
+    except Exception:  # noqa: BLE001
+        rec = None
+    if rec is None:
+        return False
+    try:
+        cos.delete_key(json_key)
+    except Exception:  # noqa: BLE001
+        pass
+    for ext in _ASSET_IMG_EXTS:
+        ik = f"{_asset_prefix(user_id, kind)}{asset_id}.{ext}"
+        try:
+            cos.delete_key(ik)
+        except Exception:  # noqa: BLE001
+            pass
+    return True
+
+
+def _optional_user_id(hdrs: dict[str, str]) -> int | None:
+    payload = _decode_token(hdrs.get("authorization", ""))
+    if not payload:
+        return None
+    try:
+        return int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 # ---- 测试账号种子数据（无状态，按 user_id+slot 派生固定 job_id） ----
 TEST_SEED_EMAILS = {"test1@139.com", "test2@139.com"}
 
@@ -1215,11 +1413,27 @@ def _route(event: dict) -> dict[str, Any]:
         return _response(200, _user_out((auth[0], auth[1], new_credits, "pro")))
 
     if path == "/library/characters" and method == "GET":
-        return _response(200, _LIBRARY_CHARACTERS)
+        uid = _optional_user_id(hdrs)
+        merged = list(_LIBRARY_CHARACTERS)
+        if uid is not None:
+            merged = _list_user_assets(uid, "characters") + merged
+        return _response(200, merged)
+    if path == "/library/characters" and method == "POST":
+        auth = _require_user(hdrs)
+        if isinstance(auth, dict):
+            return auth
+        try:
+            rec = _create_user_character(auth[0], body)
+        except ValueError as e:
+            return _response(400, {"detail": str(e)})
+        except Exception as e:  # noqa: BLE001
+            _log.warning("create_user_character failed: %s", e)
+            return _response(500, {"detail": f"上传失败：{e}"})
+        return _response(201, rec)
     if path == "/library/scenes" and method == "GET":
         cat = ""
         try:
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import parse_qs
             qs_raw = event.get("queryString") or event.get("queryStringParameters") or ""
             if isinstance(qs_raw, dict):
                 cat = (qs_raw.get("category") or "").strip()
@@ -1228,9 +1442,25 @@ def _route(event: dict) -> dict[str, Any]:
                 cat = (qs.get("category", [""])[0] or "").strip()
         except Exception:  # noqa: BLE001
             cat = ""
+        uid = _optional_user_id(hdrs)
+        merged = list(_LIBRARY_SCENES)
+        if uid is not None:
+            merged = _list_user_assets(uid, "scenes") + merged
         if cat:
-            return _response(200, [s for s in _LIBRARY_SCENES if s.get("category") == cat])
-        return _response(200, _LIBRARY_SCENES)
+            return _response(200, [s for s in merged if s.get("category") == cat])
+        return _response(200, merged)
+    if path == "/library/scenes" and method == "POST":
+        auth = _require_user(hdrs)
+        if isinstance(auth, dict):
+            return auth
+        try:
+            rec = _create_user_scene(auth[0], body)
+        except ValueError as e:
+            return _response(400, {"detail": str(e)})
+        except Exception as e:  # noqa: BLE001
+            _log.warning("create_user_scene failed: %s", e)
+            return _response(500, {"detail": f"上传失败：{e}"})
+        return _response(201, rec)
     if path == "/library/expressions" and method == "GET":
         return _response(200, _LIBRARY_EXPRESSIONS)
     if path == "/library/actions" and method == "GET":
@@ -1238,17 +1468,35 @@ def _route(event: dict) -> dict[str, Any]:
     if path == "/library/wardrobe" and method == "GET":
         return _response(200, _LIBRARY_WARDROBE)
     m = re.match(r"^/library/characters/([^/]+)$", path)
+    if m and method == "DELETE":
+        auth = _require_user(hdrs)
+        if isinstance(auth, dict):
+            return auth
+        if _delete_user_asset(auth[0], "characters", m.group(1)):
+            return _response(200, {"deleted": True, "char_id": m.group(1)})
+        return _response(404, {"detail": "角色不存在或无权删除（仅可删除本人上传的模板）"})
     if m and method == "GET":
         cid = m.group(1)
-        for c in _LIBRARY_CHARACTERS:
-            if c["char_id"] == cid:
+        uid = _optional_user_id(hdrs)
+        pool = (_list_user_assets(uid, "characters") if uid is not None else []) + _LIBRARY_CHARACTERS
+        for c in pool:
+            if c.get("char_id") == cid:
                 return _response(200, c)
         return _response(404, {"detail": "character 不存在"})
     m = re.match(r"^/library/scenes/([^/]+)$", path)
+    if m and method == "DELETE":
+        auth = _require_user(hdrs)
+        if isinstance(auth, dict):
+            return auth
+        if _delete_user_asset(auth[0], "scenes", m.group(1)):
+            return _response(200, {"deleted": True, "id": m.group(1)})
+        return _response(404, {"detail": "场景不存在或无权删除（仅可删除本人上传的模板）"})
     if m and method == "GET":
         sid = m.group(1)
-        for s in _LIBRARY_SCENES:
-            if s["id"] == sid:
+        uid = _optional_user_id(hdrs)
+        pool = (_list_user_assets(uid, "scenes") if uid is not None else []) + _LIBRARY_SCENES
+        for s in pool:
+            if s.get("id") == sid:
                 return _response(200, s)
         return _response(404, {"detail": "scene 不存在"})
 

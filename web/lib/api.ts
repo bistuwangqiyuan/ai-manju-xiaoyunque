@@ -309,10 +309,41 @@ export const api = {
   listLibraryCharacters: () => request<any[]>('/library/characters'),
   getLibraryCharacter: (charId: string) =>
     request<any>(`/library/characters/${charId}`),
+  uploadLibraryCharacter: (payload: {
+    name_zh: string;
+    role?: string;
+    age?: number | null;
+    voice?: string;
+    signature_marks?: string[];
+    image_base64?: string | null;
+  }) =>
+    request<any>('/library/characters', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  deleteLibraryCharacter: (charId: string) =>
+    request<{ deleted: boolean }>(`/library/characters/${encodeURIComponent(charId)}`, {
+      method: 'DELETE',
+    }),
   listLibraryScenes: (category?: string) =>
     request<any[]>(`/library/scenes${category ? `?category=${encodeURIComponent(category)}` : ''}`),
   getLibraryScene: (sceneId: string) =>
     request<any>(`/library/scenes/${sceneId}`),
+  uploadLibraryScene: (payload: {
+    name_zh: string;
+    category?: string;
+    description?: string;
+    keywords?: string[];
+    image_base64?: string | null;
+  }) =>
+    request<any>('/library/scenes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  deleteLibraryScene: (sceneId: string) =>
+    request<{ deleted: boolean }>(`/library/scenes/${encodeURIComponent(sceneId)}`, {
+      method: 'DELETE',
+    }),
   listExpressionKeys: () => request<any[]>('/library/expressions'),
   listActionKeys: () => request<any[]>('/library/actions'),
   listWardrobeKeys: () => request<any[]>('/library/wardrobe'),
