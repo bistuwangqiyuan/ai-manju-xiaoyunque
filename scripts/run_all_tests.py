@@ -143,8 +143,13 @@ def test_fallback_unit() -> tuple[bool, str]:
     return _run_script("scripts/verify_fallback_revive.py", timeout=120)
 
 
+def test_domestic() -> tuple[bool, str]:
+    return _run_script("scripts/verify_domestic_stack.py", timeout=120)
+
+
 TESTS = {
     "health": test_health,
+    "domestic": test_domestic,
     "gallery": test_gallery,
     "guest_e2e": test_guest_e2e,
     "samples": test_samples,

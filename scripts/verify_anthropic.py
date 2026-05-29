@@ -1,4 +1,9 @@
-"""验证 .env 配置的 Anthropic API（含 pure100.org 等第三方代理）端到端可用.
+"""[非国产 / 不参与上线测试] 验证 .env 配置的 Anthropic API 端到端可用.
+
+⚠️ 国产化说明：本脚本面向境外 Anthropic/Claude，**仅供未部署的 src/ 全量管线
+本地调试**。上线的无服务器系统（deploy/cloudfn-slim）不含任何境外 AI 依赖，
+其测试由 scripts/run_all_tests.py + scripts/verify_domestic_stack.py 覆盖，
+**不**调用本脚本。请勿将其加入 run_all_tests 或上线流程。
 
 测试 3 个路径:
 1. curl 路径(命令行)

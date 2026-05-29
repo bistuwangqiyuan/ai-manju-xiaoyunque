@@ -36,8 +36,15 @@ SAMPLES_DIR = ROOT / "web" / "public" / "samples"
 CFN_SAMPLES_DIR = ROOT / "cloudfunctions" / "xyq-api" / "web" / "public" / "samples"
 SLIM_SCF_DIR = ROOT / "deploy" / "cloudfn-slim"
 SLUG = "xunyu_yingxiandi"
-TITLE = "荀彧劝曹操迎献帝"
+TITLE = "荀彧劝曹操·奉天子以令诸侯"
 GENRE = "ancient"
+
+# 质量门禁阈值（仅当全部满足才上传 + 入示例）
+GATE_MIN_BYTES = int(os.environ.get("GATE_MIN_BYTES", "8000000"))  # ≥8MB
+GATE_EXPECT_W = 720
+GATE_EXPECT_H = 1280
+GATE_DURATION_TOL = float(os.environ.get("GATE_DURATION_TOL", "3.0"))  # 时长 ±3s
+GATE_MIN_FIRSTFRAME_BYTES = 100_000  # 新首帧应 ≥100KB
 
 _SEED_MAX = 4294967290  # DashScope/HappyHorse 要求 seed ∈ [0, 4294967290]
 
@@ -392,6 +399,57 @@ def upload_to_cos(local_paths: list[Path]) -> None:
         print(f"    OK {key} ({len(data)/1024:.1f} KB)")
 
 
+def _ffprobe_dims_duration(mp4: Path) -> tuple[int, int, float] | None:
+    """返回 (width, height, duration_s)，ffprobe 不可用或失败返回 None。"""
+    if shutil.which("ffprobe") is None:
+        return None
+    cmd = [
+        "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=width,height", "-show_entries", "format=duration",
+        "-of", "json", str(mp4),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        return None
+    try:
+        data = json.loads(proc.stdout)
+        st = (data.get("streams") or [{}])[0]
+        w = int(st.get("width") or 0)
+        h = int(st.get("height") or 0)
+        dur = float((data.get("format") or {}).get("duration") or 0.0)
+        return w, h, dur
+    except (json.JSONDecodeError, ValueError, IndexError):
+        return None
+
+
+def validate_quality(mp4: Path, jpg: Path, first_frame_local: Path,
+                     *, target_duration: int) -> tuple[bool, str]:
+    """质量门禁：文件大小 / 分辨率 / 时长 / 封面 / 新首帧，全部满足才算成功。"""
+    problems: list[str] = []
+    if not mp4.exists():
+        return False, "mp4 不存在"
+    size = mp4.stat().st_size
+    if size < GATE_MIN_BYTES:
+        problems.append(f"mp4 过小 {size/1024/1024:.2f}MB < {GATE_MIN_BYTES/1024/1024:.0f}MB")
+    probe = _ffprobe_dims_duration(mp4)
+    if probe is None:
+        problems.append("ffprobe 不可用/解析失败，无法核验分辨率与时长")
+    else:
+        w, h, dur = probe
+        if not (w == GATE_EXPECT_W and h == GATE_EXPECT_H):
+            problems.append(f"分辨率 {w}x{h} ≠ {GATE_EXPECT_W}x{GATE_EXPECT_H}")
+        if abs(dur - target_duration) > GATE_DURATION_TOL:
+            problems.append(f"时长 {dur:.1f}s 偏离目标 {target_duration}s±{GATE_DURATION_TOL:.0f}s")
+    if not jpg.exists() or jpg.stat().st_size < 5_000:
+        problems.append("封面缺失/过小")
+    if not first_frame_local.exists() or first_frame_local.stat().st_size < GATE_MIN_FIRSTFRAME_BYTES:
+        problems.append("新首帧缺失/过小（疑似未真正新生成）")
+    if problems:
+        return False, "; ".join(problems)
+    w, h, dur = probe  # type: ignore[misc]
+    return True, f"{w}x{h} {dur:.1f}s {size/1024/1024:.2f}MB 首帧{first_frame_local.stat().st_size/1024:.0f}KB"
+
+
 def update_catalog(catalog_path: Path, sample: dict) -> None:
     if not catalog_path.exists():
         print(f"    [skip] {catalog_path} 不存在")
@@ -462,6 +520,14 @@ def main() -> int:
                 shutil.copyfile(first_frame_local, jpg)
             else:
                 reuse_first_frame_as_cover_remote(first_frame_url, jpg)
+
+    # ---- 质量门禁：不通过则不上传、不入示例（保留现有样片）----
+    gate_ok, gate_detail = validate_quality(
+        mp4, jpg, first_frame_local, target_duration=DURATION)
+    print(f"[gate] 质量门禁：{'PASS' if gate_ok else 'FAIL'} — {gate_detail}")
+    if not gate_ok:
+        print("[gate] 未通过质量门禁：不上传、不更新 catalog/示例（保留现有示例视频）。")
+        return 3
 
     upload_to_cos([mp4, jpg])
 

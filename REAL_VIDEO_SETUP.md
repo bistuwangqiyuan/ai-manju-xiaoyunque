@@ -2,6 +2,24 @@
 
 用户创建任务时，**只有**在 SCF 云函数 `xyq-api` 开启真实管线后，才会走火山 Manju Agent / HappyHorse，**不会**再静默返回首页示例视频。
 
+## 国产化无服务器架构（已确认全国产）
+
+上线系统采用**全国产 + 无服务器（Serverless）**方案，无任何境外 AI/云依赖：
+
+| 环节 | 国产服务 |
+|------|----------|
+| 无服务器运行时 | 腾讯云 CloudBase 云函数 SCF（`xyq-api`，Event 型） |
+| 对象存储 / 任务状态 | 腾讯云 COS |
+| 静态托管（前端） | 腾讯云 CloudBase 静态托管 |
+| 视频生成（主） | 火山引擎 即梦 / 小云雀 Manju Agent |
+| 视频生成（备） | 阿里云百炼 通义万相 / 快乐马 i2v（限流/50500 自动切换） |
+| 首帧文生图 | 阿里云百炼 通义万相 T2I |
+
+审计脚本：`python scripts/verify_domestic_stack.py`（已并入 `run_all_tests.py` 的 `domestic` 用例），
+会扫描 `deploy/cloudfn-slim/*.py` 确保无 Anthropic/OpenAI/Gemini 等境外依赖，并核对线上 `/api/health` 与托管域名。
+
+> 注：`scripts/verify_anthropic.py` 等境外引用仅存在于**未部署**的 `src/` 全量管线本地调试，不参与上线测试。
+
 ## 判断是否已开启
 
 ```bash
